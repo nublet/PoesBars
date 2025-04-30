@@ -1,0 +1,16 @@
+## Interface: 110007
+## Title: PoesBars
+## Description: Organizes abilities and buffs
+## Notes: Organizes abilities and buffs
+## Author: Poesboi
+## Credits: 
+## Version: 25.0.4.104
+## RequiredDeps: Blizzard_Professions
+## SavedVariables: SettingsDB, SpellsDB
+
+Data.lua
+Helpers.lua
+Settings.lua
+Spells.lua
+
+PoesBars.lua
