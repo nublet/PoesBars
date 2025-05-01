@@ -143,11 +143,14 @@ function addon:FrameRestore(name, parentFrame)
     if name == "Unknown" then
         parentFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
     else
-        local settingTable = SettingsDB[name] or {}
+        local settingsTable = SettingsDB[name] or {}
+        local anchor = settingsTable.anchor or "CENTER"
+        local x = settingsTable.x or 0
+        local y = settingsTable.y or 0
 
         parentFrame:ClearAllPoints()
-        if settingTable.anchor and settingTable.anchor ~= "" then
-            parentFrame:SetPoint(settingTable.anchor, UIParent, "CENTER", settingTable.x, settingTable.y)
+        if anchor and anchor ~= "" then
+            parentFrame:SetPoint(anchor, UIParent, "CENTER", x, y)
         else
             parentFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
         end

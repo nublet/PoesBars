@@ -3,7 +3,7 @@ local controlsToClear = {}
 local mainFrame
 local mainScrollFrame
 local mainScrollFrameChild
-local iconSize = 36
+local settingIconSize = 36
 local radioAnchors = {}
 local radioOrientation = {}
 local yOffset = 0
@@ -27,9 +27,9 @@ local function CreateButton(addToTable, label, parent, width, onClick)
 	return result
 end
 
-local function CreateCheckbox(addToTable, isChecked, label, parent, onClick)
+local function CreateCheckbox(addToTable, label, parent, onClick)
 	local result = CreateFrame("CheckButton", nil, parent, "InterfaceOptionsCheckButtonTemplate")
-	result:SetChecked(isChecked)
+	result:SetChecked(false)
 	result:SetScript("OnClick", onClick)
 	result.Text:SetText(label)
 
@@ -52,15 +52,10 @@ local function CreateDropdown(addToTable, parent, width)
 	return result
 end
 
-local function CreateInput(addToTable, parent, value, width, onEnterPressed)
+local function CreateInput(addToTable, parent, width, onEnterPressed)
 	local result = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
 	result:SetAutoFocus(false)
 	result:SetSize(width, 20)
-	if value then
-		result:SetText(value)
-	else
-		result:SetText("")
-	end
 
 	result:SetScript("OnEnterPressed", onEnterPressed)
 
@@ -85,11 +80,9 @@ local function CreateLabel(addToTable, parent, text, width)
 	return result
 end
 
-local function CreateRadioButton(addToTable, parent, radioGroup, radioValue, text, onClick)
-	radioValue = radioValue or ""
-
+local function CreateRadioButton(addToTable, parent, radioGroup, text, onClick)
 	local result = CreateFrame("CheckButton", nil, parent, "UIRadioButtonTemplate")
-	result:SetChecked(text:lower() == radioValue:lower())
+	result:SetChecked(false)
 	result:SetScript("OnClick", onClick)
 	result.text:SetText(text)
 
@@ -115,7 +108,7 @@ local function CreateOptionLine(category, itemID, specID, spellID)
 
 	local spellIcon = mainScrollFrameChild:CreateTexture(nil, "ARTWORK")
 	spellIcon:SetPoint("TOPLEFT", 10, yOffset)
-	spellIcon:SetSize(iconSize, iconSize)
+	spellIcon:SetSize(settingIconSize, settingIconSize)
 
 	local categoryValue = SpellsDB[specID][settingName]
 	if not categoryValue or categoryValue == "" then
@@ -199,7 +192,7 @@ local function CreateOptionLine(category, itemID, specID, spellID)
 	local dropdownCategory = CreateDropdown(false, mainScrollFrameChild, 120)
 	dropdownCategory:SetPoint("LEFT", textName, "RIGHT", 10, 0)
 
-	local inputCategory = CreateInput(false, mainScrollFrameChild, "", 120)
+	local inputCategory = CreateInput(false, mainScrollFrameChild, 120)
 	inputCategory:Hide()
 	inputCategory:SetPoint("LEFT", dropdownCategory, "RIGHT", 10, 0)
 
@@ -250,7 +243,7 @@ local function CreateOptionLine(category, itemID, specID, spellID)
 		UIDropDownMenu_SetText(dropdownCategory, "<Select>")
 	end
 
-	yOffset = yOffset - iconSize - 10
+	yOffset = yOffset - settingIconSize - 10
 end
 
 local function ProcessSpell(category, specID, spellIndex)
@@ -275,19 +268,29 @@ local function ProcessSpell(category, specID, spellIndex)
 end
 
 function addon:CreateSettings()
-	mainFrame = CreateFrame("Frame", addonName.."SettingsFrame",UIParent)
+	mainFrame = CreateFrame("Frame", addonName .. "SettingsFrame", UIParent)
 	mainFrame.name = addonName
 
-	local showGlobalSweep = CreateCheckbox(false, SettingsDB.showGlobalSweep, "Show GCD Sweep", mainFrame,
+	local showGlobalSweep = CreateCheckbox(false, "Show GCD Sweep", mainFrame,
 		function(frame)
 			SettingsDB.showGlobalSweep = frame:GetChecked()
 		end)
 	showGlobalSweep:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 10, -10)
+	if SettingsDB.showGlobalSweep then
+		showGlobalSweep:SetChecked(true)
+	else
+		showGlobalSweep:SetChecked(false)
+	end
 
-	local isLocked = CreateCheckbox(false, SettingsDB.isLocked, "Lock Groups", mainFrame, function(frame)
+	local isLocked = CreateCheckbox(false, "Lock Groups", mainFrame, function(frame)
 		SettingsDB.isLocked = frame:GetChecked()
 	end)
 	isLocked:SetPoint("TOPLEFT", showGlobalSweep, "BOTTOMLEFT", 0, -10)
+	if SettingsDB.isLocked then
+		isLocked:SetChecked(true)
+	else
+		isLocked:SetChecked(false)
+	end
 
 	local categoryLabel = CreateLabel(false, mainFrame, "Category:", 100)
 	categoryLabel:SetPoint("TOPLEFT", isLocked, "BOTTOMLEFT", 0, -10)
@@ -295,7 +298,7 @@ function addon:CreateSettings()
 	local categoryDropdown = CreateDropdown(false, mainFrame, 120)
 	categoryDropdown:SetPoint("LEFT", categoryLabel, "RIGHT", 10, 0)
 
-	local categoryInput = CreateInput(false, mainFrame, "", 120)
+	local categoryInput = CreateInput(false, mainFrame, 120)
 	categoryInput:Hide()
 	categoryInput:SetPoint("LEFT", categoryDropdown, "RIGHT", 10, 0)
 
@@ -354,7 +357,17 @@ function addon:CreateSettings()
 					UIDropDownMenu_SetSelectedName(categoryDropdown, category)
 
 					if category ~= "Ignored" and category ~= "Unknown" then
-						local settingTable = SettingsDB[category] or {}
+						local settingsTable = SettingsDB[category] or {}
+						local anchor = settingsTable.anchor or "CENTER"
+						local iconSize = settingsTable.iconSize or 64
+						local iconSpacing = settingsTable.iconSpacing or 2
+						local isVertical = settingsTable.isVertical or false
+						local wrapAfter = settingsTable.wrapAfter or 0
+						local x = settingsTable.x or 0
+						local y = settingsTable.y or 0
+
+						x = math.floor(settingsTable.x + 0.5)
+						y = math.floor(settingsTable.y + 0.5)
 
 						local categoryDelete = CreateButton(true, "Delete", mainFrame, 60, function(control)
 							if category == "" or category == "Ignored" or category == "Other..." or category == "Unknown" then
@@ -376,78 +389,90 @@ function addon:CreateSettings()
 						local iconSizeLabel = CreateLabel(true, mainFrame, "Icon Size:", 100)
 						iconSizeLabel:SetPoint("TOPLEFT", categoryLabel, "BOTTOMLEFT", 0, -10)
 
-						local iconSizeInput = CreateInput(true, mainFrame, settingTable.iconSize or 64, 40,
-							function(control)
-								local value = strtrim(control:GetText())
-								if value ~= "" then
-									settingTable.iconSize = tonumber(value)
-								end
-							end)
+						local iconSizeInput = CreateInput(true, mainFrame, 40, function(control)
+							local value = strtrim(control:GetText())
+							if value ~= "" then
+								settingsTable.iconSize = tonumber(value)
+							end
+						end)
 						iconSizeInput:SetNumeric(true)
 						iconSizeInput:SetPoint("LEFT", iconSizeLabel, "RIGHT", 10, 0)
+						iconSizeInput:SetText(tostring(iconSize))
 
 						local positionXLabel = CreateLabel(true, mainFrame, "X:", 100)
 						positionXLabel:SetPoint("LEFT", iconSizeInput, "RIGHT", 10, 0)
 
-						local positionXInput = CreateInput(true, mainFrame, settingTable.x or 0, 40,
-							function(control)
-								local value = strtrim(control:GetText())
-								if value ~= "" then
-									settingTable.x = tonumber(value)
-								end
-							end)
+						local positionXInput = CreateInput(true, mainFrame, 40, function(control)
+							local value = strtrim(control:GetText())
+							if value ~= "" then
+								settingsTable.x = tonumber(value)
+							end
+						end)
 						positionXInput:SetNumeric(true)
 						positionXInput:SetPoint("LEFT", positionXLabel, "RIGHT", 10, 0)
+						positionXInput:SetText(tostring(x))
 
 						local iconSpacingLabel = CreateLabel(true, mainFrame, "Icon Spacing:", 100)
 						iconSpacingLabel:SetPoint("TOPLEFT", iconSizeLabel, "BOTTOMLEFT", 0, -10)
 
-						local iconSpacingInput = CreateInput(true, mainFrame, settingTable.iconSpacing or 2, 40,
-							function(control)
-								local value = strtrim(control:GetText())
-								if value ~= "" then
-									settingTable.iconSpacing = tonumber(value)
-								end
-							end)
+						local iconSpacingInput = CreateInput(true, mainFrame, 40, function(control)
+							local value = strtrim(control:GetText())
+							if value ~= "" then
+								settingsTable.iconSpacing = tonumber(value)
+							end
+						end)
 						iconSpacingInput:SetNumeric(true)
 						iconSpacingInput:SetPoint("LEFT", iconSpacingLabel, "RIGHT", 10, 0)
+						iconSpacingInput:SetText(tostring(iconSpacing))
 
 						local positionYLabel = CreateLabel(true, mainFrame, "Y:", 100)
 						positionYLabel:SetPoint("LEFT", iconSpacingInput, "RIGHT", 10, 0)
 
-						local positionYInput = CreateInput(true, mainFrame, settingTable.y or 0, 40,
-							function(control)
-								local value = strtrim(control:GetText())
-								if value ~= "" then
-									settingTable.y = tonumber(value)
-								end
-							end)
+						local positionYInput = CreateInput(true, mainFrame, 40, function(control)
+							local value = strtrim(control:GetText())
+							if value ~= "" then
+								settingsTable.y = tonumber(value)
+							end
+						end)
 						positionYInput:SetNumeric(true)
 						positionYInput:SetPoint("LEFT", positionYLabel, "RIGHT", 10, 0)
+						positionYInput:SetText(tostring(y))
+
+						local wrapAfterLabel = CreateLabel(true, mainFrame, "Wrap After:", 100)
+						wrapAfterLabel:SetPoint("TOPLEFT", iconSpacingLabel, "BOTTOMLEFT", 0, -10)
+
+						local wrapAfterInput = CreateInput(true, mainFrame, 40, function(control)
+							local value = strtrim(control:GetText())
+							if value ~= "" then
+								settingsTable.wrapAfter = tonumber(value)
+							end
+						end)
+						wrapAfterInput:SetNumeric(true)
+						wrapAfterInput:SetPoint("LEFT", wrapAfterLabel, "RIGHT", 10, 0)
+						wrapAfterInput:SetText(tostring(wrapAfter))
 
 						local orientationLabel = CreateLabel(true, mainFrame, "Orientation:", 100)
-						orientationLabel:SetPoint("TOPLEFT", iconSpacingLabel, "BOTTOMLEFT", 0, -10)
+						orientationLabel:SetPoint("TOPLEFT", wrapAfterLabel, "BOTTOMLEFT", 0, -10)
 
-						local orientationHorizontal = CreateRadioButton(true, mainFrame, radioOrientation, "",
-							"Horizontal",
+						local orientationHorizontal = CreateRadioButton(true, mainFrame, radioOrientation, "Horizontal",
 							function(control)
 								ClearRadios(radioOrientation)
 								control:SetChecked(true)
 
-								settingTable.isVertical = false
+								settingsTable.isVertical = false
 							end)
 						orientationHorizontal:SetPoint("LEFT", orientationLabel, "RIGHT", 10, 0)
 
-						local orientationVertical = CreateRadioButton(true, mainFrame, radioOrientation, "", "Vertical",
+						local orientationVertical = CreateRadioButton(true, mainFrame, radioOrientation, "Vertical",
 							function(control)
 								ClearRadios(radioOrientation)
 								control:SetChecked(true)
 
-								settingTable.isVertical = true
+								settingsTable.isVertical = true
 							end)
 						orientationVertical:SetPoint("LEFT", orientationHorizontal, "RIGHT", 110, 0)
 
-						if settingTable.isVertical then
+						if isVertical then
 							orientationHorizontal:SetChecked(false)
 							orientationVertical:SetChecked(true)
 						else
@@ -458,91 +483,107 @@ function addon:CreateSettings()
 						local anchorLabel = CreateLabel(true, mainFrame, "Anchor:", 100)
 						anchorLabel:SetPoint("TOPLEFT", orientationLabel, "BOTTOMLEFT", 0, -10)
 
-						local anchorTopLeft = CreateRadioButton(true, mainFrame, radioAnchors, settingTable.anchor,
-							"Top Left",
+						local anchorTopLeft = CreateRadioButton(true, mainFrame, radioAnchors, "Top Left",
 							function(control)
 								ClearRadios(radioAnchors)
 								control:SetChecked(true)
 
-								settingTable.anchor = "TOPLEFT"
+								settingsTable.anchor = "TOPLEFT"
 							end)
 						anchorTopLeft:SetPoint("LEFT", anchorLabel, "RIGHT", 10, 0)
 
-						local anchorTop = CreateRadioButton(true, mainFrame, radioAnchors, settingTable.anchor, "Top",
+						local anchorTop = CreateRadioButton(true, mainFrame, radioAnchors, "Top",
 							function(control)
 								ClearRadios(radioAnchors)
 								control:SetChecked(true)
 
-								settingTable.anchor = "TOP"
+								settingsTable.anchor = "TOP"
 							end)
 						anchorTop:SetPoint("LEFT", anchorTopLeft, "RIGHT", 110, 0)
 
-						local anchorTopRight = CreateRadioButton(true, mainFrame, radioAnchors, settingTable.anchor,
-							"Top Right",
+						local anchorTopRight = CreateRadioButton(true, mainFrame, radioAnchors, "Top Right",
 							function(control)
 								ClearRadios(radioAnchors)
 								control:SetChecked(true)
 
-								settingTable.anchor = "TOPRIGHT"
+								settingsTable.anchor = "TOPRIGHT"
 							end)
 						anchorTopRight:SetPoint("LEFT", anchorTop, "RIGHT", 110, 0)
 
-						local anchorLeft = CreateRadioButton(true, mainFrame, radioAnchors, settingTable.anchor, "Left",
+						local anchorLeft = CreateRadioButton(true, mainFrame, radioAnchors, "Left",
 							function(control)
 								ClearRadios(radioAnchors)
 								control:SetChecked(true)
 
-								settingTable.anchor = "LEFT"
+								settingsTable.anchor = "LEFT"
 							end)
 						anchorLeft:SetPoint("TOPLEFT", anchorTopLeft, "BOTTOMLEFT", 0, -10)
 
-						local anchorCenter = CreateRadioButton(true, mainFrame, radioAnchors, settingTable.anchor,
+						local anchorCenter = CreateRadioButton(true, mainFrame, radioAnchors,
 							"Center",
 							function(control)
 								ClearRadios(radioAnchors)
 								control:SetChecked(true)
 
-								settingTable.anchor = "CENTER"
+								settingsTable.anchor = "CENTER"
 							end)
 						anchorCenter:SetPoint("LEFT", anchorLeft, "RIGHT", 110, 0)
 
-						local anchorRight = CreateRadioButton(true, mainFrame, radioAnchors, settingTable.anchor, "Right",
+						local anchorRight = CreateRadioButton(true, mainFrame, radioAnchors, "Right",
 							function(control)
 								ClearRadios(radioAnchors)
 								control:SetChecked(true)
 
-								settingTable.anchor = "RIGHT"
+								settingsTable.anchor = "RIGHT"
 							end)
 						anchorRight:SetPoint("LEFT", anchorCenter, "RIGHT", 110, 0)
 
-						local anchorBottomLeft = CreateRadioButton(true, mainFrame, radioAnchors, settingTable.anchor,
-							"Bottom Left", function(control)
+						local anchorBottomLeft = CreateRadioButton(true, mainFrame, radioAnchors, "Bottom Left",
+							function(control)
 								ClearRadios(radioAnchors)
 								control:SetChecked(true)
 
-								settingTable.anchor = "BOTTOMLEFT"
+								settingsTable.anchor = "BOTTOMLEFT"
 							end)
 						anchorBottomLeft:SetPoint("TOPLEFT", anchorLeft, "BOTTOMLEFT", 0, -10)
 
-						local anchorBottom = CreateRadioButton(true, mainFrame, radioAnchors, settingTable.anchor,
-							"Bottom",
+						local anchorBottom = CreateRadioButton(true, mainFrame, radioAnchors, "Bottom",
 							function(control)
 								ClearRadios(radioAnchors)
 								control:SetChecked(true)
 
-								settingTable.anchor = "BOTTOM"
+								settingsTable.anchor = "BOTTOM"
 							end)
 						anchorBottom:SetPoint("LEFT", anchorBottomLeft, "RIGHT", 110, 0)
 
-						local anchorBottomRight = CreateRadioButton(true, mainFrame, radioAnchors, settingTable.anchor,
-							"Bottom Right",
+						local anchorBottomRight = CreateRadioButton(true, mainFrame, radioAnchors, "Bottom Right",
 							function(control)
 								ClearRadios(radioAnchors)
 								control:SetChecked(true)
 
-								settingTable.anchor = "BOTTOMRIGHT"
+								settingsTable.anchor = "BOTTOMRIGHT"
 							end)
 						anchorBottomRight:SetPoint("LEFT", anchorBottom, "RIGHT", 110, 0)
+
+						if anchor == "TOPLEFT" then
+							anchorTopLeft:SetChecked(true)
+						elseif anchor == "TOPRIGHT" then
+							anchorTopRight:SetChecked(true)
+						elseif anchor == "TOP" then
+							anchorTop:SetChecked(true)
+						elseif anchor == "BOTTOMLEFT" then
+							anchorBottomLeft:SetChecked(true)
+						elseif anchor == "BOTTOMRIGHT" then
+							anchorBottomRight:SetChecked(true)
+						elseif anchor == "BOTTOM" then
+							anchorBottom:SetChecked(true)
+						elseif anchor == "LEFT" then
+							anchorLeft:SetChecked(true)
+						elseif anchor == "RIGHT" then
+							anchorRight:SetChecked(true)
+						else
+							anchorCenter:SetChecked(true)
+						end
 
 						mainScrollFrame:SetPoint("TOPLEFT", anchorLabel, "BOTTOMLEFT", 0, -80)
 					else
@@ -617,6 +658,10 @@ function addon:CreateSettings()
 		addItem("")
 		addItem("Ignored")
 		addItem("Other...")
+
+		table.sort(SettingsDB.validCategories, function(a, b)
+			return a < b
+		end)
 
 		for _, option in ipairs(SettingsDB.validCategories) do
 			addItem(option)

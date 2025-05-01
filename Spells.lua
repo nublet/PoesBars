@@ -195,6 +195,7 @@ local function IconCreate(itemID, specID, spellID)
     iconFrame.cooldownFrame = cooldownFrame
     iconFrame.cooldownText = cooldownText
     iconFrame.currentSpellID = spellID
+    iconFrame.iconName = newName
     iconFrame.itemID = itemID
     iconFrame.spellCooldown = spellCooldown
     iconFrame.spellIcon = spellIcon
@@ -315,7 +316,7 @@ local function IconUpdate(gcdCooldown, frame, name)
                 frame.spellIcon:SetTexture(spellInfo.iconID)
 
                 if currentSpellID == frame.spellID then
-                    ActionButton_HideOverlayGlow(frame)                    
+                    ActionButton_HideOverlayGlow(frame)
                 else
                     ActionButton_ShowOverlayGlow(frame)
                 end
@@ -425,33 +426,49 @@ local function RefreshIconFrames(name, parentFrame)
         return
     end
 
-    local settingTable = SettingsDB[name] or {}
-    if not settingTable.anchor or settingTable.anchor == "" then
-        settingTable.anchor = "CENTER"
-    end
-    if not tonumber(settingTable.iconSize) then
-        settingTable.iconSize = 64
-    end
-    if not tonumber(settingTable.iconSpacing) then
-        settingTable.iconSpacing = 2
-    end
-
+    local settingsTable = SettingsDB[name] or {}
+    local anchor = settingsTable.anchor or "CENTER"
+    local iconSize = settingsTable.iconSize or 64
+    local iconSpacing = settingsTable.iconSpacing or 2
+    local isVertical = settingsTable.isVertical or false
     local reverseSort = true
-    if settingTable.isVertical then
-        if settingTable.anchor == "BOTTOM" or settingTable.anchor == "BOTTOMLEFT" or settingTable.anchor == "BOTTOMRIGHT" then
+    local wrapAfter = settingsTable.wrapAfter or 0
+        
+    if isVertical then
+        if anchor == "BOTTOM" or anchor == "BOTTOMLEFT" or anchor == "BOTTOMRIGHT" then
             reverseSort = false
         end
     else
-        if settingTable.anchor == "BOTTOMRIGHT" or settingTable.anchor == "RIGHT" or settingTable.anchor == "TOPRIGHT" then
+        if anchor == "BOTTOMRIGHT" or anchor == "RIGHT" or anchor == "TOPRIGHT" then
             reverseSort = false
         end
     end
 
     table.sort(icons, function(a, b)
+        local function isItemIcon(frame)
+            return frame.itemID > 0
+        end
+
+        if isItemIcon(a) ~= isItemIcon(b) then
+            if reverseSort then
+                return not isItemIcon(a)
+            else
+                return isItemIcon(a)
+            end
+        end
+
+        if a.spellCooldown ~= b.spellCooldown then
+            if reverseSort then
+                return a.spellCooldown > b.spellCooldown
+            else
+                return a.spellCooldown < b.spellCooldown
+            end
+        end
+
         if reverseSort then
-            return a.spellCooldown > b.spellCooldown
+            return a.iconName > b.iconName
         else
-            return a.spellCooldown < b.spellCooldown
+            return a.iconName < b.iconName
         end
     end)
 
@@ -459,31 +476,58 @@ local function RefreshIconFrames(name, parentFrame)
         iconFrame:ClearAllPoints()
         iconFrame:SetParent(parentFrame)
 
-        iconFrame:SetSize(settingTable.iconSize, settingTable.iconSize)
-        iconFrame.spellIcon:SetSize(settingTable.iconSize, settingTable.iconSize)
+        iconFrame:SetSize(iconSize, iconSize)
+        iconFrame.spellIcon:SetAllPoints(iconFrame)
 
         if index == 1 then
             iconFrame:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", 0, 0)
         else
-            local previous = icons[index - 1]
-
-            if settingTable.isVertical then
-                iconFrame:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, settingTable.iconSpacing)
+            local wrapIndex = (wrapAfter > 0) and ((index - 1) % wrapAfter == 0)
+            if wrapIndex then
+                local previousWrap = icons[index - wrapAfter]
+                if isVertical then
+                    iconFrame:SetPoint("TOPLEFT", previousWrap, "TOPRIGHT", iconSpacing, 0)
+                else
+                    iconFrame:SetPoint("TOPLEFT", previousWrap, "BOTTOMLEFT", 0, iconSpacing)
+                end
             else
-                iconFrame:SetPoint("TOPLEFT", previous, "TOPRIGHT", settingTable.iconSpacing, 0)
+                local previous = icons[index - 1]
+                if isVertical then
+                    iconFrame:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, iconSpacing)
+                else
+                    iconFrame:SetPoint("TOPLEFT", previous, "TOPRIGHT", iconSpacing, 0)
+                end
             end
         end
     end
 
     local height, width
     local numIcons = #icons
-    if settingTable.isVertical then
-        width = settingTable.iconSize
-        height = settingTable.iconSize * numIcons + settingTable.iconSpacing * (numIcons - 1)
+
+    if wrapAfter > 0 then
+        if isVertical then
+            local numCols = math.ceil(numIcons / wrapAfter)
+            local numRows = math.min(wrapAfter, numIcons)
+    
+            width = iconSize * numCols + iconSpacing * (numCols - 1)
+            height = iconSize * numRows + iconSpacing * (numRows - 1)
+        else
+            local numRows = math.ceil(numIcons / wrapAfter)
+            local numCols = math.min(wrapAfter, numIcons)
+    
+            width = iconSize * numCols + iconSpacing * (numCols - 1)
+            height = iconSize * numRows + iconSpacing * (numRows - 1)
+        end
     else
-        height = settingTable.iconSize
-        width = settingTable.iconSize * numIcons + settingTable.iconSpacing * (numIcons - 1)
+        if isVertical then
+            height = iconSize * numIcons + iconSpacing * (numIcons - 1)
+            width = iconSize
+        else
+            height = iconSize
+            width = iconSize * numIcons + iconSpacing * (numIcons - 1)
+        end
     end
+
     parentFrame:SetSize(width, height)
 end
 
