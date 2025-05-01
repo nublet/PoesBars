@@ -366,8 +366,8 @@ function addon:CreateSettings()
 						local x = settingsTable.x or 0
 						local y = settingsTable.y or 0
 
-						x = math.floor(settingsTable.x + 0.5)
-						y = math.floor(settingsTable.y + 0.5)
+						x = math.floor(x + 0.5)
+						y = math.floor(y + 0.5)
 
 						local categoryDelete = CreateButton(true, "Delete", mainFrame, 60, function(control)
 							if category == "" or category == "Ignored" or category == "Other..." or category == "Unknown" then
