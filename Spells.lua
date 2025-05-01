@@ -331,7 +331,7 @@ local function IconUpdate(gcdCooldown, frame, name)
                     onCooldown = true
                 end
 
-                if chargeInfo.currentCharges < chargeInfo.maxCharges and chargeInfo.cooldownStartTime and chargeInfo.cooldownDuration and chargeInfo.cooldownDuration > 0 then
+                if chargeInfo.currentCharges < chargeInfo.maxCharges and chargeInfo.cooldownStartTime and chargeInfo.cooldownDuration and chargeInfo.cooldownDuration > 1.5 then
                     local remaining = (chargeInfo.cooldownStartTime + chargeInfo.cooldownDuration) -
                         GetTime()
                     if remaining > 0 then
@@ -346,7 +346,7 @@ local function IconUpdate(gcdCooldown, frame, name)
                 end
             else
                 local spellCooldown = C_Spell.GetSpellCooldown(currentSpellID)
-                if spellCooldown.isEnabled and spellCooldown.duration > 0 then
+                if spellCooldown.isEnabled and spellCooldown.duration > 1.5 then
                     local remaining = (spellCooldown.startTime + spellCooldown.duration) - GetTime()
                     if remaining > 0 then
                         if remaining < 90 then
@@ -377,7 +377,7 @@ local function IconUpdate(gcdCooldown, frame, name)
                 frame.spellIcon:SetDesaturated(false)
             end
 
-            if frame.cooldownFrame then
+            if SettingsDB.showGlobalSweep and frame.cooldownFrame then
                 if gcdCooldown.isEnabled and gcdCooldown.duration > 0 then
                     CooldownFrame_Set(frame.cooldownFrame, gcdCooldown.startTime, gcdCooldown.duration, true)
                 else
@@ -488,8 +488,6 @@ local function RefreshIconFrames(name, parentFrame)
 end
 
 function addon:CreateIcons()
-    print("addon:CreateIcons")
-
     CleanupOldButtons()
 
     local currentSpec = GetSpecialization()

@@ -275,16 +275,13 @@ local function ProcessSpell(category, specID, spellIndex)
 end
 
 function addon:CreateSettings()
-	mainFrame = CreateFrame("Frame", "PoesBarsPanel")
+	mainFrame = CreateFrame("Frame", addonName.."SettingsFrame",UIParent)
 	mainFrame.name = addonName
 
-	local mainFrameCategory, mainFrameLayout = Settings.RegisterCanvasLayoutCategory(mainFrame, mainFrame.name)
-	mainFrameCategory.ID = mainFrameCategory.name
-	Settings.RegisterAddOnCategory(mainFrameCategory)
-
-	local showGlobalSweep = CreateCheckbox(false, SettingsDB.showGlobalSweep, "Show GCD Sweep", mainFrame, function(frame)
-		SettingsDB.showGlobalSweep = frame:GetChecked()
-	end)
+	local showGlobalSweep = CreateCheckbox(false, SettingsDB.showGlobalSweep, "Show GCD Sweep", mainFrame,
+		function(frame)
+			SettingsDB.showGlobalSweep = frame:GetChecked()
+		end)
 	showGlobalSweep:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 10, -10)
 
 	local isLocked = CreateCheckbox(false, SettingsDB.isLocked, "Lock Groups", mainFrame, function(frame)
@@ -596,11 +593,12 @@ function addon:CreateSettings()
 							end
 						end
 					end
-				
+
 					if addon.forcedSpellsByHeroTree[playerSpecID] then
 						local playerHeroTalentSpec = C_ClassTalents.GetActiveHeroTalentSpec()
-				
-						local spells = addon.forcedSpellsByHeroTree[playerSpecID] and addon.forcedSpellsByHeroTree[playerSpecID][playerHeroTalentSpec]
+
+						local spells = addon.forcedSpellsByHeroTree[playerSpecID] and
+							addon.forcedSpellsByHeroTree[playerSpecID][playerHeroTalentSpec]
 						if spells then
 							for _, forcedSpellID in ipairs(spells) do
 								CreateOptionLine(category, -1, playerSpecID, forcedSpellID)
@@ -642,4 +640,8 @@ function addon:CreateSettings()
 	mainFrame:SetScript("OnHide", function(frame)
 		addon:CreateIcons()
 	end)
+
+	local mainCategory, mainLayout = Settings.RegisterCanvasLayoutCategory(mainFrame, mainFrame.name)
+	local registeredCategory = Settings.RegisterAddOnCategory(mainCategory)
+	addon.mainCategory = registeredCategory
 end

@@ -6,8 +6,14 @@ LSM:Register(LSM.MediaType.FONT, "Naowh", [[Interface\AddOns\PoesBars\FONTS\Naow
 	LSM.LOCALE_BIT_ruRU + LSM.LOCALE_BIT_western)
 
 function PoesBarsCommands(msg, editbox)
+	msg = msg:lower():trim()
+
 	if msg == "" then
 		addon:CreateIcons()
+	elseif msg == "config" then
+		C_Timer.After(1, function()
+			Settings.OpenToCategory(addon.mainCategory)
+		end)
 	else
 		print("Unknown Command: ", msg)
 	end
@@ -20,15 +26,13 @@ SlashCmdList["PBC"] = PoesBarsCommands
 local function OnEvent(self, event, ...)
 	if event == "BAG_UPDATE_DELAYED" then
 		if addOnLoaded and not InCombatLockdown() then
-			print("BAG_UPDATE_DELAYED - addon:CreateIcons")
-			addon:Debounce("CreateIcons", 5, function()
+			addon:Debounce("CreateIcons", 1, function()
 				addon:CreateIcons()
 			end)
 		end
 	elseif event == "PLAYER_TALENT_UPDATE" then
 		if addOnLoaded then
-			print("PLAYER_TALENT_UPDATE - addon:CreateIcons")
-			addon:Debounce("CreateIcons", 5, function()
+			addon:Debounce("CreateIcons", 1, function()
 				addon:CreateIcons()
 			end)
 		end
@@ -48,7 +52,6 @@ local function OnEvent(self, event, ...)
 			addon:CreateSettings()
 		end)
 
-		print("VARIABLES_LOADED - addon:CreateIcons")
 		addon:Debounce("CreateIcons", 5, function()
 			addon:CreateIcons()
 		end)
@@ -58,7 +61,7 @@ local function OnEvent(self, event, ...)
 end
 
 local f = CreateFrame("Frame")
-f:RegisterEvent("BAG_UPDATE_DELAYED")
+--f:RegisterEvent("BAG_UPDATE_DELAYED")
 f:RegisterEvent("PLAYER_TALENT_UPDATE")
 f:RegisterEvent("VARIABLES_LOADED")
 f:SetScript("OnEvent", OnEvent)
