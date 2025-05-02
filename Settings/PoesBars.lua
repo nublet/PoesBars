@@ -1,99 +1,10 @@
-﻿local addonName, addon = ...
-local controlsToClear = {}
-local mainFrame
-local mainScrollFrame
-local mainScrollFrameChild
-local settingIconSize = 36
+local addonName, addon = ...
+
 local radioAnchors = {}
 local radioOrientation = {}
+local scrollFrame
+local scrollFrameChild
 local yOffset = 0
-
-local function ClearRadios(radioGroup)
-	for _, b in ipairs(radioGroup) do
-		b:SetChecked(false)
-	end
-end
-
-local function CreateButton(addToTable, label, parent, width, onClick)
-	local result = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-	result:SetScript("OnClick", onClick)
-	result:SetSize(width, 20)
-	result:SetText(label)
-
-	if addToTable then
-		table.insert(controlsToClear, result)
-	end
-
-	return result
-end
-
-local function CreateCheckbox(addToTable, label, parent, onClick)
-	local result = CreateFrame("CheckButton", nil, parent, "InterfaceOptionsCheckButtonTemplate")
-	result:SetChecked(false)
-	result:SetScript("OnClick", onClick)
-	result.Text:SetText(label)
-
-	if addToTable then
-		table.insert(controlsToClear, result)
-	end
-
-	return result
-end
-
-local function CreateDropdown(addToTable, parent, width)
-	local result = CreateFrame("Frame", nil, parent, "UIDropDownMenuTemplate")
-
-	UIDropDownMenu_SetWidth(result, width)
-
-	if addToTable then
-		table.insert(controlsToClear, result)
-	end
-
-	return result
-end
-
-local function CreateInput(addToTable, parent, width, onEnterPressed)
-	local result = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
-	result:SetAutoFocus(false)
-	result:SetSize(width, 20)
-
-	result:SetScript("OnEnterPressed", onEnterPressed)
-
-	if addToTable then
-		table.insert(controlsToClear, result)
-	end
-
-	return result
-end
-
-local function CreateLabel(addToTable, parent, text, width)
-	local result = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	result:SetJustifyH("LEFT")
-	result:SetJustifyV("MIDDLE")
-	result:SetSize(width, 20)
-	result:SetText(text)
-
-	if addToTable then
-		table.insert(controlsToClear, result)
-	end
-
-	return result
-end
-
-local function CreateRadioButton(addToTable, parent, radioGroup, text, onClick)
-	local result = CreateFrame("CheckButton", nil, parent, "UIRadioButtonTemplate")
-	result:SetChecked(false)
-	result:SetScript("OnClick", onClick)
-	result.text:SetText(text)
-
-	table.insert(radioGroup, result)
-
-	if addToTable then
-		table.insert(controlsToClear, result)
-	end
-
-	return result
-end
 
 local function CreateOptionLine(category, itemID, specID, spellID)
 	itemID = itemID or -1
@@ -106,13 +17,13 @@ local function CreateOptionLine(category, itemID, specID, spellID)
 		SpellsDB[specID] = {}
 	end
 
-	local spellIcon = mainScrollFrameChild:CreateTexture(nil, "ARTWORK")
+	local spellIcon = scrollFrameChild:CreateTexture(nil, "ARTWORK")
 	spellIcon:SetPoint("TOPLEFT", 10, yOffset)
-	spellIcon:SetSize(settingIconSize, settingIconSize)
+	spellIcon:SetSize(addon.settingsIconSize, addon.settingsIconSize)
 
 	local categoryValue = SpellsDB[specID][settingName]
 	if not categoryValue or categoryValue == "" then
-		categoryValue = "Unknown"
+		categoryValue = addon.unknown
 	end
 	if category ~= categoryValue then
 		return
@@ -127,7 +38,7 @@ local function CreateOptionLine(category, itemID, specID, spellID)
 			local qualityTier = itemLink:match("|A:Professions%-ChatIcon%-Quality%-Tier(%d+)")
 
 			if qualityTier then
-				local rankText = mainScrollFrameChild:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+				local rankText = scrollFrameChild:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 				rankText:SetFont(rankText:GetFont(), 16, "OUTLINE")
 				rankText:SetPoint("BOTTOMLEFT", spellIcon, "BOTTOMLEFT", 0, -10)
 				rankText:SetShadowColor(0, 0, 0, 1)
@@ -178,7 +89,7 @@ local function CreateOptionLine(category, itemID, specID, spellID)
 
 	spellIcon:SetTexture(newIcon)
 
-	local textID = CreateLabel(false, mainScrollFrameChild, "", 100)
+	local textID = addon:GetControlLabel(false, scrollFrameChild, "", 100)
 	textID:SetPoint("LEFT", spellIcon, "RIGHT", 10, 0)
 	if itemID > 0 then
 		textID:SetText(tostring(itemID))
@@ -186,13 +97,13 @@ local function CreateOptionLine(category, itemID, specID, spellID)
 		textID:SetText(tostring(spellID))
 	end
 
-	local textName = CreateLabel(false, mainScrollFrameChild, newName, 200)
+	local textName = addon:GetControlLabel(false, scrollFrameChild, newName, 200)
 	textName:SetPoint("LEFT", textID, "RIGHT", 10, 0)
 
-	local dropdownCategory = CreateDropdown(false, mainScrollFrameChild, 120)
+	local dropdownCategory = addon:GetControlDropdown(false, scrollFrameChild, 120)
 	dropdownCategory:SetPoint("LEFT", textName, "RIGHT", 10, 0)
 
-	local inputCategory = CreateInput(false, mainScrollFrameChild, 120)
+	local inputCategory = addon:GetControlInput(false, scrollFrameChild, 120)
 	inputCategory:Hide()
 	inputCategory:SetPoint("LEFT", dropdownCategory, "RIGHT", 10, 0)
 
@@ -201,7 +112,7 @@ local function CreateOptionLine(category, itemID, specID, spellID)
 			local info = UIDropDownMenu_CreateInfo()
 			info.text = text
 			info.func = function()
-				if text == "Other..." then
+				if text == "Add New..." then
 					inputCategory:SetFocus()
 					inputCategory:SetText("")
 					inputCategory:Show()
@@ -215,8 +126,8 @@ local function CreateOptionLine(category, itemID, specID, spellID)
 		end
 
 		addItem("")
-		addItem("Ignored")
-		addItem("Other...")
+		addItem(addon.ignored)
+		addItem("Add New...")
 
 		for _, option in ipairs(SettingsDB.validCategories) do
 			addItem(option)
@@ -243,7 +154,7 @@ local function CreateOptionLine(category, itemID, specID, spellID)
 		UIDropDownMenu_SetText(dropdownCategory, "<Select>")
 	end
 
-	yOffset = yOffset - settingIconSize - 10
+	yOffset = yOffset - addon.settingsIconSize - 10
 end
 
 local function ProcessSpell(category, specID, spellIndex)
@@ -267,22 +178,19 @@ local function ProcessSpell(category, specID, spellIndex)
 	CreateOptionLine(category, -1, specID, itemInfo.spellID)
 end
 
-function addon:CreateSettings()
-	mainFrame = CreateFrame("Frame", addonName .. "SettingsFrame", UIParent)
-	mainFrame.name = addonName
-
-	local showGlobalSweep = CreateCheckbox(false, "Show GCD Sweep", mainFrame,
+function addon:AddSettingsPoesBars(parent)
+    local showGlobalSweep = addon:GetControlCheckbox(false, "Show GCD Sweep", parent,
 		function(frame)
 			SettingsDB.showGlobalSweep = frame:GetChecked()
 		end)
-	showGlobalSweep:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 10, -10)
+	showGlobalSweep:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -10)
 	if SettingsDB.showGlobalSweep then
 		showGlobalSweep:SetChecked(true)
 	else
 		showGlobalSweep:SetChecked(false)
 	end
 
-	local isLocked = CreateCheckbox(false, "Lock Groups", mainFrame, function(frame)
+	local isLocked = addon:GetControlCheckbox(false, "Lock Groups", parent, function(frame)
 		SettingsDB.isLocked = frame:GetChecked()
 	end)
 	isLocked:SetPoint("TOPLEFT", showGlobalSweep, "BOTTOMLEFT", 0, -10)
@@ -292,13 +200,13 @@ function addon:CreateSettings()
 		isLocked:SetChecked(false)
 	end
 
-	local categoryLabel = CreateLabel(false, mainFrame, "Category:", 100)
+	local categoryLabel = addon:GetControlLabel(false, parent, "Category:", 100)
 	categoryLabel:SetPoint("TOPLEFT", isLocked, "BOTTOMLEFT", 0, -10)
 
-	local categoryDropdown = CreateDropdown(false, mainFrame, 120)
+	local categoryDropdown = addon:GetControlDropdown(false, parent, 120)
 	categoryDropdown:SetPoint("LEFT", categoryLabel, "RIGHT", 10, 0)
 
-	local categoryInput = CreateInput(false, mainFrame, 120)
+	local categoryInput = addon:GetControlInput(false, parent, 120)
 	categoryInput:Hide()
 	categoryInput:SetPoint("LEFT", categoryDropdown, "RIGHT", 10, 0)
 
@@ -307,25 +215,25 @@ function addon:CreateSettings()
 			local info = UIDropDownMenu_CreateInfo()
 			info.text = text
 			info.func = function()
-				if mainScrollFrameChild then
-					for i, child in ipairs({ mainScrollFrameChild:GetChildren() }) do
+				if scrollFrameChild then
+					for i, child in ipairs({ scrollFrameChild:GetChildren() }) do
 						child:ClearAllPoints()
 						child:Hide()
 						child:SetParent(nil)
 					end
 
-					mainScrollFrameChild:ClearAllPoints()
-					mainScrollFrameChild:Hide()
-					mainScrollFrameChild:SetParent(nil)
+					scrollFrameChild:ClearAllPoints()
+					scrollFrameChild:Hide()
+					scrollFrameChild:SetParent(nil)
 				end
 
-				if mainScrollFrame then
-					mainScrollFrame:ClearAllPoints()
-					mainScrollFrame:Hide()
-					mainScrollFrame:SetParent(nil)
+				if scrollFrame then
+					scrollFrame:ClearAllPoints()
+					scrollFrame:Hide()
+					scrollFrame:SetParent(nil)
 				end
 
-				for i, child in ipairs(controlsToClear) do
+				for i, child in ipairs(addon.settingsControls) do
 					child:ClearAllPoints()
 					child:Hide()
 					child:SetParent(nil)
@@ -333,7 +241,7 @@ function addon:CreateSettings()
 					child = nil
 				end
 
-				if text == "Other..." then
+				if text == "Add New..." then
 					UIDropDownMenu_SetSelectedName(categoryDropdown, text)
 
 					categoryInput:SetFocus()
@@ -342,26 +250,28 @@ function addon:CreateSettings()
 				else
 					categoryInput:Hide()
 
-					mainScrollFrame = CreateFrame("ScrollFrame", nil, mainFrame, "UIPanelScrollFrameTemplate")
-					mainScrollFrame:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -10, 10)
+					scrollFrame = CreateFrame("ScrollFrame", nil, parent, "UIPanelScrollFrameTemplate")
+					scrollFrame:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -10, 10)
 
-					mainScrollFrameChild = CreateFrame("Frame", nil, mainScrollFrame)
-					mainScrollFrameChild:SetSize(1, 1)
-					mainScrollFrame:SetScrollChild(mainScrollFrameChild)
+					scrollFrameChild = CreateFrame("Frame", nil, scrollFrame)
+					scrollFrameChild:SetSize(1, 1)
+
+					scrollFrame:SetScrollChild(scrollFrameChild)
 
 					local category = text
 					if not category or category == "" then
-						category = "Unknown"
+						category = addon.unknown
 					end
 
 					UIDropDownMenu_SetSelectedName(categoryDropdown, category)
 
-					if category ~= "Ignored" and category ~= "Unknown" then
+					if category ~= addon.ignored and category ~= addon.unknown then
 						local settingsTable = SettingsDB[category] or {}
 						local anchor = settingsTable.anchor or "CENTER"
 						local iconSize = settingsTable.iconSize or 64
 						local iconSpacing = settingsTable.iconSpacing or 2
 						local isVertical = settingsTable.isVertical or false
+						local showOnCooldown = settingsTable.showOnCooldown or false
 						local wrapAfter = settingsTable.wrapAfter or 0
 						local x = settingsTable.x or 0
 						local y = settingsTable.y or 0
@@ -369,8 +279,8 @@ function addon:CreateSettings()
 						x = math.floor(x + 0.5)
 						y = math.floor(y + 0.5)
 
-						local categoryDelete = CreateButton(true, "Delete", mainFrame, 60, function(control)
-							if category == "" or category == "Ignored" or category == "Other..." or category == "Unknown" then
+						local categoryDelete = addon:GetControlButton(true, "Delete", parent, 60, function(control)
+							if category == "" or category == addon.ignored or category == "Add New..." or category == addon.unknown then
 								return
 							end
 
@@ -386,10 +296,20 @@ function addon:CreateSettings()
 						end)
 						categoryDelete:SetPoint("LEFT", categoryInput, "RIGHT", 10, 0)
 
-						local iconSizeLabel = CreateLabel(true, mainFrame, "Icon Size:", 100)
-						iconSizeLabel:SetPoint("TOPLEFT", categoryLabel, "BOTTOMLEFT", 0, -10)
+						local showOnCooldownCheckbox = addon:GetControlCheckbox(true, "Only Show On Cooldown or Aura Active",parent, function(frame)
+							settingsTable.showOnCooldown = frame:GetChecked()
+						end)
+						showOnCooldownCheckbox:SetPoint("TOPLEFT", categoryLabel, "BOTTOMLEFT", 0, -10)
+						if showOnCooldown then
+							showOnCooldownCheckbox:SetChecked(true)
+						else
+							showOnCooldownCheckbox:SetChecked(false)
+						end
 
-						local iconSizeInput = CreateInput(true, mainFrame, 40, function(control)
+						local iconSizeLabel = addon:GetControlLabel(true, parent, "Icon Size:", 100)
+						iconSizeLabel:SetPoint("TOPLEFT", showOnCooldownCheckbox, "BOTTOMLEFT", 0, -10)
+
+						local iconSizeInput = addon:GetControlInput(true, parent, 40, function(control)
 							local value = strtrim(control:GetText())
 							if value ~= "" then
 								settingsTable.iconSize = tonumber(value)
@@ -399,10 +319,10 @@ function addon:CreateSettings()
 						iconSizeInput:SetPoint("LEFT", iconSizeLabel, "RIGHT", 10, 0)
 						iconSizeInput:SetText(tostring(iconSize))
 
-						local positionXLabel = CreateLabel(true, mainFrame, "X:", 100)
+						local positionXLabel = addon:GetControlLabel(true, parent, "X:", 100)
 						positionXLabel:SetPoint("LEFT", iconSizeInput, "RIGHT", 10, 0)
 
-						local positionXInput = CreateInput(true, mainFrame, 40, function(control)
+						local positionXInput = addon:GetControlInput(true, parent, 40, function(control)
 							local value = strtrim(control:GetText())
 							if value ~= "" then
 								settingsTable.x = tonumber(value)
@@ -412,10 +332,10 @@ function addon:CreateSettings()
 						positionXInput:SetPoint("LEFT", positionXLabel, "RIGHT", 10, 0)
 						positionXInput:SetText(tostring(x))
 
-						local iconSpacingLabel = CreateLabel(true, mainFrame, "Icon Spacing:", 100)
+						local iconSpacingLabel = addon:GetControlLabel(true, parent, "Icon Gap:", 100)
 						iconSpacingLabel:SetPoint("TOPLEFT", iconSizeLabel, "BOTTOMLEFT", 0, -10)
 
-						local iconSpacingInput = CreateInput(true, mainFrame, 40, function(control)
+						local iconSpacingInput = addon:GetControlInput(true, parent, 40, function(control)
 							local value = strtrim(control:GetText())
 							if value ~= "" then
 								settingsTable.iconSpacing = tonumber(value)
@@ -425,10 +345,10 @@ function addon:CreateSettings()
 						iconSpacingInput:SetPoint("LEFT", iconSpacingLabel, "RIGHT", 10, 0)
 						iconSpacingInput:SetText(tostring(iconSpacing))
 
-						local positionYLabel = CreateLabel(true, mainFrame, "Y:", 100)
+						local positionYLabel = addon:GetControlLabel(true, parent, "Y:", 100)
 						positionYLabel:SetPoint("LEFT", iconSpacingInput, "RIGHT", 10, 0)
 
-						local positionYInput = CreateInput(true, mainFrame, 40, function(control)
+						local positionYInput = addon:GetControlInput(true, parent, 40, function(control)
 							local value = strtrim(control:GetText())
 							if value ~= "" then
 								settingsTable.y = tonumber(value)
@@ -438,10 +358,10 @@ function addon:CreateSettings()
 						positionYInput:SetPoint("LEFT", positionYLabel, "RIGHT", 10, 0)
 						positionYInput:SetText(tostring(y))
 
-						local wrapAfterLabel = CreateLabel(true, mainFrame, "Wrap After:", 100)
+						local wrapAfterLabel = addon:GetControlLabel(true, parent, "Wrap After:", 100)
 						wrapAfterLabel:SetPoint("TOPLEFT", iconSpacingLabel, "BOTTOMLEFT", 0, -10)
 
-						local wrapAfterInput = CreateInput(true, mainFrame, 40, function(control)
+						local wrapAfterInput = addon:GetControlInput(true, parent, 40, function(control)
 							local value = strtrim(control:GetText())
 							if value ~= "" then
 								settingsTable.wrapAfter = tonumber(value)
@@ -451,21 +371,21 @@ function addon:CreateSettings()
 						wrapAfterInput:SetPoint("LEFT", wrapAfterLabel, "RIGHT", 10, 0)
 						wrapAfterInput:SetText(tostring(wrapAfter))
 
-						local orientationLabel = CreateLabel(true, mainFrame, "Orientation:", 100)
+						local orientationLabel = addon:GetControlLabel(true, parent, "Orientation:", 100)
 						orientationLabel:SetPoint("TOPLEFT", wrapAfterLabel, "BOTTOMLEFT", 0, -10)
 
-						local orientationHorizontal = CreateRadioButton(true, mainFrame, radioOrientation, "Horizontal",
+						local orientationHorizontal = addon:GetControlRadioButton(true, parent, radioOrientation, "Horizontal",
 							function(control)
-								ClearRadios(radioOrientation)
+								addon:ClearRadios(radioOrientation)
 								control:SetChecked(true)
 
 								settingsTable.isVertical = false
 							end)
 						orientationHorizontal:SetPoint("LEFT", orientationLabel, "RIGHT", 10, 0)
 
-						local orientationVertical = CreateRadioButton(true, mainFrame, radioOrientation, "Vertical",
+						local orientationVertical = addon:GetControlRadioButton(true, parent, radioOrientation, "Vertical",
 							function(control)
-								ClearRadios(radioOrientation)
+								addon:ClearRadios(radioOrientation)
 								control:SetChecked(true)
 
 								settingsTable.isVertical = true
@@ -480,85 +400,85 @@ function addon:CreateSettings()
 							orientationVertical:SetChecked(false)
 						end
 
-						local anchorLabel = CreateLabel(true, mainFrame, "Anchor:", 100)
+						local anchorLabel = addon:GetControlLabel(true, parent, "Anchor:", 100)
 						anchorLabel:SetPoint("TOPLEFT", orientationLabel, "BOTTOMLEFT", 0, -10)
 
-						local anchorTopLeft = CreateRadioButton(true, mainFrame, radioAnchors, "Top Left",
+						local anchorTopLeft = addon:GetControlRadioButton(true, parent, radioAnchors, "Top Left",
 							function(control)
-								ClearRadios(radioAnchors)
+								addon:ClearRadios(radioAnchors)
 								control:SetChecked(true)
 
 								settingsTable.anchor = "TOPLEFT"
 							end)
 						anchorTopLeft:SetPoint("LEFT", anchorLabel, "RIGHT", 10, 0)
 
-						local anchorTop = CreateRadioButton(true, mainFrame, radioAnchors, "Top",
+						local anchorTop = addon:GetControlRadioButton(true, parent, radioAnchors, "Top",
 							function(control)
-								ClearRadios(radioAnchors)
+								addon:ClearRadios(radioAnchors)
 								control:SetChecked(true)
 
 								settingsTable.anchor = "TOP"
 							end)
 						anchorTop:SetPoint("LEFT", anchorTopLeft, "RIGHT", 110, 0)
 
-						local anchorTopRight = CreateRadioButton(true, mainFrame, radioAnchors, "Top Right",
+						local anchorTopRight = addon:GetControlRadioButton(true, parent, radioAnchors, "Top Right",
 							function(control)
-								ClearRadios(radioAnchors)
+								addon:ClearRadios(radioAnchors)
 								control:SetChecked(true)
 
 								settingsTable.anchor = "TOPRIGHT"
 							end)
 						anchorTopRight:SetPoint("LEFT", anchorTop, "RIGHT", 110, 0)
 
-						local anchorLeft = CreateRadioButton(true, mainFrame, radioAnchors, "Left",
+						local anchorLeft = addon:GetControlRadioButton(true, parent, radioAnchors, "Left",
 							function(control)
-								ClearRadios(radioAnchors)
+								addon:ClearRadios(radioAnchors)
 								control:SetChecked(true)
 
 								settingsTable.anchor = "LEFT"
 							end)
 						anchorLeft:SetPoint("TOPLEFT", anchorTopLeft, "BOTTOMLEFT", 0, -10)
 
-						local anchorCenter = CreateRadioButton(true, mainFrame, radioAnchors,
+						local anchorCenter = addon:GetControlRadioButton(true, parent, radioAnchors,
 							"Center",
 							function(control)
-								ClearRadios(radioAnchors)
+								addon:ClearRadios(radioAnchors)
 								control:SetChecked(true)
 
 								settingsTable.anchor = "CENTER"
 							end)
 						anchorCenter:SetPoint("LEFT", anchorLeft, "RIGHT", 110, 0)
 
-						local anchorRight = CreateRadioButton(true, mainFrame, radioAnchors, "Right",
+						local anchorRight = addon:GetControlRadioButton(true, parent, radioAnchors, "Right",
 							function(control)
-								ClearRadios(radioAnchors)
+								addon:ClearRadios(radioAnchors)
 								control:SetChecked(true)
 
 								settingsTable.anchor = "RIGHT"
 							end)
 						anchorRight:SetPoint("LEFT", anchorCenter, "RIGHT", 110, 0)
 
-						local anchorBottomLeft = CreateRadioButton(true, mainFrame, radioAnchors, "Bottom Left",
+						local anchorBottomLeft = addon:GetControlRadioButton(true, parent, radioAnchors, "Bottom Left",
 							function(control)
-								ClearRadios(radioAnchors)
+								addon:ClearRadios(radioAnchors)
 								control:SetChecked(true)
 
 								settingsTable.anchor = "BOTTOMLEFT"
 							end)
 						anchorBottomLeft:SetPoint("TOPLEFT", anchorLeft, "BOTTOMLEFT", 0, -10)
 
-						local anchorBottom = CreateRadioButton(true, mainFrame, radioAnchors, "Bottom",
+						local anchorBottom = addon:GetControlRadioButton(true, parent, radioAnchors, "Bottom",
 							function(control)
-								ClearRadios(radioAnchors)
+								addon:ClearRadios(radioAnchors)
 								control:SetChecked(true)
 
 								settingsTable.anchor = "BOTTOM"
 							end)
 						anchorBottom:SetPoint("LEFT", anchorBottomLeft, "RIGHT", 110, 0)
 
-						local anchorBottomRight = CreateRadioButton(true, mainFrame, radioAnchors, "Bottom Right",
+						local anchorBottomRight = addon:GetControlRadioButton(true, parent, radioAnchors, "Bottom Right",
 							function(control)
-								ClearRadios(radioAnchors)
+								addon:ClearRadios(radioAnchors)
 								control:SetChecked(true)
 
 								settingsTable.anchor = "BOTTOMRIGHT"
@@ -585,10 +505,10 @@ function addon:CreateSettings()
 							anchorCenter:SetChecked(true)
 						end
 
-						mainScrollFrame:SetPoint("TOPLEFT", anchorLabel, "BOTTOMLEFT", 0, -80)
+						scrollFrame:SetPoint("TOPLEFT", anchorLabel, "BOTTOMLEFT", 0, -80)
 					else
-						mainScrollFrame:SetPoint("TOPLEFT", categoryLabel, "BOTTOMLEFT", 0, -10)
-						mainScrollFrame:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -10, 10)
+						scrollFrame:SetPoint("TOPLEFT", categoryLabel, "BOTTOMLEFT", 0, -10)
+						scrollFrame:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -10, 10)
 					end
 
 					local currentSpec = GetSpecialization()
@@ -627,26 +547,6 @@ function addon:CreateSettings()
 						end
 					end
 
-					if addon.forcedSpellsBySpellID[playerSpecID] then
-						for spellID, forcedSpellID in pairs(addon.forcedSpellsBySpellID[playerSpecID]) do
-							if IsSpellKnown(spellID, false) then
-								CreateOptionLine(category, -1, playerSpecID, forcedSpellID)
-							end
-						end
-					end
-
-					if addon.forcedSpellsByHeroTree[playerSpecID] then
-						local playerHeroTalentSpec = C_ClassTalents.GetActiveHeroTalentSpec()
-
-						local spells = addon.forcedSpellsByHeroTree[playerSpecID] and
-							addon.forcedSpellsByHeroTree[playerSpecID][playerHeroTalentSpec]
-						if spells then
-							for _, forcedSpellID in ipairs(spells) do
-								CreateOptionLine(category, -1, playerSpecID, forcedSpellID)
-							end
-						end
-					end
-
 					for _, itemID in ipairs(SettingsDB.validItems) do
 						CreateOptionLine(category, itemID, 0, -1)
 					end
@@ -656,8 +556,8 @@ function addon:CreateSettings()
 		end
 
 		addItem("")
-		addItem("Ignored")
-		addItem("Other...")
+		addItem("Add New...")
+		addItem(addon.ignored)
 
 		table.sort(SettingsDB.validCategories, function(a, b)
 			return a < b
@@ -682,11 +582,7 @@ function addon:CreateSettings()
 	UIDropDownMenu_Initialize(categoryDropdown, categoryDropdown.initializeFunc)
 	UIDropDownMenu_SetText(categoryDropdown, "<Select>")
 
-	mainFrame:SetScript("OnHide", function(frame)
-		addon:CreateIcons()
+	parent:SetScript("OnHide", function(frame)
+		addon:RefreshSpells()
 	end)
-
-	local mainCategory, mainLayout = Settings.RegisterCanvasLayoutCategory(mainFrame, mainFrame.name)
-	local registeredCategory = Settings.RegisterAddOnCategory(mainCategory)
-	addon.mainCategory = registeredCategory
 end

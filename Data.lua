@@ -1,25 +1,17 @@
 local addonName, addon = ...
+addon.ignored          = "Ignored"
+addon.isLoaded         = false
+addon.settingsControls = {}
+addon.settingsIconSize = 36
+addon.unknown          = "Unknown"
 
-addon.buffOverrides = {
+addon.buffOverrides    = {
     [342245] = 342246, -- Alter Time
     [414660] = 11426,  -- Mass Barrier
+    [53600] = 132403,  -- Shield of the Righteous
 }
 
-addon.forcedSpellsBySpellID = {
-    [66] = {
-        [21321332] = 427453, -- Light's Guidance
-    },
-}
-
-addon.forcedSpellsByHeroTree = {
-    [66] = {
-        [21321332] = {
-            427453, -- Light's Guidance
-        },
-    },
-}
-
-addon.spellOverrides = {
+addon.spellOverrides   = {
     [342245] = 342246, -- Alter Time
     [414660] = 11426,  -- Mass Barrier
 }

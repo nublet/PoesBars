@@ -1,4 +1,5 @@
 local addonName, addon = ...
+
 local DebounceTimers = {}
 
 local function GetKeyBinding(actionButtonName, itemID, name, slotID, spellID)
@@ -9,25 +10,25 @@ local function GetKeyBinding(actionButtonName, itemID, name, slotID, spellID)
     elseif actionType == "spell" and actionID == spellID then
         return GetBindingKey(actionButtonName)
     elseif actionType == "macro" then
-        if name then
-            local actionText = GetActionText(slotID)
-            if actionText then
-                local body = GetMacroBody(actionText)
+        local actionText = GetActionText(slotID)
+        if actionText then
+            local body = GetMacroBody(actionText)
 
-                if body then
-                    body = body:lower():gsub("%s+", "")
+            if body and body ~= "" then
+                body = body:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
 
+                if name and name ~= "" then
                     if body:find(name, 1, true) then
                         return GetBindingKey(actionButtonName)
                     end
+                end
 
-                    if body:find("/use item:" .. itemID, 1, true) then
-                        return GetBindingKey(actionButtonName)
-                    end
+                if body:find("/use item:" .. itemID, 1, true) then
+                    return GetBindingKey(actionButtonName)
+                end
 
-                    if body:find("/cast item:" .. itemID, 1, true) then
-                        return GetBindingKey(actionButtonName)
-                    end
+                if body:find("/cast item:" .. itemID, 1, true) then
+                    return GetBindingKey(actionButtonName)
                 end
             end
         end
@@ -37,11 +38,11 @@ local function GetKeyBinding(actionButtonName, itemID, name, slotID, spellID)
 end
 
 local function SaveFramePosition(name, parentFrame)
-    if name == "Ignored" then
+    if name == addon.ignored then
         return nil
     end
 
-    if name == "Unknown" then
+    if name == addon.unknown then
         return nil
     end
 
@@ -92,6 +93,12 @@ local function SaveFramePosition(name, parentFrame)
     SettingsDB[name] = settingTable
 end
 
+function addon:ClearRadios(radioGroup)
+	for _, b in ipairs(radioGroup) do
+		b:SetChecked(false)
+	end
+end
+
 function addon:Debounce(key, delay, func)
     if DebounceTimers[key] then
         DebounceTimers[key]:Cancel()
@@ -103,13 +110,94 @@ function addon:Debounce(key, delay, func)
     end)
 end
 
-function addon:FrameCreate(name)
-    if name == "Ignored" then
+function addon:GetControlButton(addToTable, label, parent, width, onClick)
+	local result = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+	result:SetScript("OnClick", onClick)
+	result:SetSize(width, 20)
+	result:SetText(label)
+
+	if addToTable then
+		table.insert(addon.settingsControls, result)
+	end
+
+	return result
+end
+
+function addon:GetControlCheckbox(addToTable, label, parent, onClick)
+	local result = CreateFrame("CheckButton", nil, parent, "InterfaceOptionsCheckButtonTemplate")
+	result:SetChecked(false)
+	result:SetScript("OnClick", onClick)
+	result.Text:SetText(label)
+
+	if addToTable then
+		table.insert(addon.settingsControls, result)
+	end
+
+	return result
+end
+
+function addon:GetControlDropdown(addToTable, parent, width)
+	local result = CreateFrame("Frame", nil, parent, "UIDropDownMenuTemplate")
+
+	UIDropDownMenu_SetWidth(result, width)
+
+	if addToTable then
+		table.insert(addon.settingsControls, result)
+	end
+
+	return result
+end
+
+function addon:GetControlInput(addToTable, parent, width, onEnterPressed)
+	local result = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+	result:SetAutoFocus(false)
+	result:SetSize(width, 20)
+
+	result:SetScript("OnEnterPressed", onEnterPressed)
+
+	if addToTable then
+		table.insert(addon.settingsControls, result)
+	end
+
+	return result
+end
+
+function addon:GetControlLabel(addToTable, parent, text, width)
+	local result = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	result:SetJustifyH("LEFT")
+	result:SetJustifyV("MIDDLE")
+	result:SetSize(width, 20)
+	result:SetText(text)
+
+	if addToTable then
+		table.insert(addon.settingsControls, result)
+	end
+
+	return result
+end
+
+function addon:GetControlRadioButton(addToTable, parent, radioGroup, text, onClick)
+	local result = CreateFrame("CheckButton", nil, parent, "UIRadioButtonTemplate")
+	result:SetChecked(false)
+	result:SetScript("OnClick", onClick)
+	result.text:SetText(text)
+
+	table.insert(radioGroup, result)
+
+	if addToTable then
+		table.insert(addon.settingsControls, result)
+	end
+
+	return result
+end
+
+function addon:GetFrame(name)
+    if name == addon.ignored then
         return nil
     end
 
     local newFrame = CreateFrame("Frame", name .. "Parent", UIParent)
-    if name ~= "Unknown" then
+    if name ~= addon.unknown then
         newFrame:EnableMouse(true)
         newFrame:RegisterForDrag("LeftButton")
         newFrame:SetClampedToScreen(true)
@@ -135,29 +223,9 @@ function addon:FrameCreate(name)
     return newFrame
 end
 
-function addon:FrameRestore(name, parentFrame)
-    if name == "Ignored" then
-        return
-    end
-
-    if name == "Unknown" then
-        parentFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-    else
-        local settingsTable = SettingsDB[name] or {}
-        local anchor = settingsTable.anchor or "CENTER"
-        local x = settingsTable.x or 0
-        local y = settingsTable.y or 0
-
-        parentFrame:ClearAllPoints()
-        if anchor and anchor ~= "" then
-            parentFrame:SetPoint(anchor, UIParent, "CENTER", x, y)
-        else
-            parentFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-        end
-    end
-end
-
 function addon:GetKeyBind(itemID, name, spellID)
+    name = name:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
+
     if _G["Bartender4"] then
         for i = 1, 180 do
             local actionButtonName = "CLICK BT4Button" .. i .. ":Keybind"
@@ -267,4 +335,36 @@ function addon:GetKeyBind(itemID, name, spellID)
     end
 
     return ""
+end
+
+function addon:FrameRestore(name, parentFrame)
+    if name == addon.ignored then
+        return
+    end
+
+    if name == addon.unknown then
+        parentFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    else
+        local settingsTable = SettingsDB[name] or {}
+        local anchor = settingsTable.anchor or "CENTER"
+        local x = settingsTable.x or 0
+        local y = settingsTable.y or 0
+
+        parentFrame:ClearAllPoints()
+        if anchor and anchor ~= "" then
+            parentFrame:SetPoint(anchor, UIParent, "CENTER", x, y)
+        else
+            parentFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+        end
+    end
+end
+
+function addon:ReplaceBindings(binding)
+    binding = binding:gsub("ALT%-", "A+")
+    binding = binding:gsub("%BUTTON", "M")
+    binding = binding:gsub("CTRL%-", "C+")
+    binding = binding:gsub("NUMPAD", "N")
+    binding = binding:gsub("SHIFT%-", "S+")
+
+    return binding
 end

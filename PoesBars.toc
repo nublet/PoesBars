@@ -4,13 +4,15 @@
 ## Notes: Organizes abilities and buffs
 ## Author: Poesboi
 ## Credits: 
-## Version: 25.0.4.109
+## Version: 25.0.4.110
 ## RequiredDeps: Blizzard_Professions
 ## SavedVariables: SettingsDB, SpellsDB
 
 Data.lua
 Helpers.lua
-Settings.lua
 Spells.lua
+
+Settings\Items.lua
+Settings\PoesBars.lua
 
 PoesBars.lua
