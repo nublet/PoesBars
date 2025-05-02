@@ -1,4 +1,5 @@
 local addonName, addon = ...
+
 local categories = {}
 local items = {}
 local spells = {}
@@ -652,7 +653,9 @@ local function updateIconSpell(frame, gcdCooldown, name)
 end
 
 function addon:CreateCategoryFrames()
-    for index, name in ipairs(SettingsDB.validCategories) do
+    local validCategories = addon:GetValidCategories(true)
+
+    for index, name in ipairs(validCategories) do
         if not categories[name] then
             local parentTable = {}
             parentTable.frame = addon:GetFrame(name)
@@ -700,7 +703,9 @@ function addon:RefreshSpells()
 end
 
 function addon:RefreshCategoryFrames(doItems, doSpells)
-    for index, name in ipairs(SettingsDB.validCategories) do
+    local validCategories = addon:GetValidCategories(true)
+
+    for index, name in ipairs(validCategories) do
         if categories[name] then
             local parentTable = categories[name]
             if doItems then
@@ -752,7 +757,7 @@ function addon:RefreshCategoryFrames(doItems, doSpells)
         end
     end
 
-    for index, name in ipairs(SettingsDB.validCategories) do
+    for index, name in ipairs(validCategories) do
         if categories[name] then
             local parentTable = categories[name]
             if doItems and parentTable.items and next(parentTable.items) ~= nil then
@@ -763,28 +768,12 @@ function addon:RefreshCategoryFrames(doItems, doSpells)
             addon:FrameRestore(name, parentTable.frame)
         end
     end
-
-    local ignoredTable = categories[addon.ignored]
-    if doItems and ignoredTable.items and next(ignoredTable.items) ~= nil then
-        RefreshIconFrames(addon.ignored, ignoredTable)
-    elseif doSpells and ignoredTable.spells and next(ignoredTable.spells) ~= nil then
-        RefreshIconFrames(addon.ignored, ignoredTable)
-    end
-    addon:FrameRestore(addon.ignored, ignoredTable.frame)
-
-    local unknownTable = categories[addon.unknown]
-    if doItems and unknownTable.items and next(unknownTable.items) ~= nil then
-        RefreshIconFrames(addon.unknown, unknownTable)
-    elseif doSpells and unknownTable.spells and next(unknownTable.spells) ~= nil then
-        RefreshIconFrames(addon.unknown, unknownTable)
-    end
-    addon:FrameRestore(addon.unknown, unknownTable.frame)
 end
 
 function addon:UpdateAllIcons()
     local gcdCooldown = C_Spell.GetSpellCooldown(61304)
 
-    for _, name in ipairs(SettingsDB.validCategories) do
+    for _, name in ipairs(addon:GetValidCategories(true)) do
         if categories[name] then
             local parentTable = categories[name]
 

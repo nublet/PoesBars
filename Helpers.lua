@@ -337,6 +337,33 @@ function addon:GetKeyBind(itemID, name, spellID)
     return ""
 end
 
+function addon:GetValidCategories(addForced)
+    local foundIgnored = false
+    local foundUnknown = false
+    local results = {}
+
+    for _, name in ipairs(SettingsDB.validCategories) do
+        if name == addon.ignored then
+            foundIgnored = true
+        elseif name == addon.unknown then
+            foundUnknown = true
+        end
+
+        table.insert(results, name)
+    end
+
+    if addForced then
+        if not foundIgnored then
+            table.insert(results, addon.ignored)
+        end
+        if not foundUnknown then
+            table.insert(results, addon.unknown)
+        end
+    end
+
+    return results
+end
+
 function addon:FrameRestore(name, parentFrame)
     if name == addon.ignored then
         return

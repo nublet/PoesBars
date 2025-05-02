@@ -129,7 +129,7 @@ local function CreateOptionLine(category, itemID, specID, spellID)
 		addItem(addon.ignored)
 		addItem("Add New...")
 
-		for _, option in ipairs(SettingsDB.validCategories) do
+		for _, option in ipairs(addon:GetValidCategories(false)) do
 			addItem(option)
 		end
 	end
@@ -563,7 +563,7 @@ function addon:AddSettingsPoesBars(parent)
 			return a < b
 		end)
 
-		for _, option in ipairs(SettingsDB.validCategories) do
+		for _, option in ipairs(addon:GetValidCategories(false)) do
 			addItem(option)
 		end
 	end

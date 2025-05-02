@@ -59,8 +59,7 @@ local function OnEvent(self, event, ...)
 		SpellsDB = SpellsDB or {}
 
 		if type(SettingsDB.validCategories) ~= "table" then
-			SettingsDB.validCategories = { "Cooldowns", "Crowd Control", "Defensive", "Important", "Movement", "Racial",
-				"Rotation", "Utility" }
+			SettingsDB.validCategories = { "Cooldowns", "Crowd Control", "Defensive", "Important", "Movement", "Racial", "Rotation", "Utility" }
 		end
 		if type(SettingsDB.validItems) ~= "table" then
 			SettingsDB.validItems = { 211878, 211879, 211880, 5512, 224464, 212263, 212264, 212265 }
