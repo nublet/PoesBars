@@ -704,7 +704,7 @@ function addon:RefreshCategoryFrames(doItems, doSpells)
             if doItems then
                 parentTable.items = {}
             end
-            if doItems then
+            if doSpells then
                 parentTable.spells = {}
             end
         else
@@ -713,7 +713,7 @@ function addon:RefreshCategoryFrames(doItems, doSpells)
             if doItems then
                 parentTable.items = {}
             end
-            if doItems then
+            if doSpells then
                 parentTable.spells = {}
             end
 
@@ -786,7 +786,7 @@ end
 
 function addon:UpdateAllIcons()
     local gcdCooldown = C_Spell.GetSpellCooldown(61304)
-
+    
     for _, name in ipairs(SettingsDB.validCategories) do
         if categories[name] then
             local parentTable = categories[name]

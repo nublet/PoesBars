@@ -81,7 +81,6 @@ function addon:AddSettingsItems(parent)
 
     local newItemButton = addon:GetControlButton(false, "ADD", parentFrame, 60, function(control)
         local itemID = newItemInput:GetNumber()
-        print("itemID:", itemID)
 
         if itemID and itemID > 0 then
             local exists = false
@@ -93,7 +92,6 @@ function addon:AddSettingsItems(parent)
             end
 
             if not exists then
-                print("Added: itemID:", itemID)
                 table.insert(SettingsDB.validItems, itemID)
             end
         end
