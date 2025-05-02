@@ -441,6 +441,7 @@ local function updateIconAura(frame, spellID)
         end
 
         frame.auraActive = true
+        frame.textureIcon:SetVertexColor(0, 1, 0)
     else
         frame.auraActive = false
     end
@@ -512,7 +513,6 @@ local function updateIconSpell(frame, gcdCooldown, name)
         return
     end
 
-    local onCooldown = false
     local frameSpellID = frame.spellID or 0
     local glowActive = false
 
@@ -544,6 +544,9 @@ local function updateIconSpell(frame, gcdCooldown, name)
 
         return
     end
+
+    frame.textBinding:Show()
+    frame.textCooldown:SetText("")
 
     if frameSpellID ~= currentSpellID then
         updateIconAura(frame, frameSpellID)
@@ -589,44 +592,44 @@ local function updateIconSpell(frame, gcdCooldown, name)
         frame.textCharges:SetText(spellCharges.currentCharges)
 
         if spellCharges.currentCharges <= 0 then
-            onCooldown = true
-        elseif spellCharges.currentCharges < spellCharges.maxCharges and spellCharges.cooldownStartTime and spellCharges.cooldownDuration and spellCharges.cooldownDuration > 2 then
-            local remaining = (spellCharges.cooldownStartTime + spellCharges.cooldownDuration) - GetTime()
-            if remaining > 0 then
-                if remaining < 90 then
-                    frame.textCooldown:SetText(string.format("%d", remaining))
-                    frame.textCooldown:SetTextColor(1, 0, 0, 1)
-                else
-                    frame.textCooldown:SetText("")
+            frame.frameBorder:Show()
+            frame.textBinding:Hide()
+            frame.textureIcon:SetDesaturated(true)
+            frame:Show()
+
+            if spellCharges.cooldownStartTime and spellCharges.cooldownDuration and spellCharges.cooldownDuration > 2 then
+                local remaining = (spellCharges.cooldownStartTime + spellCharges.cooldownDuration) - GetTime()
+                if remaining > 0 then
+                    if remaining < 90 then
+                        frame.textCooldown:SetText(string.format("%d", remaining))
+                        frame.textCooldown:SetTextColor(1, 0, 0, 1)
+                    else
+                        frame.textCooldown:SetText("")
+                    end
                 end
-                onCooldown = true
             end
+        elseif spellCharges.currentCharges < spellCharges.maxCharges then
+            frame.frameBorder:Show()
+            frame:Show()
         end
     else
         local spellCooldown = C_Spell.GetSpellCooldown(currentSpellID)
         if spellCooldown.isEnabled and spellCooldown.duration > 2 then
             local remaining = (spellCooldown.startTime + spellCooldown.duration) - GetTime()
             if remaining > 0 then
+                frame.frameBorder:Show()
+                frame.textBinding:Hide()
+                frame.textureIcon:SetDesaturated(true)
+                frame:Show()
+
                 if remaining < 90 then
                     frame.textCooldown:SetText(string.format("%d", remaining))
                     frame.textCooldown:SetTextColor(1, 0, 0, 1)
                 else
                     frame.textCooldown:SetText("")
                 end
-                onCooldown = true
             end
         end
-    end
-
-    if onCooldown then
-        frame.frameBorder:Show()
-        frame.textBinding:Hide()
-        frame.textureIcon:SetDesaturated(true)
-        frame:Show()
-    else
-        frame.textBinding:Show()
-        frame.textCooldown:SetText("")
-        frame.textureIcon:SetDesaturated(false)
     end
 
     if SettingsDB.showGlobalSweep and frame.cooldownFrame then
@@ -636,7 +639,6 @@ local function updateIconSpell(frame, gcdCooldown, name)
             frame.cooldownFrame:Clear()
         end
     end
-
 
     if glowActive and not frame.glowActive then
         ActionButton_ShowOverlayGlow(frame)
@@ -746,12 +748,7 @@ function addon:RefreshCategoryFrames(doItems, doSpells)
                 category = addon.unknown
             end
 
-            local isKnown = IsPlayerSpell(spellID)
-            if isKnown then
-                table.insert(categories[category].spells, iconFrame)
-            else
-                table.insert(categories[addon.ignored].spells, iconFrame)
-            end
+            table.insert(categories[category].spells, iconFrame)
         end
     end
 
@@ -786,7 +783,7 @@ end
 
 function addon:UpdateAllIcons()
     local gcdCooldown = C_Spell.GetSpellCooldown(61304)
-    
+
     for _, name in ipairs(SettingsDB.validCategories) do
         if categories[name] then
             local parentTable = categories[name]

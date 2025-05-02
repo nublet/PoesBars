@@ -15,13 +15,13 @@ function PoesBarsCommands(msg, editbox)
 			addon:CreateCategoryFrames()
 			addon.isLoaded = true
 		end)
-	elseif msg == "config" then
+	elseif msg == "config" or msg == "c" then
 		C_Timer.After(1, function()
 			Settings.OpenToCategory(addon.categoryPoesBarsID)
 			Settings.OpenToCategory(addon.categoryPoesBarsID)
 			Settings.OpenToCategory(addon.categoryPoesBarsID)
 		end)
-	elseif msg == "items" then
+	elseif msg == "items" or msg == "i" then
 		C_Timer.After(1, function()
 			Settings.OpenToCategory(addon.categoryItemsID)
 			Settings.OpenToCategory(addon.categoryItemsID)
