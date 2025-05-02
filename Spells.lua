@@ -205,7 +205,7 @@ local function RefreshIconFrames(name, parentTable)
     end
 
     if name == addon.ignored then
-        if parentTable.spells then
+        if parentTable.spells and next(parentTable.spells) ~= nil then
             for index, iconFrame in ipairs(parentTable.spells) do
                 iconFrame:ClearAllPoints()
                 iconFrame:SetParent(parentTable.frame)
@@ -214,7 +214,7 @@ local function RefreshIconFrames(name, parentTable)
             end
         end
 
-        if parentTable.items then
+        if parentTable.items and next(parentTable.items) ~= nil then
             for index, iconFrame in ipairs(parentTable.items) do
                 iconFrame:ClearAllPoints()
                 iconFrame:SetParent(parentTable.frame)
@@ -243,7 +243,7 @@ local function RefreshIconFrames(name, parentTable)
             end
         end
 
-        if parentTable.spells then
+        if parentTable.spells and next(parentTable.spells) ~= nil then
             table.sort(parentTable.spells, function(a, b)
                 if a.spellCooldown ~= b.spellCooldown then
                     if reverseSort then
@@ -265,7 +265,7 @@ local function RefreshIconFrames(name, parentTable)
             end
         end
 
-        if parentTable.items then
+        if parentTable.items and next(parentTable.items) ~= nil then
             table.sort(parentTable.items, function(a, b)
                 if a.spellCooldown ~= b.spellCooldown then
                     if reverseSort then
@@ -291,38 +291,40 @@ local function RefreshIconFrames(name, parentTable)
             end
         end
 
-        for index, iconFrame in ipairs(allIcons) do
-            if name == addon.unknown then
-                iconFrame.textID:Show()
-            else
-                iconFrame.textID:Hide()
-            end
-
-            iconFrame:ClearAllPoints()
-            iconFrame:SetParent(parentTable.frame)
-            iconFrame:Show()
-
-            iconFrame:SetSize(iconSize, iconSize)
-            iconFrame.textureIcon:SetAllPoints(iconFrame)
-
-            if index == 1 then
-                iconFrame:SetPoint("TOPLEFT", parentTable.frame, "TOPLEFT", 0, 0)
-            else
-                local wrapIndex = (wrapAfter > 0) and ((index - 1) % wrapAfter == 0)
-                if wrapIndex then
-                    local previousWrap = allIcons[index - wrapAfter]
-                    if isVertical then
-                        iconFrame:SetPoint("TOPLEFT", previousWrap, "TOPRIGHT", iconSpacing, 0)
-                    else
-                        iconFrame:SetPoint("TOPLEFT", previousWrap, "BOTTOMLEFT", 0, iconSpacing)
-                    end
+        if allIcons and next(allIcons) ~= nil then
+            for index, iconFrame in ipairs(allIcons) do
+                if name == addon.unknown then
+                    iconFrame.textID:Show()
                 else
-                    local previous = allIcons[index - 1]
+                    iconFrame.textID:Hide()
+                end
+
+                iconFrame:ClearAllPoints()
+                iconFrame:SetParent(parentTable.frame)
+                iconFrame:Show()
+
+                iconFrame:SetSize(iconSize, iconSize)
+                iconFrame.textureIcon:SetAllPoints(iconFrame)
+
+                if index == 1 then
+                    iconFrame:SetPoint("TOPLEFT", parentTable.frame, "TOPLEFT", 0, 0)
+                else
+                    local wrapIndex = (wrapAfter > 0) and ((index - 1) % wrapAfter == 0)
+                    if wrapIndex then
+                        local previousWrap = allIcons[index - wrapAfter]
+                        if isVertical then
+                            iconFrame:SetPoint("TOPLEFT", previousWrap, "TOPRIGHT", iconSpacing, 0)
+                        else
+                            iconFrame:SetPoint("TOPLEFT", previousWrap, "BOTTOMLEFT", 0, iconSpacing)
+                        end
+                    else
+                        local previous = allIcons[index - 1]
                         if isVertical then
                             iconFrame:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, iconSpacing)
                         else
                             iconFrame:SetPoint("TOPLEFT", previous, "TOPRIGHT", iconSpacing, 0)
                         end
+                    end
                 end
             end
         end
@@ -383,7 +385,7 @@ local function RefreshIconsSpell()
         iconFrame = nil
     end
     wipe(spells)
-    spells={}
+    spells = {}
 
     for i = 1, C_SpellBook.GetNumSpellBookSkillLines() + 1 do
         local lineInfo = C_SpellBook.GetSpellBookSkillLineInfo(i)
@@ -423,7 +425,9 @@ local function updateIconAura(frame, spellID)
     if playerAura and playerAura.isFromPlayerOrPlayerPet then
         local remaining = playerAura.expirationTime - GetTime()
 
-        if playerAura.charges and playerAura.charges > 0 then
+        if playerAura.applications and playerAura.applications > 0 then
+            frame.textCharges:SetText(playerAura.applications)
+        elseif playerAura.charges and playerAura.charges > 0 then
             frame.textCharges:SetText(playerAura.charges)
         else
             frame.textCharges:SetText("")
@@ -678,81 +682,105 @@ function addon:CreateCategoryFrames()
     RefreshIconsItem()
     RefreshIconsSpell()
 
-    addon:RefreshFrames()
+    addon:RefreshCategoryFrames(true, true)
 end
 
 function addon:RefreshItems()
     RefreshIconsItem()
 
-    addon:RefreshFrames()
+    addon:RefreshCategoryFrames(true, false)
 end
 
 function addon:RefreshSpells()
     RefreshIconsSpell()
 
-    addon:RefreshFrames()
+    addon:RefreshCategoryFrames(false, true)
 end
 
-function addon:RefreshFrames()
+function addon:RefreshCategoryFrames(doItems, doSpells)
     for index, name in ipairs(SettingsDB.validCategories) do
         if categories[name] then
             local parentTable = categories[name]
-            parentTable.items = {}
-            parentTable.spells = {}
+            if doItems then
+                parentTable.items = {}
+            end
+            if doItems then
+                parentTable.spells = {}
+            end
         else
             local parentTable = {}
             parentTable.frame = addon:GetFrame(name)
-            parentTable.items = {}
-            parentTable.spells = {}
+            if doItems then
+                parentTable.items = {}
+            end
+            if doItems then
+                parentTable.spells = {}
+            end
 
             categories[name] = parentTable
         end
     end
 
-    for itemID, iconFrame in pairs(items) do
-        local settingName = itemID .. "_-1"
-        local category = SpellsDB[iconFrame.specID][settingName]
-        if not category or category == "" then
-            category = addon.unknown
-        end
+    if doItems then
+        for itemID, iconFrame in pairs(items) do
+            local settingName = itemID .. "_-1"
+            local category = SpellsDB[iconFrame.specID][settingName]
+            if not category or category == "" then
+                category = addon.unknown
+            end
 
-        local count = C_Item.GetItemCount(itemID, false, true, false, false)
-        if count <= 0 then
-            table.insert(categories[addon.ignored].items, iconFrame)
-        else
-            table.insert(categories[category].items, iconFrame)
+            local count = C_Item.GetItemCount(itemID, false, true, false, false)
+            if count <= 0 then
+                table.insert(categories[addon.ignored].items, iconFrame)
+            else
+                table.insert(categories[category].items, iconFrame)
+            end
         end
     end
 
-    for spellID, iconFrame in pairs(spells) do
-        local settingName = "-1_" .. spellID
-        local category = SpellsDB[iconFrame.specID][settingName]
-        if not category or category == "" then
-            category = addon.unknown
-        end
+    if doSpells then
+        for spellID, iconFrame in pairs(spells) do
+            local settingName = "-1_" .. spellID
+            local category = SpellsDB[iconFrame.specID][settingName]
+            if not category or category == "" then
+                category = addon.unknown
+            end
 
-        local isKnown = IsPlayerSpell(spellID)
-        if isKnown then
-            table.insert(categories[category].spells, iconFrame)
-        else
-            table.insert(categories[addon.ignored].spells, iconFrame)
+            local isKnown = IsPlayerSpell(spellID)
+            if isKnown then
+                table.insert(categories[category].spells, iconFrame)
+            else
+                table.insert(categories[addon.ignored].spells, iconFrame)
+            end
         end
     end
 
     for index, name in ipairs(SettingsDB.validCategories) do
         if categories[name] then
             local parentTable = categories[name]
-            RefreshIconFrames(name, parentTable)
+            if doItems and parentTable.items and next(parentTable.items) ~= nil then
+                RefreshIconFrames(name, parentTable)
+            elseif doSpells and parentTable.spells and next(parentTable.spells) ~= nil then
+                RefreshIconFrames(name, parentTable)
+            end
             addon:FrameRestore(name, parentTable.frame)
         end
     end
 
     local ignoredTable = categories[addon.ignored]
-    RefreshIconFrames(addon.ignored, ignoredTable)
+    if doItems and ignoredTable.items and next(ignoredTable.items) ~= nil then
+        RefreshIconFrames(addon.ignored, ignoredTable)
+    elseif doSpells and ignoredTable.spells and next(ignoredTable.spells) ~= nil then
+        RefreshIconFrames(addon.ignored, ignoredTable)
+    end
     addon:FrameRestore(addon.ignored, ignoredTable.frame)
 
     local unknownTable = categories[addon.unknown]
-    RefreshIconFrames(addon.unknown, unknownTable)
+    if doItems and unknownTable.items and next(unknownTable.items) ~= nil then
+        RefreshIconFrames(addon.unknown, unknownTable)
+    elseif doSpells and unknownTable.spells and next(unknownTable.spells) ~= nil then
+        RefreshIconFrames(addon.unknown, unknownTable)
+    end
     addon:FrameRestore(addon.unknown, unknownTable.frame)
 end
 
