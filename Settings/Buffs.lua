@@ -46,13 +46,13 @@ local function CreateOptionLine(buffID, spellID)
 
     local buffSpellInfo = C_Spell.GetSpellInfo(buffID)
     if buffSpellInfo then
-        textBuffName.iconName = buffSpellInfo.name
+        textBuffName:SetText(buffSpellInfo.name)
         textureBuffIcon:SetTexture(buffSpellInfo.iconID)
     end
 
     local spellSpellInfo = C_Spell.GetSpellInfo(spellID)
     if spellSpellInfo then
-        textSpellName.iconName = spellSpellInfo.name
+        textSpellName:SetText(spellSpellInfo.name)
         textureSpellIcon:SetTexture(spellSpellInfo.iconID)
     end
 
