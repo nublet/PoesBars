@@ -3,8 +3,7 @@ local timeSinceLastUpdate = 0
 local updateInterval      = 0.25
 
 local LSM                 = LibStub("LibSharedMedia-3.0")
-LSM:Register(LSM.MediaType.FONT, "Naowh", [[Interface\AddOns\PoesBars\FONTS\Naowh.ttf]],
-	LSM.LOCALE_BIT_ruRU + LSM.LOCALE_BIT_western)
+LSM:Register(LSM.MediaType.FONT, "Naowh", [[Interface\AddOns\PoesBars\FONTS\Naowh.ttf]], LSM.LOCALE_BIT_ruRU + LSM.LOCALE_BIT_western)
 
 function PoesBarsCommands(msg, editbox)
 	msg = msg:lower():trim()
@@ -15,18 +14,22 @@ function PoesBarsCommands(msg, editbox)
 			addon:CreateCategoryFrames()
 			addon.isLoaded = true
 		end)
+	elseif msg == "buffs" or msg == "b" then
+		Settings.OpenToCategory(addon.categoryBuffsID)
+		Settings.OpenToCategory(addon.categoryBuffsID)
+		Settings.OpenToCategory(addon.categoryBuffsID)
 	elseif msg == "config" or msg == "c" then
-		C_Timer.After(1, function()
-			Settings.OpenToCategory(addon.categoryPoesBarsID)
-			Settings.OpenToCategory(addon.categoryPoesBarsID)
-			Settings.OpenToCategory(addon.categoryPoesBarsID)
-		end)
+		Settings.OpenToCategory(addon.categoryPoesBarsID)
+		Settings.OpenToCategory(addon.categoryPoesBarsID)
+		Settings.OpenToCategory(addon.categoryPoesBarsID)
 	elseif msg == "items" or msg == "i" then
-		C_Timer.After(1, function()
-			Settings.OpenToCategory(addon.categoryItemsID)
-			Settings.OpenToCategory(addon.categoryItemsID)
-			Settings.OpenToCategory(addon.categoryItemsID)
-		end)
+		Settings.OpenToCategory(addon.categoryItemsID)
+		Settings.OpenToCategory(addon.categoryItemsID)
+		Settings.OpenToCategory(addon.categoryItemsID)
+	elseif msg == "lock" or msg == "l" then
+		SettingsDB.isLocked = true
+	elseif msg == "unlock" or msg == "u" then
+		SettingsDB.isLocked = false
 	else
 		print("Unknown Command: ", msg)
 	end
@@ -58,6 +61,12 @@ local function OnEvent(self, event, ...)
 		SettingsDB = SettingsDB or {}
 		SpellsDB = SpellsDB or {}
 
+		if type(SettingsDB.buffOverrides) ~= "table" then
+			SettingsDB.buffOverrides = {}
+			SettingsDB.buffOverrides[342245] = 342246 -- Alter Time
+			SettingsDB.buffOverrides[414660] = 11426 -- Mass Barrier
+			SettingsDB.buffOverrides[53600] = 132403 -- Shield of the Righteous
+		end
 		if type(SettingsDB.validCategories) ~= "table" then
 			SettingsDB.validCategories = { "Cooldowns", "Crowd Control", "Defensive", "Important", "Movement", "Racial", "Rotation", "Utility" }
 		end
@@ -74,15 +83,20 @@ local function OnEvent(self, event, ...)
 			local framePoesBars = CreateFrame("Frame", addonName .. "SettingsFrame", UIParent)
 			framePoesBars.name = addonName
 			addon:AddSettingsPoesBars(framePoesBars)
-
-			local frameItems = CreateFrame("Frame", "ItemsSettingsFrame", UIParent)
-			frameItems.name = "Items"
-			addon:AddSettingsItems(frameItems)
-
 			local categoryPoesBars = Settings.RegisterCanvasLayoutCategory(framePoesBars, framePoesBars.name)
 			Settings.RegisterAddOnCategory(categoryPoesBars)
 			addon.categoryPoesBarsID = categoryPoesBars:GetID()
 
+			local frameBuffs = CreateFrame("Frame", "BuffsSettingsFrame", UIParent)
+			frameBuffs.name = "Buffs"
+			addon:AddSettingsBuffs(frameBuffs)
+			local categoryBuffs = Settings.RegisterCanvasLayoutSubcategory(categoryPoesBars, frameBuffs, frameBuffs.name);
+			Settings.RegisterAddOnCategory(categoryBuffs);
+			addon.categoryBuffsID = categoryBuffs:GetID();
+
+			local frameItems = CreateFrame("Frame", "ItemsSettingsFrame", UIParent)
+			frameItems.name = "Items"
+			addon:AddSettingsItems(frameItems)
 			local categoryItems = Settings.RegisterCanvasLayoutSubcategory(categoryPoesBars, frameItems, frameItems.name);
 			Settings.RegisterAddOnCategory(categoryItems);
 			addon.categoryItemsID = categoryItems:GetID();

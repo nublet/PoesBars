@@ -421,7 +421,7 @@ local function updateIconAura(frame, spellID)
         return
     end
 
-    local playerAura = C_UnitAuras.GetPlayerAuraBySpellID(addon.buffOverrides[spellID] or spellID)
+    local playerAura = C_UnitAuras.GetPlayerAuraBySpellID(SettingsDB.buffOverrides[spellID] or spellID)
 
     if playerAura and playerAura.isFromPlayerOrPlayerPet then
         local remaining = playerAura.expirationTime - GetTime()
@@ -455,7 +455,10 @@ local function updateIconItem(frame, name)
         return
     end
 
+    local settingsTable = SettingsDB[name] or {}
+
     local itemID = frame.itemID or 0
+    local showOnCooldown = settingsTable.showOnCooldown or false
     local spellID = frame.spellID or 0
 
     local count = C_Item.GetItemCount(itemID, false, true, false, false)
@@ -464,7 +467,11 @@ local function updateIconItem(frame, name)
         return
     end
 
-    frame:Show()
+    if showOnCooldown then
+        frame:Hide()
+    else
+        frame:Show()
+    end
 
     updateIconAura(frame, spellID)
 
@@ -487,6 +494,11 @@ local function updateIconItem(frame, name)
         local remaining = (startTime + duration) - GetTime()
 
         if remaining > 0 then
+            frame.frameBorder:Show()
+            frame.textBinding:Hide()
+            frame.textureIcon:SetDesaturated(true)
+            frame:Show()
+
             if remaining < 90 then
                 frame.textCooldown:SetText(string.format("%d", remaining))
                 frame.textCooldown:SetTextColor(1, 0, 0, 1)
@@ -496,7 +508,6 @@ local function updateIconItem(frame, name)
 
             frame.textureIcon:SetDesaturated(true)
             frame.textureIcon:SetVertexColor(1, 0, 0)
-            frame.frameBorder:Show()
         else
             frame.textCooldown:SetText("")
         end
@@ -526,31 +537,33 @@ local function updateIconSpell(frame, gcdCooldown, name)
 
     local settingsTable = SettingsDB[name] or {}
 
+    local isUsable, insufficientPower = C_Spell.IsSpellUsable(currentSpellID)
     local showOnCooldown = settingsTable.showOnCooldown or false
-    if showOnCooldown then
+    local showWhenAvailable = settingsTable.showWhenAvailable or false
+    local spellCharges = C_Spell.GetSpellCharges(currentSpellID)
+
+    if showOnCooldown or showWhenAvailable then
         frame:Hide()
     else
         frame:Show()
     end
 
-    updateIconAura(frame, currentSpellID)
+    if showWhenAvailable then
+        if spellCharges and spellCharges.maxCharges > 1 then
+            frame.textCharges:SetText(spellCharges.currentCharges)
 
-    if frame.auraActive then
-        if not frame.glowActive then
-            ActionButton_ShowOverlayGlow(frame)
-            frame.glowActive = true
+            if spellCharges.currentCharges > 0 then
+                frame:Show()
+            end
+        else
+            local spellCooldown = C_Spell.GetSpellCooldown(currentSpellID)
+            if spellCooldown.isEnabled and spellCooldown.duration > 2 then
+            else
+                frame:Show()
+            end
         end
-
-        frame:Show()
-
-        return
-    end
-
-    frame.textBinding:Show()
-    frame.textCooldown:SetText("")
-
-    if frameSpellID ~= currentSpellID then
-        updateIconAura(frame, frameSpellID)
+    else
+        updateIconAura(frame, currentSpellID)
 
         if frame.auraActive then
             if not frame.glowActive then
@@ -562,45 +575,78 @@ local function updateIconSpell(frame, gcdCooldown, name)
 
             return
         end
-    end
 
-    if currentSpellID ~= frame.currentSpellID then
-        local spellInfo = C_Spell.GetSpellInfo(currentSpellID)
+        frame.textBinding:Show()
+        frame.textCooldown:SetText("")
 
-        frame.currentSpellID = currentSpellID
-        frame.textureIcon:SetTexture(spellInfo.iconID)
+        if frameSpellID ~= currentSpellID then
+            updateIconAura(frame, frameSpellID)
 
-        if currentSpellID ~= frameSpellID then
-            glowActive = true
+            if frame.auraActive then
+                if not frame.glowActive then
+                    ActionButton_ShowOverlayGlow(frame)
+                    frame.glowActive = true
+                end
+
+                frame:Show()
+
+                return
+            end
         end
-    end
 
-    local isUsable, insufficientPower = C_Spell.IsSpellUsable(currentSpellID)
+        if currentSpellID ~= frame.currentSpellID then
+            local spellInfo = C_Spell.GetSpellInfo(currentSpellID)
 
-    if not isUsable then
-        if insufficientPower then
-            frame.textureIcon:SetVertexColor(0.5, 0.5, 1)
+            frame.currentSpellID = currentSpellID
+            frame.textureIcon:SetTexture(spellInfo.iconID)
+
+            if currentSpellID ~= frameSpellID then
+                glowActive = true
+            end
+        end
+
+        if spellCharges and spellCharges.maxCharges > 1 then
+            frame.textCharges:SetText(spellCharges.currentCharges)
+
+            if spellCharges.currentCharges <= 0 then
+                frame.frameBorder:Show()
+                frame.textBinding:Hide()
+                frame.textureIcon:SetDesaturated(true)
+                frame:Show()
+
+                if spellCharges.cooldownStartTime and spellCharges.cooldownDuration and spellCharges.cooldownDuration > 2 then
+                    local remaining = (spellCharges.cooldownStartTime + spellCharges.cooldownDuration) - GetTime()
+                    if remaining > 0 then
+                        if remaining < 90 then
+                            frame.textCooldown:SetText(string.format("%d", remaining))
+                            frame.textCooldown:SetTextColor(1, 0, 0, 1)
+                        else
+                            frame.textCooldown:SetText("")
+                        end
+                    end
+                end
+            elseif spellCharges.currentCharges < spellCharges.maxCharges then
+                frame.frameBorder:Show()
+                frame:Show()
+            else
+                if not isUsable then
+                    if insufficientPower then
+                        frame.textureIcon:SetVertexColor(0.5, 0.5, 1)
+                    else
+                        frame.textureIcon:SetVertexColor(1, 0, 0)
+                    end
+                end
+            end
         else
-            frame.textureIcon:SetVertexColor(1, 0, 0)
-        end
-
-        return
-    end
-
-    local spellCharges = C_Spell.GetSpellCharges(currentSpellID)
-
-    if spellCharges and spellCharges.maxCharges > 1 then
-        frame.textCharges:SetText(spellCharges.currentCharges)
-
-        if spellCharges.currentCharges <= 0 then
-            frame.frameBorder:Show()
-            frame.textBinding:Hide()
-            frame.textureIcon:SetDesaturated(true)
-            frame:Show()
-
-            if spellCharges.cooldownStartTime and spellCharges.cooldownDuration and spellCharges.cooldownDuration > 2 then
-                local remaining = (spellCharges.cooldownStartTime + spellCharges.cooldownDuration) - GetTime()
+            local spellCooldown = C_Spell.GetSpellCooldown(currentSpellID)
+            if spellCooldown.isEnabled and spellCooldown.duration > 2 then
+                local remaining = (spellCooldown.startTime + spellCooldown.duration) - GetTime()
                 if remaining > 0 then
+                    frame.frameBorder:Show()
+                    frame.textBinding:Hide()
+                    frame.textureIcon:SetDesaturated(true)
+                    frame:Show()
+
                     if remaining < 90 then
                         frame.textCooldown:SetText(string.format("%d", remaining))
                         frame.textCooldown:SetTextColor(1, 0, 0, 1)
@@ -608,47 +654,34 @@ local function updateIconSpell(frame, gcdCooldown, name)
                         frame.textCooldown:SetText("")
                     end
                 end
-            end
-        elseif spellCharges.currentCharges < spellCharges.maxCharges then
-            frame.frameBorder:Show()
-            frame:Show()
-        end
-    else
-        local spellCooldown = C_Spell.GetSpellCooldown(currentSpellID)
-        if spellCooldown.isEnabled and spellCooldown.duration > 2 then
-            local remaining = (spellCooldown.startTime + spellCooldown.duration) - GetTime()
-            if remaining > 0 then
-                frame.frameBorder:Show()
-                frame.textBinding:Hide()
-                frame.textureIcon:SetDesaturated(true)
-                frame:Show()
-
-                if remaining < 90 then
-                    frame.textCooldown:SetText(string.format("%d", remaining))
-                    frame.textCooldown:SetTextColor(1, 0, 0, 1)
-                else
-                    frame.textCooldown:SetText("")
+            else
+                if not isUsable then
+                    if insufficientPower then
+                        frame.textureIcon:SetVertexColor(0.5, 0.5, 1)
+                    else
+                        frame.textureIcon:SetVertexColor(1, 0, 0)
+                    end
                 end
             end
         end
-    end
 
-    if SettingsDB.showGlobalSweep and frame.cooldownFrame then
-        if gcdCooldown.isEnabled and gcdCooldown.duration > 0 then
-            CooldownFrame_Set(frame.cooldownFrame, gcdCooldown.startTime, gcdCooldown.duration, true)
-        else
-            frame.cooldownFrame:Clear()
+        if SettingsDB.showGlobalSweep and frame.cooldownFrame then
+            if gcdCooldown.isEnabled and gcdCooldown.duration > 0 then
+                CooldownFrame_Set(frame.cooldownFrame, gcdCooldown.startTime, gcdCooldown.duration, true)
+            else
+                frame.cooldownFrame:Clear()
+            end
         end
-    end
 
-    if glowActive and not frame.glowActive then
-        ActionButton_ShowOverlayGlow(frame)
-        frame.glowActive = true
-    end
+        if glowActive and not frame.glowActive then
+            ActionButton_ShowOverlayGlow(frame)
+            frame.glowActive = true
+        end
 
-    if not glowActive and frame.glowActive then
-        ActionButton_HideOverlayGlow(frame)
-        frame.glowActive = false
+        if not glowActive and frame.glowActive then
+            ActionButton_HideOverlayGlow(frame)
+            frame.glowActive = false
+        end
     end
 end
 

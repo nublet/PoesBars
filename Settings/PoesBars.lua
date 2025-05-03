@@ -180,8 +180,8 @@ end
 
 function addon:AddSettingsPoesBars(parent)
     local showGlobalSweep = addon:GetControlCheckbox(false, "Show GCD Sweep", parent,
-		function(frame)
-			SettingsDB.showGlobalSweep = frame:GetChecked()
+		function(control)
+			SettingsDB.showGlobalSweep = control:GetChecked()
 		end)
 	showGlobalSweep:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -10)
 	if SettingsDB.showGlobalSweep then
@@ -190,8 +190,8 @@ function addon:AddSettingsPoesBars(parent)
 		showGlobalSweep:SetChecked(false)
 	end
 
-	local isLocked = addon:GetControlCheckbox(false, "Lock Groups", parent, function(frame)
-		SettingsDB.isLocked = frame:GetChecked()
+	local isLocked = addon:GetControlCheckbox(false, "Lock Groups", parent, function(control)
+		SettingsDB.isLocked = control:GetChecked()
 	end)
 	isLocked:SetPoint("TOPLEFT", showGlobalSweep, "BOTTOMLEFT", 0, -10)
 	if SettingsDB.isLocked then
@@ -272,6 +272,7 @@ function addon:AddSettingsPoesBars(parent)
 						local iconSpacing = settingsTable.iconSpacing or 2
 						local isVertical = settingsTable.isVertical or false
 						local showOnCooldown = settingsTable.showOnCooldown or false
+						local showWhenAvailable = settingsTable.showWhenAvailable or false
 						local wrapAfter = settingsTable.wrapAfter or 0
 						local x = settingsTable.x or 0
 						local y = settingsTable.y or 0
@@ -296,9 +297,7 @@ function addon:AddSettingsPoesBars(parent)
 						end)
 						categoryDelete:SetPoint("LEFT", categoryInput, "RIGHT", 10, 0)
 
-						local showOnCooldownCheckbox = addon:GetControlCheckbox(true, "Only Show On Cooldown or Aura Active",parent, function(frame)
-							settingsTable.showOnCooldown = frame:GetChecked()
-						end)
+						local showOnCooldownCheckbox = addon:GetControlCheckbox(true, "Only Show On Cooldown or Aura Active",parent)
 						showOnCooldownCheckbox:SetPoint("TOPLEFT", categoryLabel, "BOTTOMLEFT", 0, -10)
 						if showOnCooldown then
 							showOnCooldownCheckbox:SetChecked(true)
@@ -306,8 +305,32 @@ function addon:AddSettingsPoesBars(parent)
 							showOnCooldownCheckbox:SetChecked(false)
 						end
 
+						local showWhenAvailableCheckbox = addon:GetControlCheckbox(true, "Only Show When Available",parent)
+						showWhenAvailableCheckbox:SetPoint("TOPLEFT", showOnCooldownCheckbox, "BOTTOMLEFT", 0, -10)
+						if showWhenAvailable then
+							showOnCooldownCheckbox:SetChecked(true)
+						else
+							showOnCooldownCheckbox:SetChecked(false)
+						end
+
+						showOnCooldownCheckbox:SetScript("OnClick",function(control)
+							settingsTable.showOnCooldown = control:GetChecked()
+
+							if settingsTable.showOnCooldown then
+								showWhenAvailableCheckbox:SetChecked(false)
+							end
+						end)
+
+						showWhenAvailableCheckbox:SetScript("OnClick",function(control)
+							settingsTable.showWhenAvailable = control:GetChecked()
+
+							if settingsTable.showWhenAvailable then
+								showOnCooldownCheckbox:SetChecked(false)
+							end
+						end)
+
 						local iconSizeLabel = addon:GetControlLabel(true, parent, "Icon Size:", 100)
-						iconSizeLabel:SetPoint("TOPLEFT", showOnCooldownCheckbox, "BOTTOMLEFT", 0, -10)
+						iconSizeLabel:SetPoint("TOPLEFT", showWhenAvailableCheckbox, "BOTTOMLEFT", 0, -10)
 
 						local iconSizeInput = addon:GetControlInput(true, parent, 40, function(control)
 							local value = strtrim(control:GetText())
