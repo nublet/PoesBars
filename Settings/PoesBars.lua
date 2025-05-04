@@ -95,13 +95,14 @@ local function CreateOptionLine(category, itemID, specID, spellID)
 		textName:SetText(spellInfo.name)
 		textureIcon:SetTexture(spellInfo.iconID)
 
-		frameIcon:SetScript("OnEnter", function(control)
-			GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
-			GameTooltip:SetSpellByID(spellID)
-			GameTooltip:Show()
-		end)
-	else
-		return
+		local tooltipData = C_TooltipInfo.GetSpellByID(spellID)
+		if tooltipData then
+			frameIcon:SetScript("OnEnter", function(control)
+				GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
+				GameTooltip:SetSpellByID(spellID)
+				GameTooltip:Show()
+			end)
+		end
 	end
 
 	dropdownCategory.initializeFunc = function(control, level, menuList)
