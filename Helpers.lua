@@ -396,6 +396,8 @@ end
 function addon:ReplaceBindings(binding)
     binding = binding:gsub("ALT%-", "A+")
     binding = binding:gsub("%BUTTON", "M")
+    binding = binding:gsub("%MOUSEWHEELDOWN", "WD")
+    binding = binding:gsub("%MOUSEWHEELUP", "WU")
     binding = binding:gsub("CTRL%-", "C+")
     binding = binding:gsub("NUMPAD", "N")
     binding = binding:gsub("SHIFT%-", "S+")

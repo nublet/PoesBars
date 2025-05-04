@@ -98,18 +98,6 @@ local function CreateIconFrame(itemID, specID, spellID)
     local textureIcon = newFrame:CreateTexture(nil, "ARTWORK")
     textureIcon:SetAllPoints(newFrame)
 
-    local baseChargeInfo = C_Spell.GetSpellCharges(spellID)
-    if baseChargeInfo then
-        newFrame.spellCooldown = baseChargeInfo.cooldownDuration * 1000
-    else
-        local cooldownMS, gcdMS = GetSpellBaseCooldown(spellID)
-        if cooldownMS and cooldownMS > 0 then
-            newFrame.spellCooldown = cooldownMS
-        else
-            newFrame.spellCooldown = 0
-        end
-    end
-
     if itemID > 0 then
         newFrame.iconName = ""
         newFrame.isHarmful = false
@@ -118,6 +106,18 @@ local function CreateIconFrame(itemID, specID, spellID)
         local _, itemSpellID = C_Item.GetItemSpell(itemID)
         if itemSpellID and itemSpellID > 0 then
             newFrame.spellID = itemSpellID
+
+            local baseChargeInfo = C_Spell.GetSpellCharges(itemSpellID)
+            if baseChargeInfo then
+                newFrame.spellCooldown = baseChargeInfo.cooldownDuration * 1000
+            else
+                local cooldownMS, gcdMS = GetSpellBaseCooldown(itemSpellID)
+                if cooldownMS and cooldownMS > 0 then
+                    newFrame.spellCooldown = cooldownMS
+                else
+                    newFrame.spellCooldown = 0
+                end
+            end
         end
 
         local item = Item:CreateFromItemID(itemID)
@@ -173,6 +173,23 @@ local function CreateIconFrame(itemID, specID, spellID)
         if binding then
             textBinding:SetText(addon:ReplaceBindings(binding))
         end
+
+        local baseChargeInfo = C_Spell.GetSpellCharges(spellID)
+        if baseChargeInfo then
+            newFrame.spellCooldown = baseChargeInfo.cooldownDuration * 1000
+        else
+            local cooldownMS, gcdMS = GetSpellBaseCooldown(spellID)
+            if cooldownMS and cooldownMS > 0 then
+                newFrame.spellCooldown = cooldownMS
+            else
+                newFrame.spellCooldown = 0
+            end
+        end
+    end
+
+    if spellID == 119910 then
+        print("spellID:", spellID, ", newFrame.iconName", newFrame.iconName, ", newFrame.spellCooldown",
+            newFrame.spellCooldown)
     end
 
     newFrame.currentSpellID = spellID
@@ -224,7 +241,8 @@ local function ProcessSpell(spellBank, specID, spellIndex)
         return
     end
 
-    if itemInfo.itemType ~= Enum.SpellBookItemType.Spell then
+    if itemInfo.itemType == Enum.SpellBookItemType.Spell or itemInfo.itemType == Enum.SpellBookItemType.PetAction then
+    else
         return
     end
 
@@ -429,6 +447,14 @@ local function RefreshIconsSpell()
     wipe(spells)
     spells = {}
 
+    local numPetSpells, petNameToken = C_SpellBook.HasPetSpells()
+
+    if numPetSpells and numPetSpells > 0 then
+        for i = 1, numPetSpells do
+            ProcessSpell(Enum.SpellBookSpellBank.Pet, 0, i)
+        end
+    end
+
     for i = 1, C_SpellBook.GetNumSpellBookSkillLines() + 1 do
         local lineInfo = C_SpellBook.GetSpellBookSkillLineInfo(i)
 
@@ -450,14 +476,6 @@ local function RefreshIconsSpell()
                     end
                 end
             end
-        end
-    end
-
-    local numPetSpells, petNameToken = C_SpellBook.HasPetSpells()
-
-    if numPetSpells and numPetSpells > 0 then
-        for i = 1, numPetSpells do
-            ProcessSpell(Enum.SpellBookSpellBank.Pet, 0, i)
         end
     end
 end
@@ -505,8 +523,6 @@ local function updateIconDebuff(frame, showOnCooldown, spellID, targetDebuffs)
     local aura = GetDebuffAura(spellID, frame.iconName, targetDebuffs)
 
     if aura then
-        local remaining = aura.expirationTime - GetTime()
-
         if aura.applications and aura.applications > 0 then
             frame.textCharges:SetText(aura.applications)
         elseif aura.charges and aura.charges > 0 then
@@ -515,49 +531,61 @@ local function updateIconDebuff(frame, showOnCooldown, spellID, targetDebuffs)
             frame.textCharges:SetText("")
         end
 
-        if remaining > 0 then
-            frame.textCooldown:SetText(string.format("%d", remaining))
-            frame.textCooldown:SetTextColor(0, 1, 0, 1)
-
-            if remaining <= 5 then
-                if showOnCooldown then
-                    frame:Show()
-                end
-
-                if not frame.glowActive then
-                    ActionButton_ShowOverlayGlow(frame)
-                    frame.glowActive = true
-                end
-            elseif frame.glowActive then
-                ActionButton_HideOverlayGlow(frame)
-                frame.glowActive = false
-
-                if showOnCooldown then
-                    frame:Hide()
-                end
-            else
-                if showOnCooldown then
-                    frame:Hide()
-                end
+        if aura.expirationTime <= 0 then
+            if showOnCooldown then
+                frame:Hide()
             end
 
             frame.auraActive = true
             frame.frameBorder:Hide()
             frame.textureIcon:SetDesaturated(false)
         else
-            if showOnCooldown then
-                frame:Show()
+            local remaining = aura.expirationTime - GetTime()
+
+            if remaining > 0 then
+                frame.textCooldown:SetText(string.format("%d", remaining))
+                frame.textCooldown:SetTextColor(0, 1, 0, 1)
+
+                if remaining <= 5 then
+                    if showOnCooldown then
+                        frame:Show()
+                    end
+
+                    if not frame.glowActive then
+                        ActionButton_ShowOverlayGlow(frame)
+                        frame.glowActive = true
+                    end
+                elseif frame.glowActive then
+                    ActionButton_HideOverlayGlow(frame)
+                    frame.glowActive = false
+
+                    if showOnCooldown then
+                        frame:Hide()
+                    end
+                else
+                    if showOnCooldown then
+                        frame:Hide()
+                    end
+                end
+
+                frame.auraActive = true
+                frame.frameBorder:Hide()
+                frame.textureIcon:SetDesaturated(false)
+            else
+                if showOnCooldown then
+                    frame:Show()
+                end
+
+                if frame.glowActive then
+                    ActionButton_HideOverlayGlow(frame)
+                    frame.glowActive = false
+                end
+
+                frame.auraActive = false
+                frame.frameBorder:Show()
+                frame.textCooldown:SetText("")
+                frame.textureIcon:SetDesaturated(true)
             end
-    
-            if frame.glowActive then
-                ActionButton_HideOverlayGlow(frame)
-                frame.glowActive = false
-            end
-    
-            frame.auraActive = false
-            frame.frameBorder:Show()
-            frame.textCooldown:SetText("")
-            frame.textureIcon:SetDesaturated(true)
         end
     else
         if showOnCooldown then
