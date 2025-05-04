@@ -16,26 +16,50 @@ local function CreateOptionLine(buffID, spellID)
         return
     end
 
-    local textureSpellIcon = scrollFrameChild:CreateTexture(nil, "ARTWORK")
-    textureSpellIcon:SetPoint("TOPLEFT", 10, yOffset)
-    textureSpellIcon:SetSize(addon.settingsIconSize, addon.settingsIconSize)
+    local frameSpell = CreateFrame("Frame", nil, scrollFrameChild)
+	frameSpell:EnableMouse(true)
+	frameSpell:SetPoint("TOPLEFT", 10, yOffset)
+	frameSpell:SetSize(addon.settingsIconSize, addon.settingsIconSize)
+    frameSpell:SetScript("OnEnter", function(control)
+        GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
+        GameTooltip:SetSpellByID(spellID)
+        GameTooltip:Show()
+    end)
+	frameSpell:SetScript("OnLeave", function()
+		GameTooltip:Hide()
+	end)
 
-    local textSpellID = addon:GetControlLabel(false, scrollFrameChild, "", 100)
-    textSpellID:SetPoint("LEFT", textureSpellIcon, "RIGHT", 10, 0)
+	local textureSpell = frameSpell:CreateTexture(nil, "ARTWORK")
+	textureSpell:SetAllPoints()
+
+    local textSpellID = addon:GetControlLabel(false, scrollFrameChild, "", 60)
+    textSpellID:SetPoint("LEFT", frameSpell, "RIGHT", 10, 0)
     textSpellID:SetText(spellID)
 
-    local textSpellName = addon:GetControlLabel(false, scrollFrameChild, "", 200)
+    local textSpellName = addon:GetControlLabel(false, scrollFrameChild, "", 150)
     textSpellName:SetPoint("LEFT", textSpellID, "RIGHT", 10, 0)
 
-    local textureBuffIcon = scrollFrameChild:CreateTexture(nil, "ARTWORK")
-    textureBuffIcon:SetPoint("LEFT", textSpellName, "RIGHT", 10, 0)
-    textureBuffIcon:SetSize(addon.settingsIconSize, addon.settingsIconSize)
+    local frameBuff = CreateFrame("Frame", nil, scrollFrameChild)
+	frameBuff:EnableMouse(true)
+	frameBuff:SetPoint("LEFT", textSpellName, "RIGHT", 10, 0)
+	frameBuff:SetSize(addon.settingsIconSize, addon.settingsIconSize)
+    frameBuff:SetScript("OnEnter", function(control)
+        GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
+        GameTooltip:SetSpellByID(buffID)
+        GameTooltip:Show()
+    end)
+	frameBuff:SetScript("OnLeave", function()
+		GameTooltip:Hide()
+	end)
 
-    local textBuffID = addon:GetControlLabel(false, scrollFrameChild, "", 100)
-    textBuffID:SetPoint("LEFT", textureBuffIcon, "RIGHT", 10, 0)
+	local textureBuff = frameBuff:CreateTexture(nil, "ARTWORK")
+	textureBuff:SetAllPoints()
+
+    local textBuffID = addon:GetControlLabel(false, scrollFrameChild, "", 60)
+    textBuffID:SetPoint("LEFT", frameBuff, "RIGHT", 10, 0)
     textBuffID:SetText(buffID)
 
-    local textBuffName = addon:GetControlLabel(false, scrollFrameChild, "", 200)
+    local textBuffName = addon:GetControlLabel(false, scrollFrameChild, "", 150)
     textBuffName:SetPoint("LEFT", textBuffID, "RIGHT", 10, 0)
 
     local deleteButton = addon:GetControlButton(false, "DELETE", scrollFrameChild, 60, function(control)
@@ -47,13 +71,13 @@ local function CreateOptionLine(buffID, spellID)
     local buffSpellInfo = C_Spell.GetSpellInfo(buffID)
     if buffSpellInfo then
         textBuffName:SetText(buffSpellInfo.name)
-        textureBuffIcon:SetTexture(buffSpellInfo.iconID)
+        textureBuff:SetTexture(buffSpellInfo.iconID)
     end
 
     local spellSpellInfo = C_Spell.GetSpellInfo(spellID)
     if spellSpellInfo then
         textSpellName:SetText(spellSpellInfo.name)
-        textureSpellIcon:SetTexture(spellSpellInfo.iconID)
+        textureSpell:SetTexture(spellSpellInfo.iconID)
     end
 
     yOffset = yOffset - addon.settingsIconSize - 10

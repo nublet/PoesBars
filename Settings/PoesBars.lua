@@ -17,10 +17,6 @@ local function CreateOptionLine(category, itemID, specID, spellID)
 		SpellsDB[specID] = {}
 	end
 
-	local spellIcon = scrollFrameChild:CreateTexture(nil, "ARTWORK")
-	spellIcon:SetPoint("TOPLEFT", 10, yOffset)
-	spellIcon:SetSize(addon.settingsIconSize, addon.settingsIconSize)
-
 	local categoryValue = SpellsDB[specID][settingName]
 	if not categoryValue or categoryValue == "" then
 		categoryValue = addon.unknown
@@ -29,75 +25,21 @@ local function CreateOptionLine(category, itemID, specID, spellID)
 		return
 	end
 
-	local newIcon, newName
+	local frameIcon = CreateFrame("Frame", nil, scrollFrameChild)
+	frameIcon:EnableMouse(true)
+	frameIcon:SetPoint("TOPLEFT", 10, yOffset)
+	frameIcon:SetSize(addon.settingsIconSize, addon.settingsIconSize)
+	frameIcon:SetScript("OnLeave", function()
+		GameTooltip:Hide()
+	end)
 
-	if itemID > 0 then
-		local itemName, itemLink, _, _, _, _, _, _, _, itemTexture, _, _, _, _, _, _, _ = C_Item.GetItemInfo(itemID)
-
-		if itemLink then
-			local qualityTier = itemLink:match("|A:Professions%-ChatIcon%-Quality%-Tier(%d+)")
-
-			if qualityTier then
-				local rankText = scrollFrameChild:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-				rankText:SetFont(rankText:GetFont(), 16, "OUTLINE")
-				rankText:SetPoint("BOTTOMLEFT", spellIcon, "BOTTOMLEFT", 0, -10)
-				rankText:SetShadowColor(0, 0, 0, 1)
-				rankText:SetShadowOffset(0, 0)
-				rankText:SetTextColor(1, 1, 1, 1)
-
-				if qualityTier == "1" then
-					rankText:SetText("*")
-				elseif qualityTier == "2" then
-					rankText:SetText("**")
-				elseif qualityTier == "3" then
-					rankText:SetText("***")
-				else
-					rankText:SetText("")
-				end
-			end
-		end
-
-		if itemName then
-			newName = itemName
-		end
-
-		if itemTexture then
-			newIcon = itemTexture
-		end
-
-		local _, itemSpellID = C_Item.GetItemSpell(itemID)
-		if itemSpellID and itemSpellID > 0 then
-			spellID = itemSpellID
-		end
-	end
-
-	if spellID > 0 then
-		local spellInfo = C_Spell.GetSpellInfo(spellID)
-
-		if not newIcon or newIcon == "" then
-			newIcon = spellInfo.iconID
-		end
-
-		if not newName or newName == "" then
-			newName = spellInfo.name
-		end
-	end
-
-	if not newName or newName == "" then
-		return
-	end
-
-	spellIcon:SetTexture(newIcon)
+	local textureIcon = frameIcon:CreateTexture(nil, "ARTWORK")
+	textureIcon:SetAllPoints()
 
 	local textID = addon:GetControlLabel(false, scrollFrameChild, "", 100)
-	textID:SetPoint("LEFT", spellIcon, "RIGHT", 10, 0)
-	if itemID > 0 then
-		textID:SetText(tostring(itemID))
-	else
-		textID:SetText(tostring(spellID))
-	end
+	textID:SetPoint("LEFT", frameIcon, "RIGHT", 10, 0)
 
-	local textName = addon:GetControlLabel(false, scrollFrameChild, newName, 200)
+	local textName = addon:GetControlLabel(false, scrollFrameChild, "", 200)
 	textName:SetPoint("LEFT", textID, "RIGHT", 10, 0)
 
 	local dropdownCategory = addon:GetControlDropdown(false, scrollFrameChild, 120)
@@ -106,6 +48,61 @@ local function CreateOptionLine(category, itemID, specID, spellID)
 	local inputCategory = addon:GetControlInput(false, scrollFrameChild, 120)
 	inputCategory:Hide()
 	inputCategory:SetPoint("LEFT", dropdownCategory, "RIGHT", 10, 0)
+
+	if itemID > 0 then
+		local textRank = scrollFrameChild:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+		textRank:SetFont(textRank:GetFont(), 10, "OUTLINE")
+		textRank:SetPoint("BOTTOMLEFT", frameIcon, "BOTTOMLEFT", 0, 0)
+		textRank:SetShadowColor(0, 0, 0, 1)
+		textRank:SetShadowOffset(0, 0)
+		textRank:SetText("")
+		textRank:SetTextColor(0, 1, 0, 1)
+
+		local item = Item:CreateFromItemID(itemID)
+		item:ContinueOnItemLoad(function()
+			local itemName = item:GetItemName()
+			local itemLink = item:GetItemLink()
+			local itemTexture = item:GetItemIcon()
+
+			textID:SetText(itemID)
+			textName:SetText(itemName)
+			textureIcon:SetTexture(itemTexture)
+
+			if itemLink then
+				local qualityTier = itemLink:match("|A:Professions%-ChatIcon%-Quality%-Tier(%d+)")
+
+				if qualityTier then
+					if qualityTier == "1" then
+						textRank:SetText("R1")
+					elseif qualityTier == "2" then
+						textRank:SetText("R2")
+					elseif qualityTier == "3" then
+						textRank:SetText("R3")
+					end
+				end
+			end
+		end)
+
+		frameIcon:SetScript("OnEnter", function(control)
+			GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
+			GameTooltip:SetItemByID(itemID)
+			GameTooltip:Show()
+		end)
+	elseif spellID > 0 then
+		local spellInfo = C_Spell.GetSpellInfo(spellID)
+
+		textID:SetText(spellID)
+		textName:SetText(spellInfo.name)
+		textureIcon:SetTexture(spellInfo.iconID)
+
+		frameIcon:SetScript("OnEnter", function(control)
+			GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
+			GameTooltip:SetSpellByID(spellID)
+			GameTooltip:Show()
+		end)
+	else
+		return
+	end
 
 	dropdownCategory.initializeFunc = function(control, level, menuList)
 		local function addItem(text)
@@ -179,7 +176,7 @@ local function ProcessSpell(category, specID, spellIndex)
 end
 
 function addon:AddSettingsPoesBars(parent)
-    local showGlobalSweep = addon:GetControlCheckbox(false, "Show GCD Sweep", parent,
+	local showGlobalSweep = addon:GetControlCheckbox(false, "Show GCD Sweep", parent,
 		function(control)
 			SettingsDB.showGlobalSweep = control:GetChecked()
 		end)
@@ -192,6 +189,8 @@ function addon:AddSettingsPoesBars(parent)
 
 	local isLocked = addon:GetControlCheckbox(false, "Lock Groups", parent, function(control)
 		SettingsDB.isLocked = control:GetChecked()
+
+		addon:CheckLockState()
 	end)
 	isLocked:SetPoint("TOPLEFT", showGlobalSweep, "BOTTOMLEFT", 0, -10)
 	if SettingsDB.isLocked then
@@ -297,7 +296,8 @@ function addon:AddSettingsPoesBars(parent)
 						end)
 						categoryDelete:SetPoint("LEFT", categoryInput, "RIGHT", 10, 0)
 
-						local showOnCooldownCheckbox = addon:GetControlCheckbox(true, "Only Show On Cooldown or Aura Active",parent)
+						local showOnCooldownCheckbox = addon:GetControlCheckbox(true,
+							"Only Show On Cooldown or Aura Active", parent)
 						showOnCooldownCheckbox:SetPoint("TOPLEFT", categoryLabel, "BOTTOMLEFT", 0, -10)
 						if showOnCooldown then
 							showOnCooldownCheckbox:SetChecked(true)
@@ -305,7 +305,8 @@ function addon:AddSettingsPoesBars(parent)
 							showOnCooldownCheckbox:SetChecked(false)
 						end
 
-						local showWhenAvailableCheckbox = addon:GetControlCheckbox(true, "Only Show When Available",parent)
+						local showWhenAvailableCheckbox = addon:GetControlCheckbox(true, "Only Show When Available",
+							parent)
 						showWhenAvailableCheckbox:SetPoint("TOPLEFT", showOnCooldownCheckbox, "BOTTOMLEFT", 0, -10)
 						if showWhenAvailable then
 							showOnCooldownCheckbox:SetChecked(true)
@@ -313,7 +314,7 @@ function addon:AddSettingsPoesBars(parent)
 							showOnCooldownCheckbox:SetChecked(false)
 						end
 
-						showOnCooldownCheckbox:SetScript("OnClick",function(control)
+						showOnCooldownCheckbox:SetScript("OnClick", function(control)
 							settingsTable.showOnCooldown = control:GetChecked()
 
 							if settingsTable.showOnCooldown then
@@ -321,7 +322,7 @@ function addon:AddSettingsPoesBars(parent)
 							end
 						end)
 
-						showWhenAvailableCheckbox:SetScript("OnClick",function(control)
+						showWhenAvailableCheckbox:SetScript("OnClick", function(control)
 							settingsTable.showWhenAvailable = control:GetChecked()
 
 							if settingsTable.showWhenAvailable then
@@ -397,7 +398,8 @@ function addon:AddSettingsPoesBars(parent)
 						local orientationLabel = addon:GetControlLabel(true, parent, "Orientation:", 100)
 						orientationLabel:SetPoint("TOPLEFT", wrapAfterLabel, "BOTTOMLEFT", 0, -10)
 
-						local orientationHorizontal = addon:GetControlRadioButton(true, parent, radioOrientation, "Horizontal",
+						local orientationHorizontal = addon:GetControlRadioButton(true, parent, radioOrientation,
+							"Horizontal",
 							function(control)
 								addon:ClearRadios(radioOrientation)
 								control:SetChecked(true)
@@ -406,7 +408,8 @@ function addon:AddSettingsPoesBars(parent)
 							end)
 						orientationHorizontal:SetPoint("LEFT", orientationLabel, "RIGHT", 10, 0)
 
-						local orientationVertical = addon:GetControlRadioButton(true, parent, radioOrientation, "Vertical",
+						local orientationVertical = addon:GetControlRadioButton(true, parent, radioOrientation,
+							"Vertical",
 							function(control)
 								addon:ClearRadios(radioOrientation)
 								control:SetChecked(true)

@@ -28,8 +28,12 @@ function PoesBarsCommands(msg, editbox)
 		Settings.OpenToCategory(addon.categoryItemsID)
 	elseif msg == "lock" or msg == "l" then
 		SettingsDB.isLocked = true
+
+		addon:CheckLockState()
 	elseif msg == "unlock" or msg == "u" then
 		SettingsDB.isLocked = false
+
+		addon:CheckLockState()
 	else
 		print("Unknown Command: ", msg)
 	end

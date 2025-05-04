@@ -198,15 +198,21 @@ function addon:GetFrame(name)
 
     local newFrame = CreateFrame("Frame", name .. "Parent", UIParent)
     if name ~= addon.unknown then
+        newFrame:EnableKeyboard(false)
         newFrame:EnableMouse(true)
+        newFrame:EnableMouseWheel(false)
         newFrame:RegisterForDrag("LeftButton")
         newFrame:SetClampedToScreen(true)
         newFrame:SetDontSavePosition(true)
+        newFrame:SetFrameStrata("LOW")
+        newFrame:SetHitRectInsets(0, 0, 0, 0)
         newFrame:SetMovable(true)
+        newFrame:SetPropagateKeyboardInput(true)
         newFrame:SetSize(1, 1)
+        newFrame:SetToplevel(false)
 
         newFrame:SetScript("OnDragStart", function(frame)
-            if IsControlKeyDown() and not SettingsDB.isLocked then
+            if IsControlKeyDown() then
                 frame:StartMoving()
             end
         end)

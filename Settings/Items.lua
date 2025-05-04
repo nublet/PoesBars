@@ -11,20 +11,32 @@ local function CreateOptionLine(itemID)
         return
     end
 
-    local textureIcon = scrollFrameChild:CreateTexture(nil, "ARTWORK")
-    textureIcon:SetPoint("TOPLEFT", 10, yOffset)
-    textureIcon:SetSize(addon.settingsIconSize, addon.settingsIconSize)
+    local frameIcon = CreateFrame("Frame", nil, scrollFrameChild)
+	frameIcon:EnableMouse(true)
+	frameIcon:SetPoint("TOPLEFT", 10, yOffset)
+	frameIcon:SetSize(addon.settingsIconSize, addon.settingsIconSize)
+    frameIcon:SetScript("OnEnter", function(control)
+        GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
+        GameTooltip:SetItemByID(itemID)
+        GameTooltip:Show()
+    end)
+	frameIcon:SetScript("OnLeave", function()
+		GameTooltip:Hide()
+	end)
 
-    local textRank = scrollFrameChild:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	local textureIcon = frameIcon:CreateTexture(nil, "ARTWORK")
+	textureIcon:SetAllPoints()
+
+    local textRank = frameIcon:CreateFontString(nil, "OVERLAY","GameFontNormal")
     textRank:SetFont(textRank:GetFont(), 10, "OUTLINE")
-    textRank:SetPoint("BOTTOMLEFT", textureIcon, "BOTTOMLEFT", 0, 0)
+    textRank:SetPoint("BOTTOMLEFT", frameIcon, "BOTTOMLEFT", 0, 0)
     textRank:SetShadowColor(0, 0, 0, 1)
     textRank:SetShadowOffset(0, 0)
     textRank:SetText("")
     textRank:SetTextColor(0, 1, 0, 1)
 
     local textItemID = addon:GetControlLabel(false, scrollFrameChild, "", 100)
-    textItemID:SetPoint("LEFT", textureIcon, "RIGHT", 10, 0)
+    textItemID:SetPoint("LEFT", frameIcon, "RIGHT", 10, 0)
     textItemID:SetText(itemID)
 
     local textItemName = addon:GetControlLabel(false, scrollFrameChild, "", 200)
@@ -43,28 +55,28 @@ local function CreateOptionLine(itemID)
     deleteButton:SetPoint("LEFT", textItemName, "RIGHT", 10, 0)
 
     local item = Item:CreateFromItemID(itemID)
-        item:ContinueOnItemLoad(function()
-            local itemName = item:GetItemName()
-            local itemLink = item:GetItemLink()
-            local itemTexture = item:GetItemIcon()
+    item:ContinueOnItemLoad(function()
+        local itemName = item:GetItemName()
+        local itemLink = item:GetItemLink()
+        local itemTexture = item:GetItemIcon()
 
-            textItemName:SetText(itemName)
-            textureIcon:SetTexture(itemTexture)
+        textItemName:SetText(itemName)
+        textureIcon:SetTexture(itemTexture)
 
-            if itemLink then
-                local qualityTier = itemLink:match("|A:Professions%-ChatIcon%-Quality%-Tier(%d+)")
+        if itemLink then
+            local qualityTier = itemLink:match("|A:Professions%-ChatIcon%-Quality%-Tier(%d+)")
 
-                if qualityTier then
-                    if qualityTier == "1" then
-                        textRank:SetText("R1")
-                    elseif qualityTier == "2" then
-                        textRank:SetText("R2")
-                    elseif qualityTier == "3" then
-                        textRank:SetText("R3")
-                    end
+            if qualityTier then
+                if qualityTier == "1" then
+                    textRank:SetText("R1")
+                elseif qualityTier == "2" then
+                    textRank:SetText("R2")
+                elseif qualityTier == "3" then
+                    textRank:SetText("R3")
                 end
             end
-        end)
+        end
+    end)
 
     yOffset = yOffset - addon.settingsIconSize - 10
 end

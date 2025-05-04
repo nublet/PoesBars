@@ -25,18 +25,35 @@ local function CreateIconFrame(itemID, specID, spellID)
     end
 
     local newFrame = CreateFrame("Frame", nil, UIParent)
+    newFrame:EnableKeyboard(false)
+    newFrame:EnableMouse(false)
+    newFrame:EnableMouseWheel(false)
     newFrame:Hide()
-    newFrame:SetSize(40, 40)
+    newFrame:SetFrameStrata("LOW")
+    newFrame:SetHitRectInsets(0, 0, 0, 0)
     newFrame:SetPoint("CENTER", 0, 0)
+    newFrame:SetPropagateKeyboardInput(true)
+    newFrame:SetSize(40, 40)
+    newFrame:SetToplevel(false)
 
     local frameBorder = CreateFrame("Frame", nil, newFrame, "BackdropTemplate")
+    frameBorder:EnableKeyboard(false)
+    frameBorder:EnableMouse(false)
+    frameBorder:EnableMouseWheel(false)
     frameBorder:SetAllPoints(newFrame)
     frameBorder:SetBackdrop({ edgeFile = "Interface/Buttons/WHITE8x8", edgeSize = 1, })
     frameBorder:SetBackdropBorderColor(1, 0, 0, 1)
     frameBorder:SetFrameLevel(newFrame:GetFrameLevel() + 1)
+    frameBorder:SetPropagateKeyboardInput(true)
+    frameBorder:SetToplevel(false)
 
     local frameCooldown = CreateFrame("Cooldown", nil, newFrame, "CooldownFrameTemplate")
+    frameCooldown:EnableKeyboard(false)
+    frameCooldown:EnableMouse(false)
+    frameCooldown:EnableMouseWheel(false)
     frameCooldown:SetAllPoints(newFrame)
+    frameCooldown:SetPropagateKeyboardInput(true)
+    frameCooldown:SetToplevel(false)
 
     local textBinding = newFrame:CreateFontString(nil, "OVERLAY")
     textBinding:SetFont(font, 12, "OUTLINE")
@@ -685,6 +702,26 @@ local function updateIconSpell(frame, gcdCooldown, name)
     end
 end
 
+function addon:CheckLockState()
+    for index, name in ipairs(addon:GetValidCategories(false)) do
+        if categories[name] then
+            local frame = categories[name].frame
+
+            if SettingsDB.isLocked then
+                frame:EnableKeyboard(false)
+                frame:EnableMouse(false)
+                frame:EnableMouseWheel(false)
+                frame:RegisterForDrag()
+                frame:SetMovable(false)
+            else
+                frame:EnableMouse(true)
+                frame:RegisterForDrag("LeftButton")
+                frame:SetMovable(true)
+            end
+        end
+    end
+end
+
 function addon:CreateCategoryFrames()
     local validCategories = addon:GetValidCategories(true)
 
@@ -721,6 +758,8 @@ function addon:CreateCategoryFrames()
     RefreshIconsSpell()
 
     addon:RefreshCategoryFrames(true, true)
+
+    addon:CheckLockState()
 end
 
 function addon:RefreshItems()
