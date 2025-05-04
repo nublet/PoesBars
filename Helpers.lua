@@ -94,9 +94,9 @@ local function SaveFramePosition(name, parentFrame)
 end
 
 function addon:ClearRadios(radioGroup)
-	for _, b in ipairs(radioGroup) do
-		b:SetChecked(false)
-	end
+    for i = 1, #radioGroup do
+        radioGroup[i]:SetChecked(false)
+    end
 end
 
 function addon:Debounce(key, delay, func)
@@ -111,84 +111,84 @@ function addon:Debounce(key, delay, func)
 end
 
 function addon:GetControlButton(addToTable, label, parent, width, onClick)
-	local result = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-	result:SetScript("OnClick", onClick)
-	result:SetSize(width, 20)
-	result:SetText(label)
+    local result = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    result:SetScript("OnClick", onClick)
+    result:SetSize(width, 20)
+    result:SetText(label)
 
-	if addToTable then
-		table.insert(addon.settingsControls, result)
-	end
+    if addToTable then
+        table.insert(addon.settingsControls, result)
+    end
 
-	return result
+    return result
 end
 
 function addon:GetControlCheckbox(addToTable, label, parent, onClick)
-	local result = CreateFrame("CheckButton", nil, parent, "InterfaceOptionsCheckButtonTemplate")
-	result:SetChecked(false)
-	result:SetScript("OnClick", onClick)
-	result.Text:SetText(label)
+    local result = CreateFrame("CheckButton", nil, parent, "InterfaceOptionsCheckButtonTemplate")
+    result:SetChecked(false)
+    result:SetScript("OnClick", onClick)
+    result.Text:SetText(label)
 
-	if addToTable then
-		table.insert(addon.settingsControls, result)
-	end
+    if addToTable then
+        table.insert(addon.settingsControls, result)
+    end
 
-	return result
+    return result
 end
 
 function addon:GetControlDropdown(addToTable, parent, width)
-	local result = CreateFrame("Frame", nil, parent, "UIDropDownMenuTemplate")
+    local result = CreateFrame("Frame", nil, parent, "UIDropDownMenuTemplate")
 
-	UIDropDownMenu_SetWidth(result, width)
+    UIDropDownMenu_SetWidth(result, width)
 
-	if addToTable then
-		table.insert(addon.settingsControls, result)
-	end
+    if addToTable then
+        table.insert(addon.settingsControls, result)
+    end
 
-	return result
+    return result
 end
 
 function addon:GetControlInput(addToTable, parent, width, onEnterPressed)
-	local result = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
-	result:SetAutoFocus(false)
-	result:SetSize(width, 20)
+    local result = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+    result:SetAutoFocus(false)
+    result:SetSize(width, 20)
 
-	result:SetScript("OnEnterPressed", onEnterPressed)
+    result:SetScript("OnEnterPressed", onEnterPressed)
 
-	if addToTable then
-		table.insert(addon.settingsControls, result)
-	end
+    if addToTable then
+        table.insert(addon.settingsControls, result)
+    end
 
-	return result
+    return result
 end
 
 function addon:GetControlLabel(addToTable, parent, text, width)
-	local result = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	result:SetJustifyH("LEFT")
-	result:SetJustifyV("MIDDLE")
-	result:SetSize(width, 20)
-	result:SetText(text)
+    local result = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    result:SetJustifyH("LEFT")
+    result:SetJustifyV("MIDDLE")
+    result:SetSize(width, 20)
+    result:SetText(text)
 
-	if addToTable then
-		table.insert(addon.settingsControls, result)
-	end
+    if addToTable then
+        table.insert(addon.settingsControls, result)
+    end
 
-	return result
+    return result
 end
 
 function addon:GetControlRadioButton(addToTable, parent, radioGroup, text, onClick)
-	local result = CreateFrame("CheckButton", nil, parent, "UIRadioButtonTemplate")
-	result:SetChecked(false)
-	result:SetScript("OnClick", onClick)
-	result.text:SetText(text)
+    local result = CreateFrame("CheckButton", nil, parent, "UIRadioButtonTemplate")
+    result:SetChecked(false)
+    result:SetScript("OnClick", onClick)
+    result.text:SetText(text)
 
-	table.insert(radioGroup, result)
+    table.insert(radioGroup, result)
 
-	if addToTable then
-		table.insert(addon.settingsControls, result)
-	end
+    if addToTable then
+        table.insert(addon.settingsControls, result)
+    end
 
-	return result
+    return result
 end
 
 function addon:GetFrame(name)
@@ -348,7 +348,8 @@ function addon:GetValidCategories(addForced)
     local foundUnknown = false
     local results = {}
 
-    for _, name in ipairs(SettingsDB.validCategories) do
+    for i = 1, #SettingsDB.validCategories do
+        local name = SettingsDB.validCategories[i]
         if name == addon.ignored then
             foundIgnored = true
         elseif name == addon.unknown then

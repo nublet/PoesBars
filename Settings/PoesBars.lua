@@ -126,8 +126,12 @@ local function CreateOptionLine(category, itemID, specID, spellID)
 		addItem(addon.ignored)
 		addItem("Add New...")
 
-		for _, option in ipairs(addon:GetValidCategories(false)) do
-			addItem(option)
+		local validCategories = addon:GetValidCategories(false)
+
+		for i = 1, #validCategories do
+			local name = validCategories[i]
+
+			addItem(name)
 		end
 	end
 
@@ -154,8 +158,8 @@ local function CreateOptionLine(category, itemID, specID, spellID)
 	yOffset = yOffset - addon.settingsIconSize - 10
 end
 
-local function ProcessSpell(category, specID, spellIndex)
-	local itemInfo = C_SpellBook.GetSpellBookItemInfo(spellIndex, Enum.SpellBookSpellBank.Player)
+local function ProcessSpell(category, spellBank, specID, spellIndex)
+	local itemInfo = C_SpellBook.GetSpellBookItemInfo(spellIndex, spellBank)
 	if not itemInfo then
 		return
 	end
@@ -215,7 +219,11 @@ function addon:AddSettingsPoesBars(parent)
 			info.text = text
 			info.func = function()
 				if scrollFrameChild then
-					for i, child in ipairs({ scrollFrameChild:GetChildren() }) do
+					local children = scrollFrameChild:GetChildren()
+
+					for i = 1, #children do
+						local child = children[i]
+
 						child:ClearAllPoints()
 						child:Hide()
 						child:SetParent(nil)
@@ -232,7 +240,9 @@ function addon:AddSettingsPoesBars(parent)
 					scrollFrame:SetParent(nil)
 				end
 
-				for i, child in ipairs(addon.settingsControls) do
+				for i = 1, #addon.settingsControls do
+					local child = addon.settingsControls[i]
+
 					child:ClearAllPoints()
 					child:Hide()
 					child:SetParent(nil)
@@ -555,26 +565,34 @@ function addon:AddSettingsPoesBars(parent)
 						if lineInfo then
 							if lineInfo.name == "General" then
 								for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
-									ProcessSpell(category, 0, j)
+									ProcessSpell(category, Enum.SpellBookSpellBank.Player, 0, j)
 								end
 							else
 								if lineInfo.specID then
 									if lineInfo.specID == playerSpecID then
 										for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
-											ProcessSpell(category, playerSpecID, j)
+											ProcessSpell(category, Enum.SpellBookSpellBank.Player, playerSpecID, j)
 										end
 									end
 								else
 									for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
-										ProcessSpell(category, playerSpecID, j)
+										ProcessSpell(category, Enum.SpellBookSpellBank.Player, playerSpecID, j)
 									end
 								end
 							end
 						end
 					end
 
-					for _, itemID in ipairs(SettingsDB.validItems) do
-						CreateOptionLine(category, itemID, 0, -1)
+					local numPetSpells, petNameToken = C_SpellBook.HasPetSpells()
+
+					if numPetSpells and numPetSpells > 0 then
+						for i = 1, numPetSpells do
+							ProcessSpell(category, Enum.SpellBookSpellBank.Pet, 0, i)
+						end
+					end
+
+					for i = 1, #SettingsDB.validItems do
+						CreateOptionLine(category, SettingsDB.validItems[i], 0, -1)
 					end
 				end
 			end
@@ -589,8 +607,12 @@ function addon:AddSettingsPoesBars(parent)
 			return a < b
 		end)
 
-		for _, option in ipairs(addon:GetValidCategories(false)) do
-			addItem(option)
+		local validCategories = addon:GetValidCategories(false)
+
+		for i = 1, #validCategories do
+			local name = validCategories[i]
+
+			addItem(name)
 		end
 	end
 

@@ -12,22 +12,22 @@ local function CreateOptionLine(itemID)
     end
 
     local frameIcon = CreateFrame("Frame", nil, scrollFrameChild)
-	frameIcon:EnableMouse(true)
-	frameIcon:SetPoint("TOPLEFT", 10, yOffset)
-	frameIcon:SetSize(addon.settingsIconSize, addon.settingsIconSize)
+    frameIcon:EnableMouse(true)
+    frameIcon:SetPoint("TOPLEFT", 10, yOffset)
+    frameIcon:SetSize(addon.settingsIconSize, addon.settingsIconSize)
     frameIcon:SetScript("OnEnter", function(control)
         GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
         GameTooltip:SetItemByID(itemID)
         GameTooltip:Show()
     end)
-	frameIcon:SetScript("OnLeave", function()
-		GameTooltip:Hide()
-	end)
+    frameIcon:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
 
-	local textureIcon = frameIcon:CreateTexture(nil, "ARTWORK")
-	textureIcon:SetAllPoints()
+    local textureIcon = frameIcon:CreateTexture(nil, "ARTWORK")
+    textureIcon:SetAllPoints()
 
-    local textRank = frameIcon:CreateFontString(nil, "OVERLAY","GameFontNormal")
+    local textRank = frameIcon:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     textRank:SetFont(textRank:GetFont(), 10, "OUTLINE")
     textRank:SetPoint("BOTTOMLEFT", frameIcon, "BOTTOMLEFT", 0, 0)
     textRank:SetShadowColor(0, 0, 0, 1)
@@ -43,9 +43,9 @@ local function CreateOptionLine(itemID)
     textItemName:SetPoint("LEFT", textItemID, "RIGHT", 10, 0)
 
     local deleteButton = addon:GetControlButton(false, "DELETE", scrollFrameChild, 60, function(control)
-        for index, id in ipairs(SettingsDB.validItems) do
-            if id == itemID then
-                table.remove(SettingsDB.validItems, index)
+        for i = 1, #SettingsDB.validItems do
+            if SettingsDB.validItems[i] == itemID then
+                table.remove(SettingsDB.validItems, i)
                 break
             end
         end
@@ -96,8 +96,8 @@ function addon:AddSettingsItems(parent)
 
         if itemID and itemID > 0 then
             local exists = false
-            for _, id in ipairs(SettingsDB.validItems) do
-                if id == itemID then
+            for i = 1, #SettingsDB.validItems do
+                if SettingsDB.validItems[i] == itemID then
                     exists = true
                     break
                 end
@@ -117,7 +117,11 @@ end
 
 function addon:GetDataItems()
     if scrollFrameChild then
-        for i, child in ipairs({ scrollFrameChild:GetChildren() }) do
+        local children = scrollFrameChild:GetChildren()
+
+        for i = 1, #children do
+            local child = children[i]
+
             child:ClearAllPoints()
             child:Hide()
             child:SetParent(nil)
@@ -147,7 +151,7 @@ function addon:GetDataItems()
 
     yOffset = -10
 
-    for _, itemID in ipairs(SettingsDB.validItems) do
-        CreateOptionLine(itemID)
+    for i = 1, #SettingsDB.validItems do
+        CreateOptionLine(SettingsDB.validItems[i])
     end
 end

@@ -17,20 +17,20 @@ local function CreateOptionLine(buffID, spellID)
     end
 
     local frameSpell = CreateFrame("Frame", nil, scrollFrameChild)
-	frameSpell:EnableMouse(true)
-	frameSpell:SetPoint("TOPLEFT", 10, yOffset)
-	frameSpell:SetSize(addon.settingsIconSize, addon.settingsIconSize)
+    frameSpell:EnableMouse(true)
+    frameSpell:SetPoint("TOPLEFT", 10, yOffset)
+    frameSpell:SetSize(addon.settingsIconSize, addon.settingsIconSize)
     frameSpell:SetScript("OnEnter", function(control)
         GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
         GameTooltip:SetSpellByID(spellID)
         GameTooltip:Show()
     end)
-	frameSpell:SetScript("OnLeave", function()
-		GameTooltip:Hide()
-	end)
+    frameSpell:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
 
-	local textureSpell = frameSpell:CreateTexture(nil, "ARTWORK")
-	textureSpell:SetAllPoints()
+    local textureSpell = frameSpell:CreateTexture(nil, "ARTWORK")
+    textureSpell:SetAllPoints()
 
     local textSpellID = addon:GetControlLabel(false, scrollFrameChild, "", 60)
     textSpellID:SetPoint("LEFT", frameSpell, "RIGHT", 10, 0)
@@ -40,20 +40,20 @@ local function CreateOptionLine(buffID, spellID)
     textSpellName:SetPoint("LEFT", textSpellID, "RIGHT", 10, 0)
 
     local frameBuff = CreateFrame("Frame", nil, scrollFrameChild)
-	frameBuff:EnableMouse(true)
-	frameBuff:SetPoint("LEFT", textSpellName, "RIGHT", 10, 0)
-	frameBuff:SetSize(addon.settingsIconSize, addon.settingsIconSize)
+    frameBuff:EnableMouse(true)
+    frameBuff:SetPoint("LEFT", textSpellName, "RIGHT", 10, 0)
+    frameBuff:SetSize(addon.settingsIconSize, addon.settingsIconSize)
     frameBuff:SetScript("OnEnter", function(control)
         GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
         GameTooltip:SetSpellByID(buffID)
         GameTooltip:Show()
     end)
-	frameBuff:SetScript("OnLeave", function()
-		GameTooltip:Hide()
-	end)
+    frameBuff:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
 
-	local textureBuff = frameBuff:CreateTexture(nil, "ARTWORK")
-	textureBuff:SetAllPoints()
+    local textureBuff = frameBuff:CreateTexture(nil, "ARTWORK")
+    textureBuff:SetAllPoints()
 
     local textBuffID = addon:GetControlLabel(false, scrollFrameChild, "", 60)
     textBuffID:SetPoint("LEFT", frameBuff, "RIGHT", 10, 0)
@@ -132,7 +132,11 @@ end
 
 function addon:GetDataBuffs()
     if scrollFrameChild then
-        for i, child in ipairs({ scrollFrameChild:GetChildren() }) do
+        local children = scrollFrameChild:GetChildren()
+
+        for i = 1, #children do
+            local child = children[i]
+
             child:ClearAllPoints()
             child:Hide()
             child:SetParent(nil)
