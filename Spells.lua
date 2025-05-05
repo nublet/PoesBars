@@ -303,19 +303,27 @@ local function RefreshIconFrames(name, parentTable)
 
         if parentTable.spells and next(parentTable.spells) ~= nil then
             table.sort(parentTable.spells, function(a, b)
-                if a.spellCooldown ~= b.spellCooldown then
-                    if reverseSort then
-                        return a.spellCooldown > b.spellCooldown
-                    else
-                        return a.spellCooldown < b.spellCooldown
+                if a.spellCooldown and b.spellCooldown then
+                    if a.spellCooldown ~= b.spellCooldown then
+                        if reverseSort then
+                            return a.spellCooldown > b.spellCooldown
+                        else
+                            return a.spellCooldown < b.spellCooldown
+                        end
                     end
                 end
 
-                if reverseSort then
-                    return a.iconName > b.iconName
-                else
-                    return a.iconName < b.iconName
+                if a.iconName and b.iconName then
+                    if a.iconName ~= b.iconName then
+                        if reverseSort then
+                            return a.iconName > b.iconName
+                        else
+                            return a.iconName < b.iconName
+                        end
+                    end
                 end
+
+                return a.spellID < b.spellID
             end)
 
             for i = 1, #parentTable.spells do
@@ -325,19 +333,23 @@ local function RefreshIconFrames(name, parentTable)
 
         if parentTable.items and next(parentTable.items) ~= nil then
             table.sort(parentTable.items, function(a, b)
-                if a.spellCooldown ~= b.spellCooldown then
-                    if reverseSort then
-                        return a.spellCooldown > b.spellCooldown
-                    else
-                        return a.spellCooldown < b.spellCooldown
+                if a.spellCooldown and b.spellCooldown then
+                    if a.spellCooldown ~= b.spellCooldown then
+                        if reverseSort then
+                            return a.spellCooldown > b.spellCooldown
+                        else
+                            return a.spellCooldown < b.spellCooldown
+                        end
                     end
                 end
 
-                if a.spellCooldown ~= b.spellCooldown then
-                    if reverseSort then
-                        return a.iconName > b.iconName
-                    else
-                        return a.iconName < b.iconName
+                if a.iconName and b.iconName then
+                    if a.iconName ~= b.iconName then
+                        if reverseSort then
+                            return a.iconName > b.iconName
+                        else
+                            return a.iconName < b.iconName
+                        end
                     end
                 end
 
