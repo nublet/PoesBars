@@ -371,6 +371,15 @@ function addon:GetValidCategories(addForced)
     return results
 end
 
+function addon:GetValueNumber(value)
+    value = strtrim(value)
+    if value == "" then
+        return 0
+    else
+        return tonumber(value)
+    end
+end
+
 function addon:FrameRestore(name, parentFrame)
     if name == addon.ignored then
         return

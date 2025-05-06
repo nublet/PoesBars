@@ -3,25 +3,20 @@ local timeSinceLastUpdate = 0
 local updateInterval      = 0.25
 
 local LSM                 = LibStub("LibSharedMedia-3.0")
-LSM:Register(LSM.MediaType.FONT, "Naowh", [[Interface\AddOns\PoesBars\FONTS\Naowh.ttf]], LSM.LOCALE_BIT_ruRU + LSM.LOCALE_BIT_western)
+LSM:Register(LSM.MediaType.FONT, "Naowh", [[Interface\AddOns\PoesBars\FONTS\Naowh.ttf]],
+	LSM.LOCALE_BIT_ruRU + LSM.LOCALE_BIT_western)
 
 function PoesBarsCommands(msg, editbox)
 	msg = msg:lower():trim()
 
-	if msg == "" then
-		addon:Debounce("CreateCategoryFrames", 5, function()
-			addon.isLoaded = false
-			addon:CreateCategoryFrames()
-			addon.isLoaded = true
-		end)
+	if msg == "" or msg == "config" or msg == "c" then
+		Settings.OpenToCategory(addon.categoryPoesBarsID)
+		Settings.OpenToCategory(addon.categoryPoesBarsID)
+		Settings.OpenToCategory(addon.categoryPoesBarsID)
 	elseif msg == "buffs" or msg == "b" then
 		Settings.OpenToCategory(addon.categoryBuffsID)
 		Settings.OpenToCategory(addon.categoryBuffsID)
 		Settings.OpenToCategory(addon.categoryBuffsID)
-	elseif msg == "config" or msg == "c" then
-		Settings.OpenToCategory(addon.categoryPoesBarsID)
-		Settings.OpenToCategory(addon.categoryPoesBarsID)
-		Settings.OpenToCategory(addon.categoryPoesBarsID)
 	elseif msg == "items" or msg == "i" then
 		Settings.OpenToCategory(addon.categoryItemsID)
 		Settings.OpenToCategory(addon.categoryItemsID)
@@ -30,6 +25,10 @@ function PoesBarsCommands(msg, editbox)
 		SettingsDB.isLocked = true
 
 		addon:CheckLockState()
+	elseif msg == "spells" or msg == "s" then
+		Settings.OpenToCategory(addon.categorySpellsID)
+		Settings.OpenToCategory(addon.categorySpellsID)
+		Settings.OpenToCategory(addon.categorySpellsID)
 	elseif msg == "unlock" or msg == "u" then
 		SettingsDB.isLocked = false
 
@@ -44,24 +43,25 @@ SLASH_PBC1 = "/pbc"
 SlashCmdList["PBC"] = PoesBarsCommands
 
 local function OnEvent(self, event, ...)
-	if event == "BAG_UPDATE_DELAYED" then
-		if addon.isLoaded and not InCombatLockdown() then
-			addon:Debounce("RefreshItems", 1, function()
-				addon:RefreshItems()
-			end)
-		end
-	elseif event == "PLAYER_TALENT_UPDATE" then
+	if event == "ACTIVE_TALENT_GROUP_CHANGED" or event == "PLAYER_SPECIALIZATION_CHANGED" or event == "PLAYER_TALENT_UPDATE" or event == "TRAIT_CONFIG_UPDATED" then
 		if addon.isLoaded then
 			addon.isLoaded = false
 
-			addon:Debounce("RefreshSpells", 1, function()
-				addon:RefreshSpells()
+			addon:Debounce("CreateIcons", 1, function()
+				addon:CreateIcons()
 				addon.isLoaded = true
+			end)
+		end
+	elseif event == "BAG_UPDATE_DELAYED" then
+		if addon.isLoaded and not InCombatLockdown() then
+			addon:Debounce("RefreshCategoryFrames", 1, function()
+				addon:RefreshCategoryFrames()
 			end)
 		end
 	elseif event == "VARIABLES_LOADED" then
 		addon.isLoaded = false
 
+		CategoryOrderDB = CategoryOrderDB or {}
 		SettingsDB = SettingsDB or {}
 		SpellsDB = SpellsDB or {}
 
@@ -72,14 +72,15 @@ local function OnEvent(self, event, ...)
 			SettingsDB.buffOverrides[53600] = 132403 -- Shield of the Righteous
 		end
 		if type(SettingsDB.validCategories) ~= "table" then
-			SettingsDB.validCategories = { "Cooldowns", "Crowd Control", "Defensive", "Important", "Movement", "Racial", "Rotation", "Utility" }
+			SettingsDB.validCategories = { "Cooldowns", "Crowd Control", "Defensive", "Important", "Movement", "Racial",
+				"Rotation", "Utility" }
 		end
 		if type(SettingsDB.validItems) ~= "table" then
 			SettingsDB.validItems = { 211878, 211879, 211880, 5512, 224464, 212263, 212264, 212265 }
 		end
 
-		addon:Debounce("CreateCategoryFrames", 3, function()
-			addon:CreateCategoryFrames()
+		addon:Debounce("CreateIcons", 1, function()
+			addon:CreateIcons()
 			addon.isLoaded = true
 		end)
 
@@ -104,13 +105,33 @@ local function OnEvent(self, event, ...)
 			local categoryItems = Settings.RegisterCanvasLayoutSubcategory(categoryPoesBars, frameItems, frameItems.name);
 			Settings.RegisterAddOnCategory(categoryItems);
 			addon.categoryItemsID = categoryItems:GetID();
+
+			local frameSpells = CreateFrame("Frame", "SpellsSettingsFrame", UIParent)
+			frameSpells.name = "Spells"
+			addon:AddSettingsSpells(frameSpells)
+			local categorySpells = Settings.RegisterCanvasLayoutSubcategory(categoryPoesBars, frameSpells,
+				frameSpells.name);
+			Settings.RegisterAddOnCategory(categorySpells);
+			addon.categorySpellsID = categorySpells:GetID();
+
+			framePoesBars:SetScript("OnHide", function(frame)
+				addon.isLoaded = false
+
+				addon:Debounce("CreateIcons", 1, function()
+					addon:CreateIcons()
+					addon.isLoaded = true
+				end)
+			end)
 		end)
 	end
 end
 
 local f = CreateFrame("Frame")
+f:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
 f:RegisterEvent("BAG_UPDATE_DELAYED")
+f:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 f:RegisterEvent("PLAYER_TALENT_UPDATE")
+f:RegisterEvent("TRAIT_CONFIG_UPDATED")
 f:RegisterEvent("VARIABLES_LOADED")
 f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", -1, -1)
 f:SetScript("OnEvent", OnEvent)
@@ -120,7 +141,7 @@ f:SetScript("OnUpdate", function(frame, elapsed)
 		return
 	end
 
-	addon:UpdateAllIcons()
+	addon:UpdateIconState()
 
 	timeSinceLastUpdate = 0
 end)

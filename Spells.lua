@@ -1,27 +1,27 @@
 local addonName, addon = ...
 
 local categories = {}
-local items = {}
-local spells = {}
+local iconFrames = {}
 
 local LSM = LibStub("LibSharedMedia-3.0")
 local font = LSM:Fetch("font", "Naowh") or "Fonts\\FRIZQT__.TTF"
 
-local function CreateIconFrame(itemID, specID, spellID)
+local function CheckIconFrame(frameIcon)
+    if not frameIcon then
+        return
+    end
+
+    iconFrames[frameIcon.settingName] = frameIcon
+end
+
+local function CreateIconFrame(itemID, playerSpecID, specID, spellID)
     itemID = itemID or -1
+    playerSpecID = playerSpecID or -1
     specID = specID or -1
     spellID = spellID or -1
 
     if itemID <= 0 and spellID <= 0 then
-        return
-    end
-
-    if itemID > 0 and items[itemID] then
-        return
-    end
-
-    if spellID > 0 and spells[spellID] then
-        return
+        return nil
     end
 
     local newFrame = CreateFrame("Frame", nil, UIParent)
@@ -56,44 +56,56 @@ local function CreateIconFrame(itemID, specID, spellID)
     frameCooldown:SetToplevel(false)
 
     local textBinding = newFrame:CreateFontString(nil, "OVERLAY")
-    textBinding:SetFont(font, 12, "OUTLINE")
+    textBinding:SetFont(font, SettingsDB.bindingFontSize or 12, SettingsDB.bindingFontFlags or "OUTLINE")
     textBinding:SetPoint("TOPRIGHT", newFrame, "TOPRIGHT", 0, 0)
-    textBinding:SetShadowColor(0, 0, 0, 1)
-    textBinding:SetShadowOffset(0, 0)
     textBinding:SetText("")
     textBinding:SetTextColor(1, 1, 1, 1)
+    if SettingsDB.bindingFontShadow then
+		textBinding:SetShadowColor(0, 0, 0, 0.5)
+		textBinding:SetShadowOffset(1, -1)
+	end
 
     local textCharges = newFrame:CreateFontString(nil, "OVERLAY")
-    textCharges:SetFont(font, 12, "OUTLINE")
+    textCharges:SetFont(font, SettingsDB.chargesFontSize or 12, SettingsDB.chargesFontFlags or "OUTLINE")
     textCharges:SetTextColor(1, 1, 1, 1)
     textCharges:SetShadowColor(0, 0, 0, 1)
     textCharges:SetShadowOffset(0, 0)
     textCharges:SetPoint("BOTTOMRIGHT", newFrame, "BOTTOMRIGHT", 0, 0)
     textCharges:SetText("")
+    if SettingsDB.chargesFontShadow then
+		textCharges:SetShadowColor(0, 0, 0, 0.5)
+		textCharges:SetShadowOffset(1, -1)
+	end
 
     local textCooldown = newFrame:CreateFontString(nil, "OVERLAY")
-    textCooldown:SetFont(font, 16, "OUTLINE")
-    textCooldown:SetPoint("CENTER")
-    textCooldown:SetShadowColor(0, 0, 0, 1)
-    textCooldown:SetShadowOffset(0, 0)
+    textCooldown:SetFont(font, SettingsDB.cooldownFontSize or 16, SettingsDB.cooldownFontFlags or "OUTLINE")
+    textCooldown:SetPoint("CENTER", newFrame, "CENTER", 0, 0)
     textCooldown:SetText("")
     textCooldown:SetTextColor(1, 1, 1, 1)
+    if SettingsDB.cooldownFontShadow then
+		textCooldown:SetShadowColor(0, 0, 0, 0.5)
+		textCooldown:SetShadowOffset(1, -1)
+	end
 
     local textRank = newFrame:CreateFontString(nil, "OVERLAY")
-    textRank:SetFont(font, 10, "OUTLINE")
+    textRank:SetFont(font, SettingsDB.rankFontSize or 12, SettingsDB.rankFontFlags or "OUTLINE")
     textRank:SetPoint("BOTTOMLEFT", newFrame, "BOTTOMLEFT", 0, 0)
-    textRank:SetShadowColor(0, 0, 0, 1)
-    textRank:SetShadowOffset(0, 0)
     textRank:SetText("")
     textRank:SetTextColor(0, 1, 0, 1)
+    if SettingsDB.rankFontShadow then
+		textRank:SetShadowColor(0, 0, 0, 0.5)
+		textRank:SetShadowOffset(1, -1)
+	end
 
     local textID = newFrame:CreateFontString(nil, "OVERLAY")
-    textID:SetFont(font, 12, "OUTLINE")
-    textID:SetPoint("CENTER")
-    textID:SetShadowColor(0, 0, 0, 1)
-    textID:SetShadowOffset(0, 0)
+    textID:SetFont(font, SettingsDB.bindingFontSize or 12, SettingsDB.bindingFontFlags or "OUTLINE")
+    textID:SetPoint("CENTER", newFrame, "CENTER", 0, 0)
     textID:SetText("")
     textID:SetTextColor(1, 1, 1, 1)
+    if SettingsDB.cooldownFontShadow then
+		textID:SetShadowColor(0, 0, 0, 0.5)
+		textID:SetShadowOffset(1, -1)
+	end
 
     local textureIcon = newFrame:CreateTexture(nil, "ARTWORK")
     textureIcon:SetAllPoints(newFrame)
@@ -187,15 +199,11 @@ local function CreateIconFrame(itemID, specID, spellID)
         end
     end
 
-    if spellID == 119910 then
-        print("spellID:", spellID, ", newFrame.iconName", newFrame.iconName, ", newFrame.spellCooldown",
-            newFrame.spellCooldown)
-    end
-
     newFrame.currentSpellID = spellID
     newFrame.frameBorder = frameBorder
     newFrame.frameCooldown = frameCooldown
     newFrame.itemID = itemID
+    newFrame.settingName = itemID .. "_" .. spellID
     newFrame.specID = specID
     newFrame.spellID = spellID
     newFrame.textBinding = textBinding
@@ -209,16 +217,12 @@ local function CreateIconFrame(itemID, specID, spellID)
         SpellsDB[specID] = {}
     end
 
-    if itemID > 0 then
-        items[itemID] = newFrame
-    else
-        spells[spellID] = newFrame
-    end
+    return newFrame
 end
 
-local function GetDebuffAura(spellID, spellName, targetDebuffs)
-    for i = 1, #targetDebuffs do
-        local aura = targetDebuffs[i]
+local function GetAura(auraList, spellID, spellName)
+    for i = 1, #auraList do
+        local aura = auraList[i]
         if aura.spellId == spellID or aura.name == spellName then
             return aura
         end
@@ -227,30 +231,30 @@ local function GetDebuffAura(spellID, spellName, targetDebuffs)
     return nil
 end
 
-local function ProcessSpell(spellBank, specID, spellIndex)
+local function ProcessSpell(playerSpecID, spellBank, specID, spellIndex)
     local itemInfo = C_SpellBook.GetSpellBookItemInfo(spellIndex, spellBank)
     if not itemInfo then
-        return
+        return nil
     end
 
     if itemInfo.isPassive then
-        return
+        return nil
     end
 
     if itemInfo.isOffSpec then
-        return
+        return nil
     end
 
     if itemInfo.itemType == Enum.SpellBookItemType.Spell or itemInfo.itemType == Enum.SpellBookItemType.PetAction then
     else
-        return
+        return nil
     end
 
-    CreateIconFrame(-1, specID, itemInfo.spellID)
+    return CreateIconFrame(-1, playerSpecID, specID, itemInfo.spellID)
 end
 
-local function RefreshIconFrames(name, parentTable)
-    if not name then
+local function RefreshCategoryFrame(category, parentTable, playerSpecID)
+    if not category then
         return
     end
 
@@ -258,18 +262,7 @@ local function RefreshIconFrames(name, parentTable)
         return
     end
 
-    if name == addon.ignored then
-        if parentTable.spells and next(parentTable.spells) ~= nil then
-            for i = 1, #parentTable.spells do
-                local iconFrame = parentTable.spells[i]
-
-                iconFrame:ClearAllPoints()
-                iconFrame:SetParent(parentTable.frame)
-
-                iconFrame:Hide()
-            end
-        end
-
+    if category == addon.ignored then
         if parentTable.items and next(parentTable.items) ~= nil then
             for i = 1, #parentTable.items do
                 local iconFrame = parentTable.items[i]
@@ -280,84 +273,63 @@ local function RefreshIconFrames(name, parentTable)
                 iconFrame:Hide()
             end
         end
+
+        if parentTable.spells and next(parentTable.spells) ~= nil then
+            for i = 1, #parentTable.spells do
+                local iconFrame = parentTable.spells[i]
+
+                iconFrame:ClearAllPoints()
+                iconFrame:SetParent(parentTable.frame)
+
+                iconFrame:Hide()
+            end
+        end
     else
-        local settingsTable = SettingsDB[name] or {}
+        local settingsTable = SettingsDB[category] or {}
 
         local allIcons = {}
-        local anchor = settingsTable.anchor or "CENTER"
         local iconSize = settingsTable.iconSize or 64
         local iconSpacing = settingsTable.iconSpacing or 2
         local isVertical = settingsTable.isVertical or false
-        local reverseSort = true
+        local seenSettingNames = {}
+        local validSettingNames = {}
         local wrapAfter = settingsTable.wrapAfter or 0
 
-        if isVertical then
-            if anchor == "BOTTOM" or anchor == "BOTTOMLEFT" or anchor == "BOTTOMRIGHT" then
-                reverseSort = false
-            end
-        else
-            if anchor == "BOTTOMRIGHT" or anchor == "RIGHT" or anchor == "TOPRIGHT" then
-                reverseSort = false
+        if not CategoryOrderDB[category] then
+            CategoryOrderDB[category] = {}
+        end
+        if not CategoryOrderDB[category][playerSpecID] then
+            CategoryOrderDB[category][playerSpecID] = {}
+        end
+
+        for _, iconFrame in ipairs(parentTable.items) do
+            validSettingNames[iconFrame.settingName] = true
+        end
+        for _, iconFrame in ipairs(parentTable.spells) do
+            validSettingNames[iconFrame.settingName] = true
+        end
+
+        for _, settingName in ipairs(CategoryOrderDB[category][playerSpecID]) do
+            if validSettingNames[settingName] and iconFrames[settingName] then
+                seenSettingNames[settingName] = true
+
+                table.insert(allIcons, iconFrames[settingName])
             end
         end
 
-        if parentTable.spells and next(parentTable.spells) ~= nil then
-            table.sort(parentTable.spells, function(a, b)
-                if a.spellCooldown and b.spellCooldown then
-                    if a.spellCooldown ~= b.spellCooldown then
-                        if reverseSort then
-                            return a.spellCooldown > b.spellCooldown
-                        else
-                            return a.spellCooldown < b.spellCooldown
-                        end
-                    end
-                end
+        for i = 1, #parentTable.spells do
+            local iconFrame = parentTable.spells[i]
 
-                if a.iconName and b.iconName then
-                    if a.iconName ~= b.iconName then
-                        if reverseSort then
-                            return a.iconName > b.iconName
-                        else
-                            return a.iconName < b.iconName
-                        end
-                    end
-                end
-
-                return a.spellID < b.spellID
-            end)
-
-            for i = 1, #parentTable.spells do
-                table.insert(allIcons, parentTable.spells[i])
+            if not seenSettingNames[iconFrame.settingName] then
+                table.insert(allIcons, iconFrame)
             end
         end
 
-        if parentTable.items and next(parentTable.items) ~= nil then
-            table.sort(parentTable.items, function(a, b)
-                if a.spellCooldown and b.spellCooldown then
-                    if a.spellCooldown ~= b.spellCooldown then
-                        if reverseSort then
-                            return a.spellCooldown > b.spellCooldown
-                        else
-                            return a.spellCooldown < b.spellCooldown
-                        end
-                    end
-                end
+        for i = 1, #parentTable.items do
+            local iconFrame = parentTable.items[i]
 
-                if a.iconName and b.iconName then
-                    if a.iconName ~= b.iconName then
-                        if reverseSort then
-                            return a.iconName > b.iconName
-                        else
-                            return a.iconName < b.iconName
-                        end
-                    end
-                end
-
-                return a.itemID < b.itemID
-            end)
-
-            for i = 1, #parentTable.items do
-                table.insert(allIcons, parentTable.items[i])
+            if not seenSettingNames[iconFrame.settingName] then
+                table.insert(allIcons, iconFrame)
             end
         end
 
@@ -365,7 +337,7 @@ local function RefreshIconFrames(name, parentTable)
             for i = 1, #allIcons do
                 local iconFrame = allIcons[i]
 
-                if name == addon.unknown then
+                if category == addon.unknown then
                     iconFrame.textID:Show()
                 else
                     iconFrame.textID:Hide()
@@ -399,100 +371,42 @@ local function RefreshIconFrames(name, parentTable)
                     end
                 end
             end
-        end
 
-        local height, width
-        local numIcons = #allIcons
+            local height, width
+            local numIcons = #allIcons
 
-        if wrapAfter > 0 then
-            if isVertical then
-                local numCols = math.ceil(numIcons / wrapAfter)
-                local numRows = math.min(wrapAfter, numIcons)
+            if wrapAfter > 0 then
+                if isVertical then
+                    local numCols = math.ceil(numIcons / wrapAfter)
+                    local numRows = math.min(wrapAfter, numIcons)
 
-                width = iconSize * numCols + iconSpacing * (numCols - 1)
-                height = iconSize * numRows + iconSpacing * (numRows - 1)
-            else
-                local numRows = math.ceil(numIcons / wrapAfter)
-                local numCols = math.min(wrapAfter, numIcons)
-
-                width = iconSize * numCols + iconSpacing * (numCols - 1)
-                height = iconSize * numRows + iconSpacing * (numRows - 1)
-            end
-        else
-            if isVertical then
-                height = iconSize * numIcons + iconSpacing * (numIcons - 1)
-                width = iconSize
-            else
-                height = iconSize
-                width = iconSize * numIcons + iconSpacing * (numIcons - 1)
-            end
-        end
-
-        parentTable.frame:SetSize(width, height)
-    end
-end
-
-local function RefreshIconsItem()
-    for i = 1, #SettingsDB.validItems do
-        CreateIconFrame(SettingsDB.validItems[i], 0, -1)
-    end
-end
-
-local function RefreshIconsSpell()
-    local currentSpec = GetSpecialization()
-    if not currentSpec then
-        return
-    end
-
-    local playerSpecID = GetSpecializationInfo(currentSpec)
-    if not playerSpecID then
-        return
-    end
-
-    for spellID, iconFrame in pairs(spells) do
-        iconFrame:ClearAllPoints()
-        iconFrame:Hide()
-        iconFrame:SetParent(nil)
-
-        iconFrame = nil
-    end
-    wipe(spells)
-    spells = {}
-
-    local numPetSpells, petNameToken = C_SpellBook.HasPetSpells()
-
-    if numPetSpells and numPetSpells > 0 then
-        for i = 1, numPetSpells do
-            ProcessSpell(Enum.SpellBookSpellBank.Pet, 0, i)
-        end
-    end
-
-    for i = 1, C_SpellBook.GetNumSpellBookSkillLines() + 1 do
-        local lineInfo = C_SpellBook.GetSpellBookSkillLineInfo(i)
-
-        if lineInfo then
-            if lineInfo.name == "General" then
-                for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
-                    ProcessSpell(Enum.SpellBookSpellBank.Player, 0, j)
-                end
-            else
-                if lineInfo.specID then
-                    if lineInfo.specID == playerSpecID then
-                        for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
-                            ProcessSpell(Enum.SpellBookSpellBank.Player, playerSpecID, j)
-                        end
-                    end
+                    width = iconSize * numCols + iconSpacing * (numCols - 1)
+                    height = iconSize * numRows + iconSpacing * (numRows - 1)
                 else
-                    for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
-                        ProcessSpell(Enum.SpellBookSpellBank.Player, playerSpecID, j)
-                    end
+                    local numRows = math.ceil(numIcons / wrapAfter)
+                    local numCols = math.min(wrapAfter, numIcons)
+
+                    width = iconSize * numCols + iconSpacing * (numCols - 1)
+                    height = iconSize * numRows + iconSpacing * (numRows - 1)
+                end
+            else
+                if isVertical then
+                    height = iconSize * numIcons + iconSpacing * (numIcons - 1)
+                    width = iconSize
+                else
+                    height = iconSize
+                    width = iconSize * numIcons + iconSpacing * (numIcons - 1)
                 end
             end
+
+            parentTable.frame:SetSize(width, height)
+        else
+            parentTable.frame:SetSize(1, 1)
         end
     end
 end
 
-local function updateIconBuff(frame, spellID)
+local function updateIconBuff(frame, playerBuffs, spellID)
     frame.textureIcon:SetDesaturated(false)
     frame.textureIcon:SetVertexColor(1, 1, 1)
 
@@ -500,9 +414,9 @@ local function updateIconBuff(frame, spellID)
         return
     end
 
-    local aura = C_UnitAuras.GetPlayerAuraBySpellID(SettingsDB.buffOverrides[spellID] or spellID)
+    local aura = GetAura(playerBuffs, SettingsDB.buffOverrides[spellID] or spellID, frame.iconName)
 
-    if aura and aura.isFromPlayerOrPlayerPet then
+    if aura then
         local remaining = aura.expirationTime - GetTime()
 
         if aura.applications and aura.applications > 0 then
@@ -532,7 +446,7 @@ local function updateIconDebuff(frame, showOnCooldown, spellID, targetDebuffs)
         return
     end
 
-    local aura = GetDebuffAura(spellID, frame.iconName, targetDebuffs)
+    local aura = GetAura(targetDebuffs, spellID, frame.iconName)
 
     if aura then
         if aura.applications and aura.applications > 0 then
@@ -611,19 +525,20 @@ local function updateIconDebuff(frame, showOnCooldown, spellID, targetDebuffs)
 
         frame.auraActive = false
         frame.frameBorder:Show()
+        frame.textCharges:SetText("")
         frame.textCooldown:SetText("")
         frame.textureIcon:SetDesaturated(true)
     end
 end
 
-local function updateIconItem(frame, name)
+local function updateIconItem(category, frame, playerBuffs)
     frame.frameBorder:Hide()
 
-    if name == addon.ignored or name == addon.unknown then
+    if category == addon.ignored or category == addon.unknown then
         return
     end
 
-    local settingsTable = SettingsDB[name] or {}
+    local settingsTable = SettingsDB[category] or {}
 
     local itemID = frame.itemID or 0
     local showOnCooldown = settingsTable.showOnCooldown or false
@@ -641,7 +556,7 @@ local function updateIconItem(frame, name)
         frame:Show()
     end
 
-    updateIconBuff(frame, spellID)
+    updateIconBuff(frame, playerBuffs, spellID)
 
     if frame.auraActive then
         if not frame.glowActive then
@@ -686,10 +601,10 @@ local function updateIconItem(frame, name)
     frame.textCharges:SetText(count)
 end
 
-local function updateIconSpell(frame, gcdCooldown, name, targetDebuffs)
+local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, targetDebuffs)
     frame.frameBorder:Hide()
 
-    if name == addon.ignored or name == addon.unknown then
+    if category == addon.ignored or category == addon.unknown then
         return
     end
 
@@ -703,7 +618,7 @@ local function updateIconSpell(frame, gcdCooldown, name, targetDebuffs)
         return
     end
 
-    local settingsTable = SettingsDB[name] or {}
+    local settingsTable = SettingsDB[category] or {}
 
     local isUsable, insufficientPower = C_Spell.IsSpellUsable(currentSpellID)
     local showOnCooldown = settingsTable.showOnCooldown or false
@@ -746,7 +661,7 @@ local function updateIconSpell(frame, gcdCooldown, name, targetDebuffs)
                 end
             end
         else
-            updateIconBuff(frame, currentSpellID)
+            updateIconBuff(frame, playerBuffs, currentSpellID)
 
             if frame.auraActive then
                 if not frame.glowActive then
@@ -763,7 +678,7 @@ local function updateIconSpell(frame, gcdCooldown, name, targetDebuffs)
             frame.textCooldown:SetText("")
 
             if frameSpellID ~= currentSpellID then
-                updateIconBuff(frame, frameSpellID)
+                updateIconBuff(frame, playerBuffs, frameSpellID)
 
                 if frame.auraActive then
                     if not frame.glowActive then
@@ -869,6 +784,60 @@ local function updateIconSpell(frame, gcdCooldown, name, targetDebuffs)
     end
 end
 
+local function updateIcons(validCategories)
+    local gcdCooldown = C_Spell.GetSpellCooldown(61304)
+    local playerBuffs = {}
+    local targetDebuffs = {}
+
+    local auraIndex = 1
+    while true do
+        local aura = C_UnitAuras.GetDebuffDataByIndex("target", auraIndex, "HARMFUL")
+        if not aura then
+            break
+        end
+
+        if aura.isFromPlayerOrPlayerPet then
+            table.insert(targetDebuffs, aura)
+        end
+
+        auraIndex = auraIndex + 1
+    end
+
+    auraIndex = 1
+    while true do
+        local aura = C_UnitAuras.GetBuffDataByIndex("player", auraIndex, "HELPFUL")
+        if not aura then
+            break
+        end
+
+        if aura.isFromPlayerOrPlayerPet then
+            table.insert(playerBuffs, aura)
+        end
+
+        auraIndex = auraIndex + 1
+    end
+
+    for index = 1, #validCategories do
+        local category = validCategories[index]
+
+        if categories[category] then
+            local parentTable = categories[category]
+
+            if parentTable.items then
+                for i = 1, #parentTable.items do
+                    updateIconItem(category, parentTable.items[i], playerBuffs)
+                end
+            end
+
+            if parentTable.spells then
+                for i = 1, #parentTable.spells do
+                    updateIconSpell(category, parentTable.spells[i], gcdCooldown, playerBuffs, targetDebuffs)
+                end
+            end
+        end
+    end
+end
+
 function addon:CheckLockState()
     local validCategories = addon:GetValidCategories(false)
 
@@ -893,13 +862,88 @@ function addon:CheckLockState()
     end
 end
 
-function addon:CreateCategoryFrames()
+function addon:CreateIcons()
+    local currentSpec = GetSpecialization()
+    if not currentSpec then
+        return
+    end
+
+    local playerSpecID = GetSpecializationInfo(currentSpec)
+    if not playerSpecID then
+        return
+    end
+
+    for settingName, iconFrame in pairs(iconFrames) do
+        iconFrame:ClearAllPoints()
+        iconFrame:Hide()
+        iconFrame:SetParent(nil)
+
+        iconFrame = nil
+    end
+    wipe(iconFrames)
+
+    local numPetSpells, petNameToken = C_SpellBook.HasPetSpells()
+
+    if numPetSpells and numPetSpells > 0 then
+        for i = 1, numPetSpells do
+            CheckIconFrame(ProcessSpell(playerSpecID, Enum.SpellBookSpellBank.Pet, 0, i))
+        end
+    end
+
+    for i = 1, C_SpellBook.GetNumSpellBookSkillLines() + 1 do
+        local lineInfo = C_SpellBook.GetSpellBookSkillLineInfo(i)
+
+        if lineInfo then
+            if lineInfo.name == "General" then
+                for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
+                    CheckIconFrame(ProcessSpell(playerSpecID, Enum.SpellBookSpellBank.Player, 0, j))
+                end
+            else
+                if lineInfo.specID then
+                    if lineInfo.specID == playerSpecID then
+                        for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
+                            CheckIconFrame(ProcessSpell(playerSpecID, Enum.SpellBookSpellBank.Player, playerSpecID, j))
+                        end
+                    end
+                else
+                    for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
+                        CheckIconFrame(ProcessSpell(playerSpecID, Enum.SpellBookSpellBank.Player, playerSpecID, j))
+                    end
+                end
+            end
+        end
+    end
+
+    for i = 1, #SettingsDB.validItems do
+        CheckIconFrame(CreateIconFrame(SettingsDB.validItems[i], playerSpecID, 0, -1))
+    end
+
+    addon:RefreshCategoryFrames()
+
+    addon:CheckLockState()
+end
+
+function addon:RefreshCategoryFrames()
+    local currentSpec = GetSpecialization()
+    if not currentSpec then
+        return
+    end
+
+    local playerSpecID = GetSpecializationInfo(currentSpec)
+    if not playerSpecID then
+        return
+    end
+
     local validCategories = addon:GetValidCategories(true)
 
     for i = 1, #validCategories do
         local name = validCategories[i]
 
-        if not categories[name] then
+        if categories[name] then
+            local parentTable = categories[name]
+            parentTable.items = {}
+            parentTable.spells = {}
+        else
             local parentTable = {}
             parentTable.frame = addon:GetFrame(name)
             parentTable.items = {}
@@ -909,152 +953,82 @@ function addon:CreateCategoryFrames()
         end
     end
 
-    if not categories[addon.ignored] then
-        local parentTable = {}
-        parentTable.frame = addon:GetFrame(addon.ignored)
-        parentTable.items = {}
-        parentTable.spells = {}
-
-        categories[addon.ignored] = parentTable
-    end
-
-    if not categories[addon.unknown] then
-        local parentTable = {}
-        parentTable.frame = addon:GetFrame(addon.unknown)
-        parentTable.items = {}
-        parentTable.spells = {}
-
-        categories[addon.unknown] = parentTable
-    end
-
-    RefreshIconsItem()
-    RefreshIconsSpell()
-
-    addon:RefreshCategoryFrames(true, true)
-
-    addon:CheckLockState()
-end
-
-function addon:RefreshItems()
-    RefreshIconsItem()
-
-    addon:RefreshCategoryFrames(true, false)
-end
-
-function addon:RefreshSpells()
-    RefreshIconsSpell()
-
-    addon:RefreshCategoryFrames(false, true)
-end
-
-function addon:RefreshCategoryFrames(doItems, doSpells)
-    local validCategories = addon:GetValidCategories(true)
-
-    for i = 1, #validCategories do
-        local name = validCategories[i]
-
-        if categories[name] then
-            local parentTable = categories[name]
-            if doItems then
-                parentTable.items = {}
-            end
-            if doSpells then
-                parentTable.spells = {}
-            end
-        else
-            local parentTable = {}
-            parentTable.frame = addon:GetFrame(name)
-            if doItems then
-                parentTable.items = {}
-            end
-            if doSpells then
-                parentTable.spells = {}
-            end
-
-            categories[name] = parentTable
+    for settingName, iconFrame in pairs(iconFrames) do
+        local category = SpellsDB[iconFrame.specID][settingName]
+        if not category or category == "" then
+            category = addon.unknown
         end
-    end
 
-    if doItems then
-        for itemID, iconFrame in pairs(items) do
-            local settingName = itemID .. "_-1"
-            local category = SpellsDB[iconFrame.specID][settingName]
-            if not category or category == "" then
-                category = addon.unknown
-            end
-
-            local count = C_Item.GetItemCount(itemID, false, true, false, false)
+        if iconFrame.itemID > 0 then
+            local count = C_Item.GetItemCount(iconFrame.itemID, false, true, false, false)
             if count <= 0 then
                 table.insert(categories[addon.ignored].items, iconFrame)
             else
                 table.insert(categories[category].items, iconFrame)
             end
-        end
-    end
-
-    if doSpells then
-        for spellID, iconFrame in pairs(spells) do
-            local settingName = "-1_" .. spellID
-            local category = SpellsDB[iconFrame.specID][settingName]
-            if not category or category == "" then
-                category = addon.unknown
-            end
-
+        else
             table.insert(categories[category].spells, iconFrame)
         end
     end
 
     for i = 1, #validCategories do
-        local name = validCategories[i]
+        local category = validCategories[i]
 
-        if categories[name] then
-            local parentTable = categories[name]
-            if doItems and parentTable.items and next(parentTable.items) ~= nil then
-                RefreshIconFrames(name, parentTable)
-            elseif doSpells and parentTable.spells and next(parentTable.spells) ~= nil then
-                RefreshIconFrames(name, parentTable)
-            end
-            addon:FrameRestore(name, parentTable.frame)
+        if categories[category] then
+            local parentTable = categories[category]
+
+            RefreshCategoryFrame(category, parentTable, playerSpecID)
+            addon:FrameRestore(category, parentTable.frame)
         end
     end
 end
 
-function addon:UpdateAllIcons()
-    local targetDebuffs = {}
-    local gcdCooldown = C_Spell.GetSpellCooldown(61304)
+function addon:UpdateIconState()
     local validCategories = addon:GetValidCategories(true)
 
-    local auraIndex = 1
-    while true do
-        local aura = C_UnitAuras.GetDebuffDataByIndex("target", auraIndex, "HARMFUL")
-        if not aura then
-            break
-        end
+    if InCombatLockdown() then
+        updateIcons(validCategories)
+    elseif not SettingsDB.isLocked then
+        for index = 1, #validCategories do
+            local category = validCategories[index]
 
-        if aura.isFromPlayerOrPlayerPet then
-            table.insert(targetDebuffs, aura)
-        end
+            if categories[category] then
+                local parentTable = categories[category]
 
-        auraIndex = auraIndex + 1
-    end
-
-    for index = 1, #validCategories do
-        local name = validCategories[index]
-
-        if categories[name] then
-            local parentTable = categories[name]
-
-            if parentTable.items then
-                for i = 1, #parentTable.items do
-                    updateIconItem(parentTable.items[i], name)
+                if parentTable.items then
+                    for i = 1, #parentTable.items do
+                        parentTable.items[i]:Show()
+                    end
                 end
-            end
 
-            if parentTable.spells then
-                for i = 1, #parentTable.spells do
-                    updateIconSpell(parentTable.spells[i], gcdCooldown, name, targetDebuffs)
+                if parentTable.spells then
+                    for i = 1, #parentTable.spells do
+                        parentTable.spells[i]:Show()
+                    end
                 end
             end
         end
+    elseif SettingsDB.showInCombat then
+        for index = 1, #validCategories do
+            local category = validCategories[index]
+
+            if categories[category] then
+                local parentTable = categories[category]
+
+                if parentTable.items then
+                    for i = 1, #parentTable.items do
+                        parentTable.items[i]:Hide()
+                    end
+                end
+
+                if parentTable.spells then
+                    for i = 1, #parentTable.spells do
+                        parentTable.spells[i]:Hide()
+                    end
+                end
+            end
+        end
+    else
+        updateIcons(validCategories)
     end
 end
