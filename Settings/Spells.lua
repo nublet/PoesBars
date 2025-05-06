@@ -2,12 +2,12 @@ local addonName, addon = ...
 
 local optionLines = {}
 local radioAnchors = {}
+local radioDisplay = {}
 local radioOrientation = {}
 local scrollFrame
 local scrollFrameChild
 
 local LSM = LibStub("LibSharedMedia-3.0")
-local font = LSM:Fetch("font", "Naowh") or "Fonts\\FRIZQT__.TTF"
 
 local function ClearScrollFrame()
 	for _, frameLine in ipairs(optionLines) do
@@ -111,6 +111,11 @@ local function CreateOptionLine(category, itemID, playerSpecID, specID, spellID)
 	specID = specID or -1
 	spellID = spellID or -1
 
+	if itemID <= 0 and spellID <= 0 then
+		return nil
+	end
+
+	local font = LSM:Fetch("font", SettingsDB.fontName) or "Fonts\\FRIZQT__.TTF"
 	local settingName = itemID .. "_" .. spellID
 
 	if not SpellsDB[specID] then
@@ -166,7 +171,7 @@ local function CreateOptionLine(category, itemID, playerSpecID, specID, spellID)
 
 	if itemID > 0 then
 		local textRank = frameIcon:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-		textRank:SetFont(frameIcon:GetFont(), 10, "OUTLINE")
+		textRank:SetFont(font, 10, "OUTLINE")
 		textRank:SetPoint("BOTTOMLEFT", frameIcon, "BOTTOMLEFT", 0, 0)
 		textRank:SetShadowColor(0, 0, 0, 1)
 		textRank:SetShadowOffset(0, 0)
@@ -210,14 +215,11 @@ local function CreateOptionLine(category, itemID, playerSpecID, specID, spellID)
 		textName:SetText(spellInfo.name)
 		textureIcon:SetTexture(spellInfo.iconID)
 
-		local tooltipData = C_TooltipInfo.GetSpellByID(spellID)
-		if tooltipData then
-			frameIcon:SetScript("OnEnter", function(control)
-				GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
-				GameTooltip:SetSpellByID(spellID)
-				GameTooltip:Show()
-			end)
-		end
+		frameIcon:SetScript("OnEnter", function(control)
+			GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
+			GameTooltip:SetSpellByID(spellID)
+			GameTooltip:Show()
+		end)
 	end
 
 	dropdownCategory.initializeFunc = function(control, level, menuList)
@@ -269,11 +271,26 @@ local function ProcessSpell(category, playerSpecID, specID, spellBank, spellInde
 	end
 
 	if itemInfo.itemType == Enum.SpellBookItemType.Spell or itemInfo.itemType == Enum.SpellBookItemType.PetAction then
-	else
-		return nil
+		return CreateOptionLine(category, -1, playerSpecID, specID, itemInfo.spellID)
 	end
 
-	return CreateOptionLine(category, -1, playerSpecID, specID, itemInfo.spellID)
+	if itemInfo.itemType == Enum.SpellBookItemType.Flyout then
+		local flyoutName, flyoutDescription, flyoutSlots, flyoutKnown = GetFlyoutInfo(itemInfo.actionID)
+		if flyoutKnown then
+			for slot = 1, flyoutSlots do
+				local slotSpellID, slotOverrideSpellID, slotIsKnown, slotSpellName, slotSlotSpecID = GetFlyoutSlotInfo(
+					itemInfo.actionID, slot)
+				if slotIsKnown and not C_Spell.IsSpellPassive(slotSpellID) then
+					local frameLine = CreateOptionLine(category, -1, playerSpecID, specID, slotSpellID)
+					if frameLine then
+						optionLines[frameLine.settingName] = frameLine
+					end
+				end
+			end
+		end
+	end
+
+	return nil
 end
 
 function addon:AddSettingsSpells(parent)
@@ -321,8 +338,10 @@ function addon:AddSettingsSpells(parent)
 					if category ~= addon.ignored and category ~= addon.unknown then
 						local settingsTable = SettingsDB[category] or {}
 						local anchor = settingsTable.anchor or "CENTER"
+						local displayWhen = settingsTable.displayWhen or "Always"
 						local iconSize = settingsTable.iconSize or 64
 						local iconSpacing = settingsTable.iconSpacing or 2
+						local isClickable = settingsTable.isClickable or false
 						local isVertical = settingsTable.isVertical or false
 						local showOnCooldown = settingsTable.showOnCooldown or false
 						local showWhenAvailable = settingsTable.showWhenAvailable or false
@@ -361,7 +380,7 @@ function addon:AddSettingsSpells(parent)
 
 						local showWhenAvailableCheckbox = addon:GetControlCheckbox(true, "Only Show When Available",
 							parent)
-						showWhenAvailableCheckbox:SetPoint("TOPLEFT", showOnCooldownCheckbox, "BOTTOMLEFT", 0, -10)
+						showWhenAvailableCheckbox:SetPoint("LEFT", showOnCooldownCheckbox, "RIGHT", 200, 0)
 						if showWhenAvailable then
 							showOnCooldownCheckbox:SetChecked(true)
 						else
@@ -384,8 +403,65 @@ function addon:AddSettingsSpells(parent)
 							end
 						end)
 
+						local displayLabel = addon:GetControlLabel(true, parent, "Display:", 100)
+						displayLabel:SetPoint("TOPLEFT", showOnCooldownCheckbox, "BOTTOMLEFT", 0, -10)
+
+						local displayAlways = addon:GetControlRadioButton(true, parent, radioDisplay, "Always",
+							function(control)
+								addon:ClearRadios(radioDisplay)
+								control:SetChecked(true)
+
+								settingsTable.displayWhen = "Always"
+							end)
+						displayAlways:SetPoint("LEFT", displayLabel, "RIGHT", 10, 0)
+
+						local displayInCombat = addon:GetControlRadioButton(true, parent, radioDisplay,
+							"In Combat",
+							function(control)
+								addon:ClearRadios(radioDisplay)
+								control:SetChecked(true)
+
+								settingsTable.displayWhen = "In Combat"
+							end)
+						displayInCombat:SetPoint("LEFT", displayAlways, "RIGHT", 110, 0)
+
+						local displayOutOfCombat = addon:GetControlRadioButton(true, parent, radioDisplay,
+							"Out Of Combat",
+							function(control)
+								addon:ClearRadios(radioDisplay)
+								control:SetChecked(true)
+
+								settingsTable.displayWhen = "Out Of Combat"
+							end)
+						displayOutOfCombat:SetPoint("LEFT", displayInCombat, "RIGHT", 110, 0)
+
+						if displayWhen == "" or displayWhen == "Always" then
+							displayAlways:SetChecked(true)
+							displayInCombat:SetChecked(false)
+							displayOutOfCombat:SetChecked(false)
+						elseif displayWhen == "In Combat" then
+							displayAlways:SetChecked(false)
+							displayInCombat:SetChecked(true)
+							displayOutOfCombat:SetChecked(false)
+						else
+							displayAlways:SetChecked(false)
+							displayInCombat:SetChecked(false)
+							displayOutOfCombat:SetChecked(true)
+						end
+
+						local isClickableCheckbox = addon:GetControlCheckbox(true, "Make Clickable", parent,
+							function(control)
+								settingsTable.isClickable = control:GetChecked()
+							end)
+						isClickableCheckbox:SetPoint("TOPLEFT", displayLabel, "BOTTOMLEFT", 0, -10)
+						if isClickable then
+							isClickableCheckbox:SetChecked(true)
+						else
+							isClickableCheckbox:SetChecked(false)
+						end
+
 						local iconSizeLabel = addon:GetControlLabel(true, parent, "Icon Size:", 100)
-						iconSizeLabel:SetPoint("TOPLEFT", showWhenAvailableCheckbox, "BOTTOMLEFT", 0, -10)
+						iconSizeLabel:SetPoint("TOPLEFT", isClickableCheckbox, "BOTTOMLEFT", 0, -10)
 
 						local iconSizeInput = addon:GetControlInput(true, parent, 40, function(control)
 							settingsTable.iconSize = addon:GetValueNumber(control:GetText())

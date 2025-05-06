@@ -17,8 +17,13 @@
     "ActionButton_ShowOverlayGlow",
     "CooldownFrame_Set",
     "STANDARD_TEXT_FONT",
-    "TooltipUtil"
+    "TooltipUtil",
+    "RegisterStateDriver",
+    "UnregisterStateDriver"
   ],
+  "Lua.format.defaultConfig": {
+    "lineWidth": "0"
+  },
   "Lua.runtime.version": "Lua 5.1",
   "Lua.runtime.builtin": {
     "basic": "disable",

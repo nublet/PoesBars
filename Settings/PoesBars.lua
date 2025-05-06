@@ -135,18 +135,8 @@ function addon:AddSettingsPoesBars(parent)
 		isLocked:SetChecked(false)
 	end
 
-	local showInCombat = addon:GetControlCheckbox(false, "Only Show In Combat", parent, function(control)
-		SettingsDB.showInCombat = control:GetChecked()
-	end)
-	showInCombat:SetPoint("TOPLEFT", isLocked, "BOTTOMLEFT", 0, -10)
-	if SettingsDB.showInCombat then
-		showInCombat:SetChecked(true)
-	else
-		showInCombat:SetChecked(false)
-	end
-
 	local textFont = addon:GetControlLabel(false, parent, "Font:", 60)
-	textFont:SetPoint("TOPLEFT", showInCombat, "BOTTOMLEFT", 0, -10)
+	textFont:SetPoint("TOPLEFT", isLocked, "BOTTOMLEFT", 0, -10)
 
 	local dropdownFont = addon:GetControlDropdown(false, parent, 120)
 	dropdownFont:SetPoint("LEFT", textFont, "RIGHT", 10, 0)
@@ -154,7 +144,7 @@ function addon:AddSettingsPoesBars(parent)
 		local fonts = LSM:List("font")
 		for _, fontName in ipairs(fonts) do
 			local fontObject = CreateFont("PoesBarsFont_" .. fontName)
-			fontObject:SetFont(LSM:Fetch("font", fontName), 12, "")
+			fontObject:SetFont(LSM:Fetch("font", fontName) or "Fonts\\FRIZQT__.TTF", 12, "")
 
 			local info = UIDropDownMenu_CreateInfo()
 			info.arg1 = fontName

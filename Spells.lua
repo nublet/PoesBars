@@ -24,17 +24,35 @@ local function CreateIconFrame(itemID, playerSpecID, specID, spellID)
         return nil
     end
 
-    local newFrame = CreateFrame("Frame", nil, UIParent)
+    local newFrame = CreateFrame("Button", nil, UIParent, "SecureActionButtonTemplate")
     newFrame:EnableKeyboard(false)
     newFrame:EnableMouse(false)
     newFrame:EnableMouseWheel(false)
     newFrame:Hide()
-    newFrame:SetFrameStrata("LOW")
     newFrame:SetHitRectInsets(0, 0, 0, 0)
     newFrame:SetPoint("CENTER", 0, 0)
     newFrame:SetPropagateKeyboardInput(true)
     newFrame:SetSize(40, 40)
-    newFrame:SetToplevel(false)
+    if itemID > 0 then
+        newFrame:SetAttribute("type", "item")
+        newFrame:SetAttribute("item", "item:" .. itemID)
+        newFrame:SetScript("OnEnter", function(control)
+            GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
+            GameTooltip:SetItemByID(itemID)
+            GameTooltip:Show()
+        end)
+    else
+        newFrame:SetAttribute("type", "spell")
+        newFrame:SetAttribute("spell", spellID)
+        newFrame:SetScript("OnEnter", function(control)
+            GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
+            GameTooltip:SetSpellByID(spellID)
+            GameTooltip:Show()
+        end)
+    end
+    newFrame:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
 
     local frameBorder = CreateFrame("Frame", nil, newFrame, "BackdropTemplate")
     frameBorder:EnableKeyboard(false)
@@ -61,9 +79,9 @@ local function CreateIconFrame(itemID, playerSpecID, specID, spellID)
     textBinding:SetText("")
     textBinding:SetTextColor(1, 1, 1, 1)
     if SettingsDB.bindingFontShadow then
-		textBinding:SetShadowColor(0, 0, 0, 0.5)
-		textBinding:SetShadowOffset(1, -1)
-	end
+        textBinding:SetShadowColor(0, 0, 0, 0.5)
+        textBinding:SetShadowOffset(1, -1)
+    end
 
     local textCharges = newFrame:CreateFontString(nil, "OVERLAY")
     textCharges:SetFont(font, SettingsDB.chargesFontSize or 12, SettingsDB.chargesFontFlags or "OUTLINE")
@@ -73,9 +91,9 @@ local function CreateIconFrame(itemID, playerSpecID, specID, spellID)
     textCharges:SetPoint("BOTTOMRIGHT", newFrame, "BOTTOMRIGHT", 0, 0)
     textCharges:SetText("")
     if SettingsDB.chargesFontShadow then
-		textCharges:SetShadowColor(0, 0, 0, 0.5)
-		textCharges:SetShadowOffset(1, -1)
-	end
+        textCharges:SetShadowColor(0, 0, 0, 0.5)
+        textCharges:SetShadowOffset(1, -1)
+    end
 
     local textCooldown = newFrame:CreateFontString(nil, "OVERLAY")
     textCooldown:SetFont(font, SettingsDB.cooldownFontSize or 16, SettingsDB.cooldownFontFlags or "OUTLINE")
@@ -83,9 +101,9 @@ local function CreateIconFrame(itemID, playerSpecID, specID, spellID)
     textCooldown:SetText("")
     textCooldown:SetTextColor(1, 1, 1, 1)
     if SettingsDB.cooldownFontShadow then
-		textCooldown:SetShadowColor(0, 0, 0, 0.5)
-		textCooldown:SetShadowOffset(1, -1)
-	end
+        textCooldown:SetShadowColor(0, 0, 0, 0.5)
+        textCooldown:SetShadowOffset(1, -1)
+    end
 
     local textRank = newFrame:CreateFontString(nil, "OVERLAY")
     textRank:SetFont(font, SettingsDB.rankFontSize or 12, SettingsDB.rankFontFlags or "OUTLINE")
@@ -93,9 +111,9 @@ local function CreateIconFrame(itemID, playerSpecID, specID, spellID)
     textRank:SetText("")
     textRank:SetTextColor(0, 1, 0, 1)
     if SettingsDB.rankFontShadow then
-		textRank:SetShadowColor(0, 0, 0, 0.5)
-		textRank:SetShadowOffset(1, -1)
-	end
+        textRank:SetShadowColor(0, 0, 0, 0.5)
+        textRank:SetShadowOffset(1, -1)
+    end
 
     local textID = newFrame:CreateFontString(nil, "OVERLAY")
     textID:SetFont(font, SettingsDB.bindingFontSize or 12, SettingsDB.bindingFontFlags or "OUTLINE")
@@ -103,9 +121,9 @@ local function CreateIconFrame(itemID, playerSpecID, specID, spellID)
     textID:SetText("")
     textID:SetTextColor(1, 1, 1, 1)
     if SettingsDB.cooldownFontShadow then
-		textID:SetShadowColor(0, 0, 0, 0.5)
-		textID:SetShadowOffset(1, -1)
-	end
+        textID:SetShadowColor(0, 0, 0, 0.5)
+        textID:SetShadowOffset(1, -1)
+    end
 
     local textureIcon = newFrame:CreateTexture(nil, "ARTWORK")
     textureIcon:SetAllPoints(newFrame)
@@ -221,6 +239,10 @@ local function CreateIconFrame(itemID, playerSpecID, specID, spellID)
 end
 
 local function GetAura(auraList, spellID, spellName)
+    if not auraList then
+        return nil
+    end
+
     for i = 1, #auraList do
         local aura = auraList[i]
         if aura.spellId == spellID or aura.name == spellName then
@@ -246,11 +268,23 @@ local function ProcessSpell(playerSpecID, spellBank, specID, spellIndex)
     end
 
     if itemInfo.itemType == Enum.SpellBookItemType.Spell or itemInfo.itemType == Enum.SpellBookItemType.PetAction then
-    else
-        return nil
+        return CreateIconFrame(-1, playerSpecID, specID, itemInfo.spellID)
     end
 
-    return CreateIconFrame(-1, playerSpecID, specID, itemInfo.spellID)
+    if itemInfo.itemType == Enum.SpellBookItemType.Flyout then
+        local flyoutName, flyoutDescription, flyoutSlots, flyoutKnown = GetFlyoutInfo(itemInfo.actionID)
+        if flyoutKnown then
+            for slot = 1, flyoutSlots do
+                local slotSpellID, slotOverrideSpellID, slotIsKnown, slotSpellName, slotSlotSpecID = GetFlyoutSlotInfo(
+                    itemInfo.actionID, slot)
+                if slotIsKnown and not C_Spell.IsSpellPassive(slotSpellID) then
+                    CheckIconFrame(CreateIconFrame(-1, playerSpecID, specID, slotSpellID))
+                end
+            end
+        end
+    end
+
+    return nil
 end
 
 local function RefreshCategoryFrame(category, parentTable, playerSpecID)
@@ -288,12 +322,18 @@ local function RefreshCategoryFrame(category, parentTable, playerSpecID)
         local settingsTable = SettingsDB[category] or {}
 
         local allIcons = {}
+        local displayWhen = settingsTable.displayWhen or "Always"
         local iconSize = settingsTable.iconSize or 64
         local iconSpacing = settingsTable.iconSpacing or 2
+        local isClickable = settingsTable.isClickable or false
         local isVertical = settingsTable.isVertical or false
         local seenSettingNames = {}
         local validSettingNames = {}
         local wrapAfter = settingsTable.wrapAfter or 0
+
+        if displayWhen == "" then
+            displayWhen = "Always"
+        end
 
         if not CategoryOrderDB[category] then
             CategoryOrderDB[category] = {}
@@ -341,14 +381,36 @@ local function RefreshCategoryFrame(category, parentTable, playerSpecID)
                     iconFrame.textID:Show()
                 else
                     iconFrame.textID:Hide()
+
+                    if SettingsDB.isLocked and isClickable then
+                        iconFrame:EnableMouse(true)
+                        iconFrame:RegisterForClicks("LeftButtonDown", "LeftButtonUp")
+                        iconFrame:SetFrameStrata("HIGH")
+                        iconFrame:SetToplevel(true)
+                    else
+                        iconFrame:EnableMouse(false)
+                        iconFrame:SetFrameStrata("LOW")
+                        iconFrame:SetToplevel(false)
+                    end
                 end
 
                 iconFrame:ClearAllPoints()
                 iconFrame:SetParent(parentTable.frame)
-                iconFrame:Show()
 
                 iconFrame:SetSize(iconSize, iconSize)
                 iconFrame.textureIcon:SetAllPoints(iconFrame)
+
+                if displayWhen == "Always" then
+                    UnregisterStateDriver(iconFrame, "visibility")
+                    iconFrame:Show()
+                elseif displayWhen == "In Combat" then
+                    RegisterStateDriver(iconFrame, "visibility", "[combat] show; hide")
+                elseif displayWhen == "Out Of Combat" then
+                    RegisterStateDriver(iconFrame, "visibility", "[nocombat] show; hide")
+                else
+                    UnregisterStateDriver(iconFrame, "visibility")
+                    iconFrame:Show()
+                end
 
                 if i == 1 then
                     iconFrame:SetPoint("TOPLEFT", parentTable.frame, "TOPLEFT", 0, 0)
@@ -459,7 +521,7 @@ local function updateIconDebuff(frame, showOnCooldown, spellID, targetDebuffs)
 
         if aura.expirationTime <= 0 then
             if showOnCooldown then
-                frame:Hide()
+                frame:SetAlpha(0.0)
             end
 
             frame.auraActive = true
@@ -474,7 +536,7 @@ local function updateIconDebuff(frame, showOnCooldown, spellID, targetDebuffs)
 
                 if remaining <= 5 then
                     if showOnCooldown then
-                        frame:Show()
+                        frame:SetAlpha(1.0)
                     end
 
                     if not frame.glowActive then
@@ -486,11 +548,11 @@ local function updateIconDebuff(frame, showOnCooldown, spellID, targetDebuffs)
                     frame.glowActive = false
 
                     if showOnCooldown then
-                        frame:Hide()
+                        frame:SetAlpha(0.0)
                     end
                 else
                     if showOnCooldown then
-                        frame:Hide()
+                        frame:SetAlpha(0.0)
                     end
                 end
 
@@ -499,7 +561,7 @@ local function updateIconDebuff(frame, showOnCooldown, spellID, targetDebuffs)
                 frame.textureIcon:SetDesaturated(false)
             else
                 if showOnCooldown then
-                    frame:Show()
+                    frame:SetAlpha(1.0)
                 end
 
                 if frame.glowActive then
@@ -515,7 +577,7 @@ local function updateIconDebuff(frame, showOnCooldown, spellID, targetDebuffs)
         end
     else
         if showOnCooldown then
-            frame:Show()
+            frame:SetAlpha(1.0)
         end
 
         if frame.glowActive then
@@ -546,14 +608,14 @@ local function updateIconItem(category, frame, playerBuffs)
 
     local count = C_Item.GetItemCount(itemID, false, true, false, false)
     if count <= 0 then
-        frame:Hide()
+        frame:SetAlpha(0.0)
         return
     end
 
     if showOnCooldown then
-        frame:Hide()
+        frame:SetAlpha(0.0)
     else
-        frame:Show()
+        frame:SetAlpha(1.0)
     end
 
     updateIconBuff(frame, playerBuffs, spellID)
@@ -580,7 +642,7 @@ local function updateIconItem(category, frame, playerBuffs)
             frame.frameBorder:Show()
             frame.textBinding:Hide()
             frame.textureIcon:SetDesaturated(true)
-            frame:Show()
+            frame:SetAlpha(1.0)
 
             if remaining < 90 then
                 frame.textCooldown:SetText(string.format("%d", remaining))
@@ -614,7 +676,7 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, target
     local currentSpellID = C_Spell.GetOverrideSpell(frameSpellID) or frameSpellID
 
     if C_Spell.IsSpellDisabled(currentSpellID) then
-        frame:Hide()
+        frame:SetAlpha(0.0)
         return
     end
 
@@ -641,9 +703,9 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, target
         end
     else
         if showOnCooldown or showWhenAvailable then
-            frame:Hide()
+            frame:SetAlpha(0.0)
         else
-            frame:Show()
+            frame:SetAlpha(1.0)
         end
 
         if showWhenAvailable then
@@ -651,13 +713,13 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, target
                 frame.textCharges:SetText(spellCharges.currentCharges)
 
                 if spellCharges.currentCharges > 0 then
-                    frame:Show()
+                    frame:SetAlpha(1.0)
                 end
             else
                 local spellCooldown = C_Spell.GetSpellCooldown(currentSpellID)
                 if spellCooldown.isEnabled and spellCooldown.duration > 2 then
                 else
-                    frame:Show()
+                    frame:SetAlpha(1.0)
                 end
             end
         else
@@ -669,7 +731,7 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, target
                     frame.glowActive = true
                 end
 
-                frame:Show()
+                frame:SetAlpha(1.0)
 
                 return
             end
@@ -686,7 +748,7 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, target
                         frame.glowActive = true
                     end
 
-                    frame:Show()
+                    frame:SetAlpha(1.0)
 
                     return
                 end
@@ -710,7 +772,7 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, target
                     frame.frameBorder:Show()
                     frame.textBinding:Hide()
                     frame.textureIcon:SetDesaturated(true)
-                    frame:Show()
+                    frame:SetAlpha(1.0)
 
                     if spellCharges.cooldownStartTime and spellCharges.cooldownDuration and spellCharges.cooldownDuration > 2 then
                         local remaining = (spellCharges.cooldownStartTime + spellCharges.cooldownDuration) - GetTime()
@@ -725,7 +787,7 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, target
                     end
                 elseif spellCharges.currentCharges < spellCharges.maxCharges then
                     frame.frameBorder:Show()
-                    frame:Show()
+                    frame:SetAlpha(1.0)
                 else
                     if not isUsable then
                         if insufficientPower then
@@ -743,7 +805,7 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, target
                         frame.frameBorder:Show()
                         frame.textBinding:Hide()
                         frame.textureIcon:SetDesaturated(true)
-                        frame:Show()
+                        frame:SetAlpha(1.0)
 
                         if remaining < 90 then
                             frame.textCooldown:SetText(string.format("%d", remaining))
@@ -784,60 +846,6 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, target
     end
 end
 
-local function updateIcons(validCategories)
-    local gcdCooldown = C_Spell.GetSpellCooldown(61304)
-    local playerBuffs = {}
-    local targetDebuffs = {}
-
-    local auraIndex = 1
-    while true do
-        local aura = C_UnitAuras.GetDebuffDataByIndex("target", auraIndex, "HARMFUL")
-        if not aura then
-            break
-        end
-
-        if aura.isFromPlayerOrPlayerPet then
-            table.insert(targetDebuffs, aura)
-        end
-
-        auraIndex = auraIndex + 1
-    end
-
-    auraIndex = 1
-    while true do
-        local aura = C_UnitAuras.GetBuffDataByIndex("player", auraIndex, "HELPFUL")
-        if not aura then
-            break
-        end
-
-        if aura.isFromPlayerOrPlayerPet then
-            table.insert(playerBuffs, aura)
-        end
-
-        auraIndex = auraIndex + 1
-    end
-
-    for index = 1, #validCategories do
-        local category = validCategories[index]
-
-        if categories[category] then
-            local parentTable = categories[category]
-
-            if parentTable.items then
-                for i = 1, #parentTable.items do
-                    updateIconItem(category, parentTable.items[i], playerBuffs)
-                end
-            end
-
-            if parentTable.spells then
-                for i = 1, #parentTable.spells do
-                    updateIconSpell(category, parentTable.spells[i], gcdCooldown, playerBuffs, targetDebuffs)
-                end
-            end
-        end
-    end
-end
-
 function addon:CheckLockState()
     local validCategories = addon:GetValidCategories(false)
 
@@ -860,6 +868,8 @@ function addon:CheckLockState()
             end
         end
     end
+
+    addon:RefreshCategoryFrames()
 end
 
 function addon:CreateIcons()
@@ -881,6 +891,9 @@ function addon:CreateIcons()
         iconFrame = nil
     end
     wipe(iconFrames)
+    iconFrames = {}
+
+    collectgarbage("collect")
 
     local numPetSpells, petNameToken = C_SpellBook.HasPetSpells()
 
@@ -918,12 +931,18 @@ function addon:CreateIcons()
         CheckIconFrame(CreateIconFrame(SettingsDB.validItems[i], playerSpecID, 0, -1))
     end
 
-    addon:RefreshCategoryFrames()
-
     addon:CheckLockState()
 end
 
 function addon:RefreshCategoryFrames()
+    if InCombatLockdown() then
+        addon:Debounce("RefreshCategoryFrames", 1, function()
+            addon:RefreshCategoryFrames()
+        end)
+
+        return
+    end
+
     local currentSpec = GetSpecialization()
     if not currentSpec then
         return
@@ -986,9 +1005,59 @@ end
 function addon:UpdateIconState()
     local validCategories = addon:GetValidCategories(true)
 
-    if InCombatLockdown() then
-        updateIcons(validCategories)
-    elseif not SettingsDB.isLocked then
+    if SettingsDB.isLocked then
+        local auraIndex = 1
+        local gcdCooldown = C_Spell.GetSpellCooldown(61304)
+        local playerBuffs = {}
+        local targetDebuffs = {}
+
+        while true do
+            local aura = C_UnitAuras.GetDebuffDataByIndex("target", auraIndex, "HARMFUL")
+            if not aura then
+                break
+            end
+
+            if aura.isFromPlayerOrPlayerPet then
+                table.insert(targetDebuffs, aura)
+            end
+
+            auraIndex = auraIndex + 1
+        end
+
+        auraIndex = 1
+        while true do
+            local aura = C_UnitAuras.GetBuffDataByIndex("player", auraIndex, "HELPFUL")
+            if not aura then
+                break
+            end
+
+            if aura.isFromPlayerOrPlayerPet then
+                table.insert(playerBuffs, aura)
+            end
+
+            auraIndex = auraIndex + 1
+        end
+
+        for index = 1, #validCategories do
+            local category = validCategories[index]
+
+            if categories[category] then
+                local parentTable = categories[category]
+
+                if parentTable.items then
+                    for i = 1, #parentTable.items do
+                        updateIconItem(category, parentTable.items[i], playerBuffs)
+                    end
+                end
+
+                if parentTable.spells then
+                    for i = 1, #parentTable.spells do
+                        updateIconSpell(category, parentTable.spells[i], gcdCooldown, playerBuffs, targetDebuffs)
+                    end
+                end
+            end
+        end
+    else
         for index = 1, #validCategories do
             local category = validCategories[index]
 
@@ -1008,27 +1077,5 @@ function addon:UpdateIconState()
                 end
             end
         end
-    elseif SettingsDB.showInCombat then
-        for index = 1, #validCategories do
-            local category = validCategories[index]
-
-            if categories[category] then
-                local parentTable = categories[category]
-
-                if parentTable.items then
-                    for i = 1, #parentTable.items do
-                        parentTable.items[i]:Hide()
-                    end
-                end
-
-                if parentTable.spells then
-                    for i = 1, #parentTable.spells do
-                        parentTable.spells[i]:Hide()
-                    end
-                end
-            end
-        end
-    else
-        updateIcons(validCategories)
     end
 end

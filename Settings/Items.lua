@@ -5,6 +5,8 @@ local scrollFrame
 local scrollFrameChild
 local yOffset = 0
 
+local LSM = LibStub("LibSharedMedia-3.0")
+
 local function CreateOptionLine(itemID)
     itemID = itemID or -1
     if itemID <= 0 then
@@ -28,7 +30,6 @@ local function CreateOptionLine(itemID)
     textureIcon:SetAllPoints()
 
     local textRank = frameIcon:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    textRank:SetFont(textRank:GetFont(), 10, "OUTLINE")
     textRank:SetPoint("BOTTOMLEFT", frameIcon, "BOTTOMLEFT", 0, 0)
     textRank:SetShadowColor(0, 0, 0, 1)
     textRank:SetShadowOffset(0, 0)
