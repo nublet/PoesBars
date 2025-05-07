@@ -123,22 +123,6 @@ function addon:CreateSettingsBuffs(mainCategory)
         if not exists then
             SettingsDB.buffOverrides[newSpellID] = newBuffID
         end
-
-        parentFrame:SetScript("OnHide", function(frame)
-            addon.isLoaded = false
-
-            addon:Debounce("CreateIcons", 1, function()
-                addon:CreateIcons()
-                addon.isLoaded = true
-            end)
-        end)
-        parentFrame:SetScript("OnShow", function(frame)
-            addon:GetDataBuffs()
-        end)
-
-        local subCategory = Settings.RegisterCanvasLayoutSubcategory(mainCategory, parentFrame, parentFrame.name);
-        Settings.RegisterAddOnCategory(subCategory);
-        return subCategory:GetID()
     end)
     newItemButton:SetPoint("LEFT", buffIDInput, "RIGHT", 10, 0)
 

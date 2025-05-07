@@ -333,6 +333,13 @@ local function RefreshCategoryFrame(category, parentTable, playerSpecID)
 
                 if category == addon.unknown then
                     iconFrame.textID:Show()
+
+                    iconFrame:EnableMouse(false)
+                    iconFrame:SetFrameStrata("LOW")
+                    iconFrame:SetToplevel(false)
+
+                    UnregisterAttributeDriver(iconFrame, "state-visibility")
+                    iconFrame:Show()
                 else
                     iconFrame.textID:Hide()
 
@@ -366,11 +373,6 @@ local function RefreshCategoryFrame(category, parentTable, playerSpecID)
 
                         UnregisterAttributeDriver(iconFrame, "state-visibility")
                         iconFrame:Show()
-                    end
-
-                    if SettingsDB.isLocked then
-                    else
-
                     end
                 end
 
@@ -964,6 +966,20 @@ function addon:UpdateIconState()
         auraIndex = 1
         while true do
             local aura = C_UnitAuras.GetBuffDataByIndex("player", auraIndex, "HELPFUL")
+            if not aura then
+                break
+            end
+
+            if aura.isFromPlayerOrPlayerPet then
+                table.insert(playerBuffs, aura)
+            end
+
+            auraIndex = auraIndex + 1
+        end
+
+        auraIndex = 1
+        while true do
+            local aura = C_UnitAuras.GetBuffDataByIndex("pet", auraIndex, "HELPFUL")
             if not aura then
                 break
             end
