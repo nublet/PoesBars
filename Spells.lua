@@ -1003,13 +1003,13 @@ function addon:UpdateIconState()
 
                 if parentTable.items then
                     for i = 1, #parentTable.items do
-                        parentTable.items[i]:Show()
+                        parentTable.items[i]:SetAlpha(1.0)
                     end
                 end
 
                 if parentTable.spells then
                     for i = 1, #parentTable.spells do
-                        parentTable.spells[i]:Show()
+                        parentTable.spells[i]:SetAlpha(1.0)
                     end
                 end
             end
