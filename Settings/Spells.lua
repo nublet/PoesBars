@@ -59,14 +59,11 @@ local function LoadLayout(category, playerSpecID)
 	if not CategoryOrderDB[category] then
 		CategoryOrderDB[category] = {}
 	end
-	if not CategoryOrderDB[category][playerSpecID] then
-		CategoryOrderDB[category][playerSpecID] = {}
-	end
 
 	local yOffset = 0
 	local seenSettingNames = {}
 
-	for _, settingName in ipairs(CategoryOrderDB[category][playerSpecID]) do
+	for _, settingName in ipairs(CategoryOrderDB[category]) do
 		if optionLines[settingName] then
 			seenSettingNames[settingName] = true
 
@@ -80,7 +77,7 @@ local function LoadLayout(category, playerSpecID)
 		if not seenSettingNames[settingName] then
 			frameLine:SetPoint("TOPLEFT", 10, yOffset)
 
-			table.insert(CategoryOrderDB[category][playerSpecID], settingName)
+			table.insert(CategoryOrderDB[category], settingName)
 
 			yOffset = yOffset - addon.settingsIconSize - 10
 		end
@@ -88,7 +85,7 @@ local function LoadLayout(category, playerSpecID)
 end
 
 local function MoveSetting(category, playerSpecID, settingName, direction)
-	local orderTable = CategoryOrderDB[category][playerSpecID]
+	local orderTable = CategoryOrderDB[category]
 	if not orderTable then
 		return
 	end

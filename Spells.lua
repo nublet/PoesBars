@@ -8,12 +8,12 @@ local font = LSM:Fetch("font", "Naowh") or "Fonts\\FRIZQT__.TTF"
 
 local function CreateIconFrame(iconDetail)
     local itemID = iconDetail.itemID or -1
-	local specID = iconDetail.specID or -1
-	local spellID = iconDetail.spellID or -1
+    local specID = iconDetail.specID or -1
+    local spellID = iconDetail.spellID or -1
 
-	if itemID <= 0 and spellID <= 0 then
-		return nil
-	end
+    if itemID <= 0 and spellID <= 0 then
+        return nil
+    end
 
     local newFrame = CreateFrame("Button", nil, UIParent, "SecureActionButtonTemplate")
     newFrame:EnableKeyboard(false)
@@ -295,9 +295,6 @@ local function RefreshCategoryFrame(category, parentTable, playerSpecID)
         if not CategoryOrderDB[category] then
             CategoryOrderDB[category] = {}
         end
-        if not CategoryOrderDB[category][playerSpecID] then
-            CategoryOrderDB[category][playerSpecID] = {}
-        end
 
         for _, iconFrame in ipairs(parentTable.items) do
             validSettingNames[iconFrame.settingName] = true
@@ -306,7 +303,7 @@ local function RefreshCategoryFrame(category, parentTable, playerSpecID)
             validSettingNames[iconFrame.settingName] = true
         end
 
-        for _, settingName in ipairs(CategoryOrderDB[category][playerSpecID]) do
+        for _, settingName in ipairs(CategoryOrderDB[category]) do
             if validSettingNames[settingName] and iconFrames[settingName] then
                 seenSettingNames[settingName] = true
 
@@ -339,15 +336,41 @@ local function RefreshCategoryFrame(category, parentTable, playerSpecID)
                 else
                     iconFrame.textID:Hide()
 
-                    if SettingsDB.isLocked and isClickable then
-                        iconFrame:EnableMouse(true)
-                        iconFrame:RegisterForClicks("LeftButtonDown", "LeftButtonUp")
-                        iconFrame:SetFrameStrata("HIGH")
-                        iconFrame:SetToplevel(true)
+                    if SettingsDB.isLocked then
+                        if isClickable then
+                            iconFrame:EnableMouse(true)
+                            iconFrame:RegisterForClicks("LeftButtonDown", "LeftButtonUp")
+                            iconFrame:SetFrameStrata("HIGH")
+                            iconFrame:SetToplevel(true)
+                        else
+                            iconFrame:EnableMouse(false)
+                            iconFrame:SetFrameStrata("LOW")
+                            iconFrame:SetToplevel(false)
+                        end
+
+                        if displayWhen == "Always" then
+                            UnregisterAttributeDriver(iconFrame, "state-visibility")
+                            iconFrame:Show()
+                        elseif displayWhen == "In Combat" then
+                            RegisterAttributeDriver(iconFrame, "state-visibility", "[combat] show; hide")
+                        elseif displayWhen == "Out Of Combat" then
+                            RegisterAttributeDriver(iconFrame, "state-visibility", "[nocombat] show; hide")
+                        else
+                            UnregisterAttributeDriver(iconFrame, "state-visibility")
+                            iconFrame:Show()
+                        end
                     else
                         iconFrame:EnableMouse(false)
                         iconFrame:SetFrameStrata("LOW")
                         iconFrame:SetToplevel(false)
+
+                        UnregisterAttributeDriver(iconFrame, "state-visibility")
+                        iconFrame:Show()
+                    end
+
+                    if SettingsDB.isLocked then
+                    else
+
                     end
                 end
 
@@ -356,18 +379,6 @@ local function RefreshCategoryFrame(category, parentTable, playerSpecID)
 
                 iconFrame:SetSize(iconSize, iconSize)
                 iconFrame.textureIcon:SetAllPoints(iconFrame)
-
-                if displayWhen == "Always" then
-                    UnregisterAttributeDriver(iconFrame, "state-visibility")
-                    iconFrame:Show()
-                elseif displayWhen == "In Combat" then
-                    RegisterAttributeDriver(iconFrame, "state-visibility", "[combat] show; hide")
-                elseif displayWhen == "Out Of Combat" then
-                    RegisterAttributeDriver(iconFrame, "state-visibility", "[nocombat] show; hide")
-                else
-                    UnregisterAttributeDriver(iconFrame, "state-visibility")
-                    iconFrame:Show()
-                end
 
                 if i == 1 then
                     iconFrame:SetPoint("TOPLEFT", parentTable.frame, "TOPLEFT", 0, 0)

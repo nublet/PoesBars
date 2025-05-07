@@ -126,7 +126,7 @@ function addon:CreateSettingsBuffs(mainCategory)
 
         parentFrame:SetScript("OnHide", function(frame)
             addon.isLoaded = false
-    
+
             addon:Debounce("CreateIcons", 1, function()
                 addon:CreateIcons()
                 addon.isLoaded = true
@@ -135,7 +135,7 @@ function addon:CreateSettingsBuffs(mainCategory)
         parentFrame:SetScript("OnShow", function(frame)
             addon:GetDataBuffs()
         end)
-    
+
         local subCategory = Settings.RegisterCanvasLayoutSubcategory(mainCategory, parentFrame, parentFrame.name);
         Settings.RegisterAddOnCategory(subCategory);
         return subCategory:GetID()
@@ -163,12 +163,14 @@ function addon:GetDataBuffs()
     if scrollFrameChild then
         local children = scrollFrameChild:GetChildren()
 
-        for i = 1, #children do
-            local child = children[i]
+        if children and next(children) ~= nil then
+            for i = 1, #children do
+                local child = children[i]
 
-            child:ClearAllPoints()
-            child:Hide()
-            child:SetParent(nil)
+                child:ClearAllPoints()
+                child:Hide()
+                child:SetParent(nil)
+            end
         end
 
         scrollFrameChild:ClearAllPoints()
