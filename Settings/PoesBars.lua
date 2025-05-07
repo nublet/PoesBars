@@ -1,9 +1,11 @@
 local addonName, addon = ...
+
 local frameSample
+local parentFrame
 
 local LSM = LibStub("LibSharedMedia-3.0")
 
-local function CreateTestIcon(parent)
+local function CreateTestIcon()
 	if frameSample then
 		frameSample:ClearAllPoints()
 		frameSample:Hide()
@@ -15,8 +17,8 @@ local function CreateTestIcon(parent)
 	local font = LSM:Fetch("font", SettingsDB.fontName) or "Fonts\\FRIZQT__.TTF"
 	local itemID = 211880
 
-	frameSample = CreateFrame("Frame", nil, parent)
-	frameSample:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -10, -10)
+	frameSample = CreateFrame("Frame", nil, parentFrame)
+	frameSample:SetPoint("TOPRIGHT", parentFrame, "TOPRIGHT", -10, -10)
 	frameSample:SetSize(64, 64)
 
 	local frameBorder = CreateFrame("Frame", nil, frameSample, "BackdropTemplate")
@@ -112,18 +114,21 @@ local function CreateTestIcon(parent)
 	end)
 end
 
-function addon:AddSettingsPoesBars(parent)
-	local showGlobalSweep = addon:GetControlCheckbox(false, "Show GCD Sweep", parent, function(control)
+function addon:CreateSettingsGeneral()
+	parentFrame = CreateFrame("Frame", addonName .. "SettingsFrame", UIParent)
+	parentFrame.name = addonName
+
+	local showGlobalSweep = addon:GetControlCheckbox(false, "Show GCD Sweep", parentFrame, function(control)
 		SettingsDB.showGlobalSweep = control:GetChecked()
 	end)
-	showGlobalSweep:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -10)
+	showGlobalSweep:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", 10, -10)
 	if SettingsDB.showGlobalSweep then
 		showGlobalSweep:SetChecked(true)
 	else
 		showGlobalSweep:SetChecked(false)
 	end
 
-	local isLocked = addon:GetControlCheckbox(false, "Lock Groups", parent, function(control)
+	local isLocked = addon:GetControlCheckbox(false, "Lock Groups", parentFrame, function(control)
 		SettingsDB.isLocked = control:GetChecked()
 
 		addon:CheckLockState()
@@ -135,10 +140,10 @@ function addon:AddSettingsPoesBars(parent)
 		isLocked:SetChecked(false)
 	end
 
-	local textFont = addon:GetControlLabel(false, parent, "Font:", 60)
+	local textFont = addon:GetControlLabel(false, parentFrame, "Font:", 60)
 	textFont:SetPoint("TOPLEFT", isLocked, "BOTTOMLEFT", 0, -10)
 
-	local dropdownFont = addon:GetControlDropdown(false, parent, 120)
+	local dropdownFont = addon:GetControlDropdown(false, parentFrame, 120)
 	dropdownFont:SetPoint("LEFT", textFont, "RIGHT", 10, 0)
 	UIDropDownMenu_Initialize(dropdownFont, function(control, level, menuList)
 		local fonts = LSM:List("font")
@@ -153,7 +158,7 @@ function addon:AddSettingsPoesBars(parent)
 			info.func = function(control, newFontName)
 				SettingsDB.fontName = newFontName
 				UIDropDownMenu_SetText(dropdownFont, newFontName)
-				CreateTestIcon(parent)
+				CreateTestIcon()
 			end
 			info.text = fontName
 
@@ -163,23 +168,23 @@ function addon:AddSettingsPoesBars(parent)
 	UIDropDownMenu_SetText(dropdownFont, SettingsDB.fontName or "<Select>")
 	UIDropDownMenu_SetWidth(dropdownFont, 180)
 
-	local textBindingLabel = addon:GetControlLabel(false, parent, "   Bind:", 60)
+	local textBindingLabel = addon:GetControlLabel(false, parentFrame, "   Bind:", 60)
 	textBindingLabel:SetPoint("TOPLEFT", textFont, "BOTTOMLEFT", 0, -10)
 
-	local textBindingFontSize = addon:GetControlLabel(false, parent, "Size", 30)
+	local textBindingFontSize = addon:GetControlLabel(false, parentFrame, "Size", 30)
 	textBindingFontSize:SetPoint("LEFT", textBindingLabel, "RIGHT", 10, 0)
 
-	local inputBinding = addon:GetControlInput(false, parent, 30, function(control)
+	local inputBinding = addon:GetControlInput(false, parentFrame, 30, function(control)
 		SettingsDB.bindingFontSize = addon:GetValueNumber(control:GetText())
-		CreateTestIcon(parent)
+		CreateTestIcon()
 	end)
 	inputBinding:SetPoint("LEFT", textBindingFontSize, "RIGHT", 10, 0)
 	inputBinding:SetText("")
 
-	local textBindingFontFlags = addon:GetControlLabel(false, parent, "Flags", 30)
+	local textBindingFontFlags = addon:GetControlLabel(false, parentFrame, "Flags", 30)
 	textBindingFontFlags:SetPoint("LEFT", inputBinding, "RIGHT", 10, 0)
 
-	local dropdownBinding = addon:GetControlDropdown(false, parent, 120)
+	local dropdownBinding = addon:GetControlDropdown(false, parentFrame, 120)
 	dropdownBinding:SetPoint("LEFT", textBindingFontFlags, "RIGHT", 10, 0)
 	UIDropDownMenu_Initialize(dropdownBinding, function(control, level, menuList)
 		local function addItem(text)
@@ -188,7 +193,7 @@ function addon:AddSettingsPoesBars(parent)
 			info.func = function()
 				SettingsDB.bindingFontFlags = text
 				UIDropDownMenu_SetSelectedName(dropdownBinding, text)
-				CreateTestIcon(parent)
+				CreateTestIcon()
 			end
 			UIDropDownMenu_AddButton(info)
 		end
@@ -202,9 +207,9 @@ function addon:AddSettingsPoesBars(parent)
 	end)
 	UIDropDownMenu_SetText(dropdownBinding, SettingsDB.bindingFontFlags or "NONE")
 
-	local checkboxBinding = addon:GetControlCheckbox(false, "Shadow", parent, function(control)
+	local checkboxBinding = addon:GetControlCheckbox(false, "Shadow", parentFrame, function(control)
 		SettingsDB.bindingFontShadow = control:GetChecked()
-		CreateTestIcon(parent)
+		CreateTestIcon()
 	end)
 	checkboxBinding:SetPoint("LEFT", dropdownBinding, "RIGHT", 10, 0)
 	if SettingsDB.bindingFontShadow then
@@ -213,23 +218,23 @@ function addon:AddSettingsPoesBars(parent)
 		checkboxBinding:SetChecked(false)
 	end
 
-	local textChargesLabel = addon:GetControlLabel(false, parent, "   Stack:", 60)
+	local textChargesLabel = addon:GetControlLabel(false, parentFrame, "   Stack:", 60)
 	textChargesLabel:SetPoint("TOPLEFT", textBindingLabel, "BOTTOMLEFT", 0, -10)
 
-	local textChargesFontSize = addon:GetControlLabel(false, parent, "Size", 30)
+	local textChargesFontSize = addon:GetControlLabel(false, parentFrame, "Size", 30)
 	textChargesFontSize:SetPoint("LEFT", textChargesLabel, "RIGHT", 10, 0)
 
-	local inputCharges = addon:GetControlInput(false, parent, 30, function(control)
+	local inputCharges = addon:GetControlInput(false, parentFrame, 30, function(control)
 		SettingsDB.chargesFontSize = addon:GetValueNumber(control:GetText())
-		CreateTestIcon(parent)
+		CreateTestIcon()
 	end)
 	inputCharges:SetPoint("LEFT", textChargesFontSize, "RIGHT", 10, 0)
 	inputCharges:SetText("")
 
-	local textChargesFontFlags = addon:GetControlLabel(false, parent, "Flags", 30)
+	local textChargesFontFlags = addon:GetControlLabel(false, parentFrame, "Flags", 30)
 	textChargesFontFlags:SetPoint("LEFT", inputCharges, "RIGHT", 10, 0)
 
-	local dropdownCharges = addon:GetControlDropdown(false, parent, 120)
+	local dropdownCharges = addon:GetControlDropdown(false, parentFrame, 120)
 	dropdownCharges:SetPoint("LEFT", textChargesFontFlags, "RIGHT", 10, 0)
 	UIDropDownMenu_Initialize(dropdownCharges, function(control, level, menuList)
 		local function addItem(text)
@@ -238,7 +243,7 @@ function addon:AddSettingsPoesBars(parent)
 			info.func = function()
 				SettingsDB.chargesFontFlags = text
 				UIDropDownMenu_SetSelectedName(dropdownCharges, text)
-				CreateTestIcon(parent)
+				CreateTestIcon()
 			end
 			UIDropDownMenu_AddButton(info)
 		end
@@ -252,9 +257,9 @@ function addon:AddSettingsPoesBars(parent)
 	end)
 	UIDropDownMenu_SetText(dropdownCharges, SettingsDB.chargesFontFlags or "NONE")
 
-	local checkboxCharges = addon:GetControlCheckbox(false, "Shadow", parent, function(control)
+	local checkboxCharges = addon:GetControlCheckbox(false, "Shadow", parentFrame, function(control)
 		SettingsDB.chargesFontShadow = control:GetChecked()
-		CreateTestIcon(parent)
+		CreateTestIcon()
 	end)
 	checkboxCharges:SetPoint("LEFT", dropdownCharges, "RIGHT", 10, 0)
 	if SettingsDB.chargesFontShadow then
@@ -263,23 +268,23 @@ function addon:AddSettingsPoesBars(parent)
 		checkboxCharges:SetChecked(false)
 	end
 
-	local textCooldownLabel = addon:GetControlLabel(false, parent, "   CD:", 60)
+	local textCooldownLabel = addon:GetControlLabel(false, parentFrame, "   CD:", 60)
 	textCooldownLabel:SetPoint("TOPLEFT", textChargesLabel, "BOTTOMLEFT", 0, -10)
 
-	local textCooldownFontSize = addon:GetControlLabel(false, parent, "Size", 30)
+	local textCooldownFontSize = addon:GetControlLabel(false, parentFrame, "Size", 30)
 	textCooldownFontSize:SetPoint("LEFT", textCooldownLabel, "RIGHT", 10, 0)
 
-	local inputCooldown= addon:GetControlInput(false, parent, 30, function(control)
+	local inputCooldown= addon:GetControlInput(false, parentFrame, 30, function(control)
 		SettingsDB.cooldownFontSize = addon:GetValueNumber(control:GetText())
-		CreateTestIcon(parent)
+		CreateTestIcon()
 	end)
 	inputCooldown:SetPoint("LEFT", textCooldownFontSize, "RIGHT", 10, 0)
 	inputCooldown:SetText("")
 
-	local textCooldownFontFlags = addon:GetControlLabel(false, parent, "Flags", 30)
+	local textCooldownFontFlags = addon:GetControlLabel(false, parentFrame, "Flags", 30)
 	textCooldownFontFlags:SetPoint("LEFT", inputCooldown, "RIGHT", 10, 0)
 
-	local dropdownCooldown = addon:GetControlDropdown(false, parent, 120)
+	local dropdownCooldown = addon:GetControlDropdown(false, parentFrame, 120)
 	dropdownCooldown:SetPoint("LEFT", textCooldownFontFlags, "RIGHT", 10, 0)
 	UIDropDownMenu_Initialize(dropdownCooldown, function(control, level, menuList)
 		local function addItem(text)
@@ -288,7 +293,7 @@ function addon:AddSettingsPoesBars(parent)
 			info.func = function()
 				SettingsDB.cooldownFontFlags = text
 				UIDropDownMenu_SetSelectedName(dropdownCooldown, text)
-				CreateTestIcon(parent)
+				CreateTestIcon()
 			end
 			UIDropDownMenu_AddButton(info)
 		end
@@ -302,9 +307,9 @@ function addon:AddSettingsPoesBars(parent)
 	end)
 	UIDropDownMenu_SetText(dropdownCooldown, SettingsDB.cooldownFontFlags or "NONE")
 
-	local checkboxCooldown = addon:GetControlCheckbox(false, "Shadow", parent, function(control)
+	local checkboxCooldown = addon:GetControlCheckbox(false, "Shadow", parentFrame, function(control)
 		SettingsDB.cooldownFontShadow = control:GetChecked()
-		CreateTestIcon(parent)
+		CreateTestIcon()
 	end)
 	checkboxCooldown:SetPoint("LEFT", dropdownCooldown, "RIGHT", 10, 0)
 	if SettingsDB.cooldownFontShadow then
@@ -313,23 +318,23 @@ function addon:AddSettingsPoesBars(parent)
 		checkboxCooldown:SetChecked(false)
 	end
 
-	local textRankLabel = addon:GetControlLabel(false, parent, "   Rank:", 60)
+	local textRankLabel = addon:GetControlLabel(false, parentFrame, "   Rank:", 60)
 	textRankLabel:SetPoint("TOPLEFT", textCooldownLabel, "BOTTOMLEFT", 0, -10)
 
-	local textRankFontSize = addon:GetControlLabel(false, parent, "Size", 30)
+	local textRankFontSize = addon:GetControlLabel(false, parentFrame, "Size", 30)
 	textRankFontSize:SetPoint("LEFT", textRankLabel, "RIGHT", 10, 0)
 
-	local inputRank = addon:GetControlInput(false, parent, 30, function(control)
+	local inputRank = addon:GetControlInput(false, parentFrame, 30, function(control)
 		SettingsDB.rankFontSize = addon:GetValueNumber(control:GetText())
-		CreateTestIcon(parent)
+		CreateTestIcon()
 	end)
 	inputRank:SetPoint("LEFT", textRankFontSize, "RIGHT", 10, 0)
 	inputRank:SetText("")
 
-	local textRankFontFlags = addon:GetControlLabel(false, parent, "Flags", 30)
+	local textRankFontFlags = addon:GetControlLabel(false, parentFrame, "Flags", 30)
 	textRankFontFlags:SetPoint("LEFT", inputRank, "RIGHT", 10, 0)
 
-	local dropdownRank = addon:GetControlDropdown(false, parent, 120)
+	local dropdownRank = addon:GetControlDropdown(false, parentFrame, 120)
 	dropdownRank:SetPoint("LEFT", textRankFontFlags, "RIGHT", 10, 0)
 	UIDropDownMenu_Initialize(dropdownRank, function(control, level, menuList)
 		local function addItem(text)
@@ -338,7 +343,7 @@ function addon:AddSettingsPoesBars(parent)
 			info.func = function()
 				SettingsDB.rankFontFlags = text
 				UIDropDownMenu_SetSelectedName(dropdownRank, text)
-				CreateTestIcon(parent)
+				CreateTestIcon()
 			end
 			UIDropDownMenu_AddButton(info)
 		end
@@ -352,9 +357,9 @@ function addon:AddSettingsPoesBars(parent)
 	end)
 	UIDropDownMenu_SetText(dropdownRank, SettingsDB.rankFontFlags or "NONE")
 
-	local checkboxRank = addon:GetControlCheckbox(false, "Shadow", parent, function(control)
+	local checkboxRank = addon:GetControlCheckbox(false, "Shadow", parentFrame, function(control)
 		SettingsDB.rankFontShadow = control:GetChecked()
-		CreateTestIcon(parent)
+		CreateTestIcon()
 	end)
 	checkboxRank:SetPoint("LEFT", dropdownRank, "RIGHT", 10, 0)
 	if SettingsDB.rankFontShadow then
@@ -363,12 +368,24 @@ function addon:AddSettingsPoesBars(parent)
 		checkboxRank:SetChecked(false)
 	end
 
-	CreateTestIcon(parent)
+	parentFrame:SetScript("OnHide", function(frame)
+		addon.isLoaded = false
 
-	parent:SetScript("OnShow",function(control)
+		addon:Debounce("CreateIcons", 1, function()
+			addon:CreateIcons()
+			addon.isLoaded = true
+		end)
+	end)
+	parentFrame:SetScript("OnShow", function(frame)
 		inputBinding:SetText(SettingsDB.bindingFontSize or 14)
 		inputCharges:SetText(SettingsDB.chargesFontSize or 12)
 		inputCooldown:SetText(SettingsDB.cooldownFontSize or 16)
 		inputRank:SetText(SettingsDB.rankFontSize or 12)
+
+		CreateTestIcon()
 	end)
+
+	local categoryPoesBars = Settings.RegisterCanvasLayoutCategory(parentFrame, parentFrame.name)
+	Settings.RegisterAddOnCategory(categoryPoesBars)
+	return categoryPoesBars
 end

@@ -1,6 +1,7 @@
 local addonName, addon = ...
 
 local optionLines = {}
+local parentFrame
 local radioAnchors = {}
 local radioDisplay = {}
 local radioOrientation = {}
@@ -106,10 +107,11 @@ local function MoveSetting(category, playerSpecID, settingName, direction)
 	end
 end
 
-local function CreateOptionLine(category, itemID, playerSpecID, specID, spellID)
-	itemID = itemID or -1
-	specID = specID or -1
-	spellID = spellID or -1
+local function CreateOptionLine(category, iconDetail)
+	local itemID = iconDetail.itemID or -1
+	local playerSpecID = iconDetail.playerSpecID or -1
+	local specID = iconDetail.specID or -1
+	local spellID = iconDetail.spellID or -1
 
 	if itemID <= 0 and spellID <= 0 then
 		return nil
@@ -256,51 +258,17 @@ local function CreateOptionLine(category, itemID, playerSpecID, specID, spellID)
 	return frameLine
 end
 
-local function ProcessSpell(category, playerSpecID, specID, spellBank, spellIndex)
-	local itemInfo = C_SpellBook.GetSpellBookItemInfo(spellIndex, spellBank)
-	if not itemInfo then
-		return nil
-	end
+function addon:CreateSettingsSpells(mainCategory)
+	parentFrame = CreateFrame("Frame", "SpellsSettingsFrame", UIParent)
+	parentFrame.name = "Spell Categories"
 
-	if itemInfo.isPassive then
-		return nil
-	end
+	local categoryLabel = addon:GetControlLabel(false, parentFrame, "Category:", 100)
+	categoryLabel:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", 10, -10)
 
-	if itemInfo.isOffSpec then
-		return nil
-	end
-
-	if itemInfo.itemType == Enum.SpellBookItemType.Spell or itemInfo.itemType == Enum.SpellBookItemType.PetAction then
-		return CreateOptionLine(category, -1, playerSpecID, specID, itemInfo.spellID)
-	end
-
-	if itemInfo.itemType == Enum.SpellBookItemType.Flyout then
-		local flyoutName, flyoutDescription, flyoutSlots, flyoutKnown = GetFlyoutInfo(itemInfo.actionID)
-		if flyoutKnown then
-			for slot = 1, flyoutSlots do
-				local slotSpellID, slotOverrideSpellID, slotIsKnown, slotSpellName, slotSlotSpecID = GetFlyoutSlotInfo(
-					itemInfo.actionID, slot)
-				if slotIsKnown and not C_Spell.IsSpellPassive(slotSpellID) then
-					local frameLine = CreateOptionLine(category, -1, playerSpecID, specID, slotSpellID)
-					if frameLine then
-						optionLines[frameLine.settingName] = frameLine
-					end
-				end
-			end
-		end
-	end
-
-	return nil
-end
-
-function addon:AddSettingsSpells(parent)
-	local categoryLabel = addon:GetControlLabel(false, parent, "Category:", 100)
-	categoryLabel:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -10)
-
-	local categoryDropdown = addon:GetControlDropdown(false, parent, 120)
+	local categoryDropdown = addon:GetControlDropdown(false, parentFrame, 120)
 	categoryDropdown:SetPoint("LEFT", categoryLabel, "RIGHT", 10, 0)
 
-	local categoryInput = addon:GetControlInput(false, parent, 120)
+	local categoryInput = addon:GetControlInput(false, parentFrame, 120)
 	categoryInput:Hide()
 	categoryInput:SetPoint("LEFT", categoryDropdown, "RIGHT", 10, 0)
 
@@ -320,8 +288,8 @@ function addon:AddSettingsSpells(parent)
 				else
 					categoryInput:Hide()
 
-					scrollFrame = CreateFrame("ScrollFrame", nil, parent, "UIPanelScrollFrameTemplate")
-					scrollFrame:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -10, 10)
+					scrollFrame = CreateFrame("ScrollFrame", nil, parentFrame, "UIPanelScrollFrameTemplate")
+					scrollFrame:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -10, 10)
 
 					scrollFrameChild = CreateFrame("Frame", nil, scrollFrame)
 					scrollFrameChild:SetSize(1, 1)
@@ -352,7 +320,7 @@ function addon:AddSettingsSpells(parent)
 						x = math.floor(x + 0.5)
 						y = math.floor(y + 0.5)
 
-						local categoryDelete = addon:GetControlButton(true, "Delete", parent, 60, function(control)
+						local categoryDelete = addon:GetControlButton(true, "Delete", parentFrame, 60, function(control)
 							if category == "" or category == addon.ignored or category == "Add New..." or category == addon.unknown then
 								return
 							end
@@ -370,7 +338,7 @@ function addon:AddSettingsSpells(parent)
 						categoryDelete:SetPoint("LEFT", categoryInput, "RIGHT", 10, 0)
 
 						local showOnCooldownCheckbox = addon:GetControlCheckbox(true,
-							"Only Show On Cooldown or Aura Active", parent)
+							"Only Show On Cooldown or Aura Active", parentFrame)
 						showOnCooldownCheckbox:SetPoint("TOPLEFT", categoryLabel, "BOTTOMLEFT", 0, -10)
 						if showOnCooldown then
 							showOnCooldownCheckbox:SetChecked(true)
@@ -379,7 +347,7 @@ function addon:AddSettingsSpells(parent)
 						end
 
 						local showWhenAvailableCheckbox = addon:GetControlCheckbox(true, "Only Show When Available",
-							parent)
+							parentFrame)
 						showWhenAvailableCheckbox:SetPoint("LEFT", showOnCooldownCheckbox, "RIGHT", 200, 0)
 						if showWhenAvailable then
 							showOnCooldownCheckbox:SetChecked(true)
@@ -403,10 +371,10 @@ function addon:AddSettingsSpells(parent)
 							end
 						end)
 
-						local displayLabel = addon:GetControlLabel(true, parent, "Display:", 100)
+						local displayLabel = addon:GetControlLabel(true, parentFrame, "Display:", 100)
 						displayLabel:SetPoint("TOPLEFT", showOnCooldownCheckbox, "BOTTOMLEFT", 0, -10)
 
-						local displayAlways = addon:GetControlRadioButton(true, parent, radioDisplay, "Always",
+						local displayAlways = addon:GetControlRadioButton(true, parentFrame, radioDisplay, "Always",
 							function(control)
 								addon:ClearRadios(radioDisplay)
 								control:SetChecked(true)
@@ -415,7 +383,7 @@ function addon:AddSettingsSpells(parent)
 							end)
 						displayAlways:SetPoint("LEFT", displayLabel, "RIGHT", 10, 0)
 
-						local displayInCombat = addon:GetControlRadioButton(true, parent, radioDisplay,
+						local displayInCombat = addon:GetControlRadioButton(true, parentFrame, radioDisplay,
 							"In Combat",
 							function(control)
 								addon:ClearRadios(radioDisplay)
@@ -425,7 +393,7 @@ function addon:AddSettingsSpells(parent)
 							end)
 						displayInCombat:SetPoint("LEFT", displayAlways, "RIGHT", 110, 0)
 
-						local displayOutOfCombat = addon:GetControlRadioButton(true, parent, radioDisplay,
+						local displayOutOfCombat = addon:GetControlRadioButton(true, parentFrame, radioDisplay,
 							"Out Of Combat",
 							function(control)
 								addon:ClearRadios(radioDisplay)
@@ -449,7 +417,7 @@ function addon:AddSettingsSpells(parent)
 							displayOutOfCombat:SetChecked(true)
 						end
 
-						local isClickableCheckbox = addon:GetControlCheckbox(true, "Make Clickable", parent,
+						local isClickableCheckbox = addon:GetControlCheckbox(true, "Make Clickable", parentFrame,
 							function(control)
 								settingsTable.isClickable = control:GetChecked()
 							end)
@@ -460,60 +428,60 @@ function addon:AddSettingsSpells(parent)
 							isClickableCheckbox:SetChecked(false)
 						end
 
-						local iconSizeLabel = addon:GetControlLabel(true, parent, "Icon Size:", 100)
+						local iconSizeLabel = addon:GetControlLabel(true, parentFrame, "Icon Size:", 100)
 						iconSizeLabel:SetPoint("TOPLEFT", isClickableCheckbox, "BOTTOMLEFT", 0, -10)
 
-						local iconSizeInput = addon:GetControlInput(true, parent, 40, function(control)
+						local iconSizeInput = addon:GetControlInput(true, parentFrame, 40, function(control)
 							settingsTable.iconSize = addon:GetValueNumber(control:GetText())
 						end)
 						iconSizeInput:SetNumeric(true)
 						iconSizeInput:SetPoint("LEFT", iconSizeLabel, "RIGHT", 10, 0)
 						iconSizeInput:SetText(iconSize)
 
-						local positionXLabel = addon:GetControlLabel(true, parent, "X:", 100)
+						local positionXLabel = addon:GetControlLabel(true, parentFrame, "X:", 100)
 						positionXLabel:SetPoint("LEFT", iconSizeInput, "RIGHT", 10, 0)
 
-						local positionXInput = addon:GetControlInput(true, parent, 40, function(control)
+						local positionXInput = addon:GetControlInput(true, parentFrame, 40, function(control)
 							settingsTable.x = addon:GetValueNumber(control:GetText())
 						end)
 						positionXInput:SetNumeric(true)
 						positionXInput:SetPoint("LEFT", positionXLabel, "RIGHT", 10, 0)
 						positionXInput:SetText(x)
 
-						local iconSpacingLabel = addon:GetControlLabel(true, parent, "Icon Gap:", 100)
+						local iconSpacingLabel = addon:GetControlLabel(true, parentFrame, "Icon Gap:", 100)
 						iconSpacingLabel:SetPoint("TOPLEFT", iconSizeLabel, "BOTTOMLEFT", 0, -10)
 
-						local iconSpacingInput = addon:GetControlInput(true, parent, 40, function(control)
+						local iconSpacingInput = addon:GetControlInput(true, parentFrame, 40, function(control)
 							settingsTable.iconSpacing = addon:GetValueNumber(control:GetText())
 						end)
 						iconSpacingInput:SetNumeric(true)
 						iconSpacingInput:SetPoint("LEFT", iconSpacingLabel, "RIGHT", 10, 0)
 						iconSpacingInput:SetText(iconSpacing)
 
-						local positionYLabel = addon:GetControlLabel(true, parent, "Y:", 100)
+						local positionYLabel = addon:GetControlLabel(true, parentFrame, "Y:", 100)
 						positionYLabel:SetPoint("LEFT", iconSpacingInput, "RIGHT", 10, 0)
 
-						local positionYInput = addon:GetControlInput(true, parent, 40, function(control)
+						local positionYInput = addon:GetControlInput(true, parentFrame, 40, function(control)
 							settingsTable.y = addon:GetValueNumber(control:GetText())
 						end)
 						positionYInput:SetNumeric(true)
 						positionYInput:SetPoint("LEFT", positionYLabel, "RIGHT", 10, 0)
 						positionYInput:SetText(y)
 
-						local wrapAfterLabel = addon:GetControlLabel(true, parent, "Wrap After:", 100)
+						local wrapAfterLabel = addon:GetControlLabel(true, parentFrame, "Wrap After:", 100)
 						wrapAfterLabel:SetPoint("TOPLEFT", iconSpacingLabel, "BOTTOMLEFT", 0, -10)
 
-						local wrapAfterInput = addon:GetControlInput(true, parent, 40, function(control)
+						local wrapAfterInput = addon:GetControlInput(true, parentFrame, 40, function(control)
 							settingsTable.wrapAfter = addon:GetValueNumber(control:GetText())
 						end)
 						wrapAfterInput:SetNumeric(true)
 						wrapAfterInput:SetPoint("LEFT", wrapAfterLabel, "RIGHT", 10, 0)
 						wrapAfterInput:SetText(wrapAfter)
 
-						local orientationLabel = addon:GetControlLabel(true, parent, "Orientation:", 100)
+						local orientationLabel = addon:GetControlLabel(true, parentFrame, "Orientation:", 100)
 						orientationLabel:SetPoint("TOPLEFT", wrapAfterLabel, "BOTTOMLEFT", 0, -10)
 
-						local orientationHorizontal = addon:GetControlRadioButton(true, parent, radioOrientation,
+						local orientationHorizontal = addon:GetControlRadioButton(true, parentFrame, radioOrientation,
 							"Horizontal",
 							function(control)
 								addon:ClearRadios(radioOrientation)
@@ -523,7 +491,7 @@ function addon:AddSettingsSpells(parent)
 							end)
 						orientationHorizontal:SetPoint("LEFT", orientationLabel, "RIGHT", 10, 0)
 
-						local orientationVertical = addon:GetControlRadioButton(true, parent, radioOrientation,
+						local orientationVertical = addon:GetControlRadioButton(true, parentFrame, radioOrientation,
 							"Vertical",
 							function(control)
 								addon:ClearRadios(radioOrientation)
@@ -541,10 +509,10 @@ function addon:AddSettingsSpells(parent)
 							orientationVertical:SetChecked(false)
 						end
 
-						local anchorLabel = addon:GetControlLabel(true, parent, "Anchor:", 100)
+						local anchorLabel = addon:GetControlLabel(true, parentFrame, "Anchor:", 100)
 						anchorLabel:SetPoint("TOPLEFT", orientationLabel, "BOTTOMLEFT", 0, -10)
 
-						local anchorTopLeft = addon:GetControlRadioButton(true, parent, radioAnchors, "Top Left",
+						local anchorTopLeft = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Top Left",
 							function(control)
 								addon:ClearRadios(radioAnchors)
 								control:SetChecked(true)
@@ -553,7 +521,7 @@ function addon:AddSettingsSpells(parent)
 							end)
 						anchorTopLeft:SetPoint("LEFT", anchorLabel, "RIGHT", 10, 0)
 
-						local anchorTop = addon:GetControlRadioButton(true, parent, radioAnchors, "Top",
+						local anchorTop = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Top",
 							function(control)
 								addon:ClearRadios(radioAnchors)
 								control:SetChecked(true)
@@ -562,7 +530,7 @@ function addon:AddSettingsSpells(parent)
 							end)
 						anchorTop:SetPoint("LEFT", anchorTopLeft, "RIGHT", 110, 0)
 
-						local anchorTopRight = addon:GetControlRadioButton(true, parent, radioAnchors, "Top Right",
+						local anchorTopRight = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Top Right",
 							function(control)
 								addon:ClearRadios(radioAnchors)
 								control:SetChecked(true)
@@ -571,7 +539,7 @@ function addon:AddSettingsSpells(parent)
 							end)
 						anchorTopRight:SetPoint("LEFT", anchorTop, "RIGHT", 110, 0)
 
-						local anchorLeft = addon:GetControlRadioButton(true, parent, radioAnchors, "Left",
+						local anchorLeft = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Left",
 							function(control)
 								addon:ClearRadios(radioAnchors)
 								control:SetChecked(true)
@@ -580,7 +548,7 @@ function addon:AddSettingsSpells(parent)
 							end)
 						anchorLeft:SetPoint("TOPLEFT", anchorTopLeft, "BOTTOMLEFT", 0, -10)
 
-						local anchorCenter = addon:GetControlRadioButton(true, parent, radioAnchors,
+						local anchorCenter = addon:GetControlRadioButton(true, parentFrame, radioAnchors,
 							"Center",
 							function(control)
 								addon:ClearRadios(radioAnchors)
@@ -590,7 +558,7 @@ function addon:AddSettingsSpells(parent)
 							end)
 						anchorCenter:SetPoint("LEFT", anchorLeft, "RIGHT", 110, 0)
 
-						local anchorRight = addon:GetControlRadioButton(true, parent, radioAnchors, "Right",
+						local anchorRight = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Right",
 							function(control)
 								addon:ClearRadios(radioAnchors)
 								control:SetChecked(true)
@@ -599,7 +567,8 @@ function addon:AddSettingsSpells(parent)
 							end)
 						anchorRight:SetPoint("LEFT", anchorCenter, "RIGHT", 110, 0)
 
-						local anchorBottomLeft = addon:GetControlRadioButton(true, parent, radioAnchors, "Bottom Left",
+						local anchorBottomLeft = addon:GetControlRadioButton(true, parentFrame, radioAnchors,
+							"Bottom Left",
 							function(control)
 								addon:ClearRadios(radioAnchors)
 								control:SetChecked(true)
@@ -608,7 +577,7 @@ function addon:AddSettingsSpells(parent)
 							end)
 						anchorBottomLeft:SetPoint("TOPLEFT", anchorLeft, "BOTTOMLEFT", 0, -10)
 
-						local anchorBottom = addon:GetControlRadioButton(true, parent, radioAnchors, "Bottom",
+						local anchorBottom = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Bottom",
 							function(control)
 								addon:ClearRadios(radioAnchors)
 								control:SetChecked(true)
@@ -617,7 +586,8 @@ function addon:AddSettingsSpells(parent)
 							end)
 						anchorBottom:SetPoint("LEFT", anchorBottomLeft, "RIGHT", 110, 0)
 
-						local anchorBottomRight = addon:GetControlRadioButton(true, parent, radioAnchors, "Bottom Right",
+						local anchorBottomRight = addon:GetControlRadioButton(true, parentFrame, radioAnchors,
+							"Bottom Right",
 							function(control)
 								addon:ClearRadios(radioAnchors)
 								control:SetChecked(true)
@@ -649,74 +619,29 @@ function addon:AddSettingsSpells(parent)
 						scrollFrame:SetPoint("TOPLEFT", anchorLabel, "BOTTOMLEFT", 0, -80)
 					else
 						scrollFrame:SetPoint("TOPLEFT", categoryLabel, "BOTTOMLEFT", 0, -10)
-						scrollFrame:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -10, 10)
+						scrollFrame:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -10, 10)
 					end
 
-					local currentSpec = GetSpecialization()
-					if not currentSpec then
-						return
-					end
+					local tableIconDetails = addon:GetIconDetails()
 
-					local playerSpecID = GetSpecializationInfo(currentSpec)
-					if not playerSpecID then
-						return
-					end
+					if tableIconDetails and next(tableIconDetails) ~= nil then
+						for i = 1, #tableIconDetails do
+							local iconDetail = tableIconDetails[i]
 
-					local numPetSpells, petNameToken = C_SpellBook.HasPetSpells()
-
-					if numPetSpells and numPetSpells > 0 then
-						for j = 1, numPetSpells do
-							local frameLine = ProcessSpell(category, playerSpecID, 0, Enum.SpellBookSpellBank.Pet, j)
+							local frameLine = CreateOptionLine(category, iconDetail)
 							if frameLine then
 								optionLines[frameLine.settingName] = frameLine
 							end
 						end
 					end
 
-					for i = 1, C_SpellBook.GetNumSpellBookSkillLines() + 1 do
-						local lineInfo = C_SpellBook.GetSpellBookSkillLineInfo(i)
-
-						if lineInfo then
-							if lineInfo.name == "General" then
-								for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
-									local frameLine = ProcessSpell(category, playerSpecID, 0,
-										Enum.SpellBookSpellBank.Player, j)
-									if frameLine then
-										optionLines[frameLine.settingName] = frameLine
-									end
-								end
-							else
-								if lineInfo.specID then
-									if lineInfo.specID == playerSpecID then
-										for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
-											local frameLine = ProcessSpell(category, playerSpecID, playerSpecID,
-												Enum.SpellBookSpellBank.Player, j)
-											if frameLine then
-												optionLines[frameLine.settingName] = frameLine
-											end
-										end
-									end
-								else
-									for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
-										local frameLine = ProcessSpell(category, playerSpecID, playerSpecID,
-											Enum.SpellBookSpellBank.Player, j)
-										if frameLine then
-											optionLines[frameLine.settingName] = frameLine
-										end
-									end
-								end
-							end
+					local currentSpec = GetSpecialization()
+					if currentSpec then
+						local playerSpecID = GetSpecializationInfo(currentSpec)
+						if playerSpecID then
+							LoadLayout(category, playerSpecID)
 						end
 					end
-
-					for index = 1, #SettingsDB.validItems do
-						local frameLine = CreateOptionLine(category, SettingsDB.validItems[index], playerSpecID, 0, -1)
-						if frameLine then
-							optionLines[frameLine.settingName] = frameLine
-						end
-					end
-
-					LoadLayout(category, playerSpecID)
 				end
 			end
 			UIDropDownMenu_AddButton(info)
@@ -752,4 +677,17 @@ function addon:AddSettingsSpells(parent)
 
 	UIDropDownMenu_Initialize(categoryDropdown, categoryDropdown.initializeFunc)
 	UIDropDownMenu_SetText(categoryDropdown, "<Select>")
+
+	parentFrame:SetScript("OnHide", function(frame)
+		addon.isLoaded = false
+
+		addon:Debounce("CreateIcons", 1, function()
+			addon:CreateIcons()
+			addon.isLoaded = true
+		end)
+	end)
+
+	local subCategory = Settings.RegisterCanvasLayoutSubcategory(mainCategory, parentFrame, parentFrame.name);
+	Settings.RegisterAddOnCategory(subCategory);
+	return subCategory:GetID()
 end

@@ -6,23 +6,14 @@ local iconFrames = {}
 local LSM = LibStub("LibSharedMedia-3.0")
 local font = LSM:Fetch("font", "Naowh") or "Fonts\\FRIZQT__.TTF"
 
-local function CheckIconFrame(frameIcon)
-    if not frameIcon then
-        return
-    end
+local function CreateIconFrame(iconDetail)
+    local itemID = iconDetail.itemID or -1
+	local specID = iconDetail.specID or -1
+	local spellID = iconDetail.spellID or -1
 
-    iconFrames[frameIcon.settingName] = frameIcon
-end
-
-local function CreateIconFrame(itemID, playerSpecID, specID, spellID)
-    itemID = itemID or -1
-    playerSpecID = playerSpecID or -1
-    specID = specID or -1
-    spellID = spellID or -1
-
-    if itemID <= 0 and spellID <= 0 then
-        return nil
-    end
+	if itemID <= 0 and spellID <= 0 then
+		return nil
+	end
 
     local newFrame = CreateFrame("Button", nil, UIParent, "SecureActionButtonTemplate")
     newFrame:EnableKeyboard(false)
@@ -131,7 +122,7 @@ local function CreateIconFrame(itemID, playerSpecID, specID, spellID)
     if itemID > 0 then
         newFrame.iconName = ""
         newFrame.isHarmful = false
-        textID:SetText(itemID)
+        textID:SetText(tostring(itemID))
 
         local _, itemSpellID = C_Item.GetItemSpell(itemID)
         if itemSpellID and itemSpellID > 0 then
@@ -186,7 +177,7 @@ local function CreateIconFrame(itemID, playerSpecID, specID, spellID)
         local spellInfo = C_Spell.GetSpellInfo(spellID)
 
         newFrame.iconName = spellInfo.name
-        textID:SetText(spellID)
+        textID:SetText(tostring(spellID))
         textureIcon:SetTexture(spellInfo.iconID)
 
         if not newFrame.iconName or newFrame.iconName == "" then
@@ -247,40 +238,6 @@ local function GetAura(auraList, spellID, spellName)
         local aura = auraList[i]
         if aura.spellId == spellID or aura.name == spellName then
             return aura
-        end
-    end
-
-    return nil
-end
-
-local function ProcessSpell(playerSpecID, spellBank, specID, spellIndex)
-    local itemInfo = C_SpellBook.GetSpellBookItemInfo(spellIndex, spellBank)
-    if not itemInfo then
-        return nil
-    end
-
-    if itemInfo.isPassive then
-        return nil
-    end
-
-    if itemInfo.isOffSpec then
-        return nil
-    end
-
-    if itemInfo.itemType == Enum.SpellBookItemType.Spell or itemInfo.itemType == Enum.SpellBookItemType.PetAction then
-        return CreateIconFrame(-1, playerSpecID, specID, itemInfo.spellID)
-    end
-
-    if itemInfo.itemType == Enum.SpellBookItemType.Flyout then
-        local flyoutName, flyoutDescription, flyoutSlots, flyoutKnown = GetFlyoutInfo(itemInfo.actionID)
-        if flyoutKnown then
-            for slot = 1, flyoutSlots do
-                local slotSpellID, slotOverrideSpellID, slotIsKnown, slotSpellName, slotSlotSpecID = GetFlyoutSlotInfo(
-                    itemInfo.actionID, slot)
-                if slotIsKnown and not C_Spell.IsSpellPassive(slotSpellID) then
-                    CheckIconFrame(CreateIconFrame(-1, playerSpecID, specID, slotSpellID))
-                end
-            end
         end
     end
 
@@ -401,14 +358,14 @@ local function RefreshCategoryFrame(category, parentTable, playerSpecID)
                 iconFrame.textureIcon:SetAllPoints(iconFrame)
 
                 if displayWhen == "Always" then
-                    UnregisterStateDriver(iconFrame, "visibility")
+                    UnregisterAttributeDriver(iconFrame, "state-visibility")
                     iconFrame:Show()
                 elseif displayWhen == "In Combat" then
-                    RegisterStateDriver(iconFrame, "visibility", "[combat] show; hide")
+                    RegisterAttributeDriver(iconFrame, "state-visibility", "[combat] show; hide")
                 elseif displayWhen == "Out Of Combat" then
-                    RegisterStateDriver(iconFrame, "visibility", "[nocombat] show; hide")
+                    RegisterAttributeDriver(iconFrame, "state-visibility", "[nocombat] show; hide")
                 else
-                    UnregisterStateDriver(iconFrame, "visibility")
+                    UnregisterAttributeDriver(iconFrame, "state-visibility")
                     iconFrame:Show()
                 end
 
@@ -873,17 +830,9 @@ function addon:CheckLockState()
 end
 
 function addon:CreateIcons()
-    local currentSpec = GetSpecialization()
-    if not currentSpec then
-        return
-    end
-
-    local playerSpecID = GetSpecializationInfo(currentSpec)
-    if not playerSpecID then
-        return
-    end
-
     for settingName, iconFrame in pairs(iconFrames) do
+        UnregisterAttributeDriver(iconFrame, "state-visibility")
+
         iconFrame:ClearAllPoints()
         iconFrame:Hide()
         iconFrame:SetParent(nil)
@@ -895,40 +844,17 @@ function addon:CreateIcons()
 
     collectgarbage("collect")
 
-    local numPetSpells, petNameToken = C_SpellBook.HasPetSpells()
+    local tableIconDetails = addon:GetIconDetails()
 
-    if numPetSpells and numPetSpells > 0 then
-        for i = 1, numPetSpells do
-            CheckIconFrame(ProcessSpell(playerSpecID, Enum.SpellBookSpellBank.Pet, 0, i))
-        end
-    end
+    if tableIconDetails and next(tableIconDetails) ~= nil then
+        for i = 1, #tableIconDetails do
+            local iconDetail = tableIconDetails[i]
 
-    for i = 1, C_SpellBook.GetNumSpellBookSkillLines() + 1 do
-        local lineInfo = C_SpellBook.GetSpellBookSkillLineInfo(i)
-
-        if lineInfo then
-            if lineInfo.name == "General" then
-                for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
-                    CheckIconFrame(ProcessSpell(playerSpecID, Enum.SpellBookSpellBank.Player, 0, j))
-                end
-            else
-                if lineInfo.specID then
-                    if lineInfo.specID == playerSpecID then
-                        for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
-                            CheckIconFrame(ProcessSpell(playerSpecID, Enum.SpellBookSpellBank.Player, playerSpecID, j))
-                        end
-                    end
-                else
-                    for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
-                        CheckIconFrame(ProcessSpell(playerSpecID, Enum.SpellBookSpellBank.Player, playerSpecID, j))
-                    end
-                end
+            local frameIcon = CreateIconFrame(iconDetail)
+            if frameIcon then
+                iconFrames[frameIcon.settingName] = frameIcon
             end
         end
-    end
-
-    for i = 1, #SettingsDB.validItems do
-        CheckIconFrame(CreateIconFrame(SettingsDB.validItems[i], playerSpecID, 0, -1))
     end
 
     addon:CheckLockState()

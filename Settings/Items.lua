@@ -43,7 +43,7 @@ local function CreateOptionLine(itemID)
     local textItemName = addon:GetControlLabel(false, scrollFrameChild, "", 200)
     textItemName:SetPoint("LEFT", textItemID, "RIGHT", 10, 0)
 
-    local deleteButton = addon:GetControlButton(false, "DELETE", scrollFrameChild, 60, function(control)
+    local deleteButton = addon:GetControlButton(false, "Delete", scrollFrameChild, 60, function(control)
         for i = 1, #SettingsDB.validItems do
             if SettingsDB.validItems[i] == itemID then
                 table.remove(SettingsDB.validItems, i)
@@ -82,8 +82,9 @@ local function CreateOptionLine(itemID)
     yOffset = yOffset - addon.settingsIconSize - 10
 end
 
-function addon:AddSettingsItems(parent)
-    parentFrame = parent
+function addon:CreateSettingsItems(mainCategory)
+    parentFrame = CreateFrame("Frame", "ItemsSettingsFrame", UIParent)
+    parentFrame.name = "Items"
 
     local newItemLabel = addon:GetControlLabel(false, parentFrame, "ItemID:", 100)
     newItemLabel:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", 10, -10)
@@ -92,7 +93,7 @@ function addon:AddSettingsItems(parent)
     newItemInput:SetNumeric(true)
     newItemInput:SetPoint("LEFT", newItemLabel, "RIGHT", 10, 0)
 
-    local newItemButton = addon:GetControlButton(false, "ADD", parentFrame, 60, function(control)
+    local newItemButton = addon:GetControlButton(false, "Add", parentFrame, 60, function(control)
         local itemID = newItemInput:GetNumber()
 
         if itemID and itemID > 0 then
@@ -113,7 +114,21 @@ function addon:AddSettingsItems(parent)
     end)
     newItemButton:SetPoint("LEFT", newItemInput, "RIGHT", 10, 0)
 
-    addon:GetDataItems()
+    parentFrame:SetScript("OnHide", function(frame)
+        addon.isLoaded = false
+
+        addon:Debounce("CreateIcons", 1, function()
+            addon:CreateIcons()
+            addon.isLoaded = true
+        end)
+    end)
+    parentFrame:SetScript("OnShow", function(frame)
+        addon:GetDataItems()
+    end)
+
+    local subCategory = Settings.RegisterCanvasLayoutSubcategory(mainCategory, parentFrame, parentFrame.name);
+    Settings.RegisterAddOnCategory(subCategory);
+    return subCategory:GetID()
 end
 
 function addon:GetDataItems()

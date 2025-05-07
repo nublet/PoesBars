@@ -1,16 +1,12 @@
 local addonName, addon = ...
 
 local parentFrame
+local playerSpecID
 local scrollFrame
 local scrollFrameChild
 local yOffset = 0
 
-local function CreateOptionLine(buffID, spellID)
-    buffID = buffID or -1
-    if buffID <= 0 then
-        return
-    end
-
+local function CreateOptionLine(spellID)
     spellID = spellID or -1
     if spellID <= 0 then
         return
@@ -39,40 +35,23 @@ local function CreateOptionLine(buffID, spellID)
     local textSpellName = addon:GetControlLabel(false, scrollFrameChild, "", 150)
     textSpellName:SetPoint("LEFT", textSpellID, "RIGHT", 10, 0)
 
-    local frameBuff = CreateFrame("Frame", nil, scrollFrameChild)
-    frameBuff:EnableMouse(true)
-    frameBuff:SetPoint("LEFT", textSpellName, "RIGHT", 10, 0)
-    frameBuff:SetSize(addon.settingsIconSize, addon.settingsIconSize)
-    frameBuff:SetScript("OnEnter", function(control)
-        GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
-        GameTooltip:SetSpellByID(buffID)
-        GameTooltip:Show()
-    end)
-    frameBuff:SetScript("OnLeave", function()
-        GameTooltip:Hide()
-    end)
-
-    local textureBuff = frameBuff:CreateTexture(nil, "ARTWORK")
-    textureBuff:SetAllPoints()
-
-    local textBuffID = addon:GetControlLabel(false, scrollFrameChild, "", 60)
-    textBuffID:SetPoint("LEFT", frameBuff, "RIGHT", 10, 0)
-    textBuffID:SetText(buffID)
-
-    local textBuffName = addon:GetControlLabel(false, scrollFrameChild, "", 150)
-    textBuffName:SetPoint("LEFT", textBuffID, "RIGHT", 10, 0)
-
     local deleteButton = addon:GetControlButton(false, "Delete", scrollFrameChild, 60, function(control)
-        SettingsDB.buffOverrides[spellID] = nil
-        addon:GetDataBuffs()
-    end)
-    deleteButton:SetPoint("LEFT", textBuffName, "RIGHT", 10, 0)
+        local listsToCheck = { 0, playerSpecID }
+        for _, specID in ipairs(listsToCheck) do
+            local list = SettingsDB.forcedSpells[specID]
+            if list then
+                for i = #list, 1, -1 do
+                    if list[i] == spellID then
+                        table.remove(list, i)
+                        break
+                    end
+                end
+            end
+        end
 
-    local buffSpellInfo = C_Spell.GetSpellInfo(buffID)
-    if buffSpellInfo then
-        textBuffName:SetText(buffSpellInfo.name)
-        textureBuff:SetTexture(buffSpellInfo.iconID)
-    end
+        addon:GetDataForced()
+    end)
+    deleteButton:SetPoint("LEFT", textSpellName, "RIGHT", 10, 0)
 
     local spellSpellInfo = C_Spell.GetSpellInfo(spellID)
     if spellSpellInfo then
@@ -83,9 +62,9 @@ local function CreateOptionLine(buffID, spellID)
     yOffset = yOffset - addon.settingsIconSize - 10
 end
 
-function addon:CreateSettingsBuffs(mainCategory)
-    parentFrame = CreateFrame("Frame", "BuffsSettingsFrame", UIParent)
-    parentFrame.name = "Buff Overrides"
+function addon:CreateSettingsForced(mainCategory)
+    parentFrame = CreateFrame("Frame", "ForcedSettingsFrame", UIParent)
+    parentFrame.name = "Forced Spells"
 
     local spellIDLabel = addon:GetControlLabel(false, parentFrame, "Spell:", 100)
     spellIDLabel:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", 10, -10)
@@ -94,53 +73,53 @@ function addon:CreateSettingsBuffs(mainCategory)
     spellIDInput:SetNumeric(true)
     spellIDInput:SetPoint("LEFT", spellIDLabel, "RIGHT", 10, 0)
 
-    local buffIDLabel = addon:GetControlLabel(false, parentFrame, "Buff:", 100)
-    buffIDLabel:SetPoint("LEFT", spellIDInput, "RIGHT", 10, 0)
-
-    local buffIDInput = addon:GetControlInput(false, parentFrame, 120)
-    buffIDInput:SetNumeric(true)
-    buffIDInput:SetPoint("LEFT", buffIDLabel, "RIGHT", 10, 0)
+    local everyoneCheckbox = addon:GetControlCheckbox(false, "All Specs", parentFrame)
+    everyoneCheckbox:SetChecked(false)
+    everyoneCheckbox:SetPoint("LEFT", spellIDInput, "RIGHT", 10, 0)
 
     local newItemButton = addon:GetControlButton(false, "Add", parentFrame, 60, function(control)
-        local newBuffID = buffIDInput:GetNumber()
-        if not newBuffID or newBuffID <= 0 then
-            return
-        end
-
         local newSpellID = spellIDInput:GetNumber()
         if not newSpellID or newSpellID <= 0 then
             return
         end
+        local allSpecs = everyoneCheckbox:GetChecked()
 
         local exists = false
-        for spellID, buffID in pairs(SettingsDB.buffOverrides) do
-            if spellID == newSpellID then
-                exists = true
+        for _, specID in ipairs({ 0, playerSpecID }) do
+            if exists then
                 break
+            end
+
+            local list = SettingsDB.forcedSpells[specID]
+            if list and next(list) ~= nil then
+                for i = 1, #list do
+                    if list[i] == newSpellID then
+                        exists = true
+                        break
+                    end
+                end
             end
         end
 
         if not exists then
-            SettingsDB.buffOverrides[newSpellID] = newBuffID
+            if allSpecs then
+                if not SettingsDB.forcedSpells[0] then
+                    SettingsDB.forcedSpells[0] = {}
+                end
+
+                table.insert(SettingsDB.forcedSpells[0], newSpellID)
+            else
+                if not SettingsDB.forcedSpells[playerSpecID] then
+                    SettingsDB.forcedSpells[playerSpecID] = {}
+                end
+
+                table.insert(SettingsDB.forcedSpells[playerSpecID], newSpellID)
+            end
         end
 
-        parentFrame:SetScript("OnHide", function(frame)
-            addon.isLoaded = false
-    
-            addon:Debounce("CreateIcons", 1, function()
-                addon:CreateIcons()
-                addon.isLoaded = true
-            end)
-        end)
-        parentFrame:SetScript("OnShow", function(frame)
-            addon:GetDataBuffs()
-        end)
-    
-        local subCategory = Settings.RegisterCanvasLayoutSubcategory(mainCategory, parentFrame, parentFrame.name);
-        Settings.RegisterAddOnCategory(subCategory);
-        return subCategory:GetID()
+        addon:GetDataForced()
     end)
-    newItemButton:SetPoint("LEFT", buffIDInput, "RIGHT", 10, 0)
+    newItemButton:SetPoint("LEFT", everyoneCheckbox, "RIGHT", 100, 0)
 
     parentFrame:SetScript("OnHide", function(frame)
         addon.isLoaded = false
@@ -151,7 +130,16 @@ function addon:CreateSettingsBuffs(mainCategory)
         end)
     end)
     parentFrame:SetScript("OnShow", function(frame)
-        addon:GetDataBuffs()
+        local currentSpec = GetSpecialization()
+        if currentSpec then
+            playerSpecID = GetSpecializationInfo(currentSpec)
+        end
+
+        if not playerSpecID then
+            playerSpecID = 0
+        end
+
+        addon:GetDataForced()
     end)
 
     local subCategory = Settings.RegisterCanvasLayoutSubcategory(mainCategory, parentFrame, parentFrame.name);
@@ -159,7 +147,7 @@ function addon:CreateSettingsBuffs(mainCategory)
     return subCategory:GetID()
 end
 
-function addon:GetDataBuffs()
+function addon:GetDataForced()
     if scrollFrameChild then
         local children = scrollFrameChild:GetChildren()
 
@@ -191,11 +179,23 @@ function addon:GetDataBuffs()
 
     scrollFrame:SetScrollChild(scrollFrameChild)
 
-    table.sort(SettingsDB.buffOverrides)
-
     yOffset = -10
 
-    for spellID, buffID in pairs(SettingsDB.buffOverrides) do
-        CreateOptionLine(buffID, spellID)
+    local forcedSpells = SettingsDB.forcedSpells[0]
+    if forcedSpells and next(forcedSpells) ~= nil then
+        table.sort(forcedSpells)
+
+        for i = 1, #forcedSpells do
+            CreateOptionLine(forcedSpells[i])
+        end
+    end
+
+    forcedSpells = SettingsDB.forcedSpells[playerSpecID]
+    if forcedSpells and next(forcedSpells) ~= nil then
+        table.sort(forcedSpells)
+
+        for i = 1, #forcedSpells do
+            CreateOptionLine(forcedSpells[i])
+        end
     end
 end

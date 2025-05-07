@@ -19,7 +19,9 @@
     "STANDARD_TEXT_FONT",
     "TooltipUtil",
     "RegisterStateDriver",
-    "UnregisterStateDriver"
+    "UnregisterStateDriver",
+    "RegisterAttributeDriver",
+    "UnregisterAttributeDriver"
   ],
   "Lua.format.defaultConfig": {
     "lineWidth": "0"
@@ -39,5 +41,4 @@
   "Lua.workspace.library": [
     "~\\.vscode\\extensions\\ketho.wow-api-0.20.6\\Annotations\\Core"
   ],
-  "Lua.type.weakUnionCheck": true,
 }

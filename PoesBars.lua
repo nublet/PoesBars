@@ -17,6 +17,10 @@ function PoesBarsCommands(msg, editbox)
 		Settings.OpenToCategory(addon.categoryBuffsID)
 		Settings.OpenToCategory(addon.categoryBuffsID)
 		Settings.OpenToCategory(addon.categoryBuffsID)
+	elseif msg == "forced" or msg == "f" then
+		Settings.OpenToCategory(addon.categoryForcedID)
+		Settings.OpenToCategory(addon.categoryForcedID)
+		Settings.OpenToCategory(addon.categoryForcedID)
 	elseif msg == "items" or msg == "i" then
 		Settings.OpenToCategory(addon.categoryItemsID)
 		Settings.OpenToCategory(addon.categoryItemsID)
@@ -71,6 +75,10 @@ local function OnEvent(self, event, ...)
 			SettingsDB.buffOverrides[414660] = 11426 -- Mass Barrier
 			SettingsDB.buffOverrides[53600] = 132403 -- Shield of the Righteous
 		end
+		if type(SettingsDB.forcedSpells) ~= "table" then
+			SettingsDB.forcedSpells = {}
+			SettingsDB.forcedSpells[0] = {}
+		end
 		if type(SettingsDB.validCategories) ~= "table" then
 			SettingsDB.validCategories = { "Cooldowns", "Crowd Control", "Defensive", "Important", "Movement", "Racial",
 				"Rotation", "Utility" }
@@ -85,43 +93,13 @@ local function OnEvent(self, event, ...)
 		end)
 
 		addon:Debounce("CreateSettings", 3, function()
-			local framePoesBars = CreateFrame("Frame", addonName .. "SettingsFrame", UIParent)
-			framePoesBars.name = addonName
-			addon:AddSettingsPoesBars(framePoesBars)
-			local categoryPoesBars = Settings.RegisterCanvasLayoutCategory(framePoesBars, framePoesBars.name)
-			Settings.RegisterAddOnCategory(categoryPoesBars)
+			local categoryPoesBars = addon:CreateSettingsGeneral()
 			addon.categoryPoesBarsID = categoryPoesBars:GetID()
 
-			local frameBuffs = CreateFrame("Frame", "BuffsSettingsFrame", UIParent)
-			frameBuffs.name = "Buffs"
-			addon:AddSettingsBuffs(frameBuffs)
-			local categoryBuffs = Settings.RegisterCanvasLayoutSubcategory(categoryPoesBars, frameBuffs, frameBuffs.name);
-			Settings.RegisterAddOnCategory(categoryBuffs);
-			addon.categoryBuffsID = categoryBuffs:GetID();
-
-			local frameItems = CreateFrame("Frame", "ItemsSettingsFrame", UIParent)
-			frameItems.name = "Items"
-			addon:AddSettingsItems(frameItems)
-			local categoryItems = Settings.RegisterCanvasLayoutSubcategory(categoryPoesBars, frameItems, frameItems.name);
-			Settings.RegisterAddOnCategory(categoryItems);
-			addon.categoryItemsID = categoryItems:GetID();
-
-			local frameSpells = CreateFrame("Frame", "SpellsSettingsFrame", UIParent)
-			frameSpells.name = "Spells"
-			addon:AddSettingsSpells(frameSpells)
-			local categorySpells = Settings.RegisterCanvasLayoutSubcategory(categoryPoesBars, frameSpells,
-				frameSpells.name);
-			Settings.RegisterAddOnCategory(categorySpells);
-			addon.categorySpellsID = categorySpells:GetID();
-
-			framePoesBars:SetScript("OnHide", function(frame)
-				addon.isLoaded = false
-
-				addon:Debounce("CreateIcons", 1, function()
-					addon:CreateIcons()
-					addon.isLoaded = true
-				end)
-			end)
+			addon.categoryBuffsID = addon:CreateSettingsBuffs(categoryPoesBars);
+			addon.categoryForcedID = addon:CreateSettingsForced(categoryPoesBars)
+			addon.categoryItemsID = addon:CreateSettingsItems(categoryPoesBars);
+			addon.categorySpellsID = addon:CreateSettingsSpells(categoryPoesBars);
 		end)
 	end
 end

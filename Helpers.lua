@@ -2,6 +2,27 @@ local addonName, addon = ...
 
 local DebounceTimers = {}
 
+local function AddIconDetail(itemID, playerSpecID, specID, spellID, tableIconDetails)
+    itemID = itemID or -1
+    playerSpecID = playerSpecID or -1
+    specID = specID or -1
+    spellID = spellID or -1
+
+    if itemID <= 0 and spellID <= 0 then
+        return nil
+    end
+
+    local iconDetail = {}
+    iconDetail.itemID = itemID
+    iconDetail.playerSpecID = playerSpecID
+    iconDetail.specID = specID
+    iconDetail.spellID = spellID
+
+    table.insert(tableIconDetails, iconDetail)
+
+    return nil
+end
+
 local function GetKeyBinding(actionButtonName, itemID, name, slotID, spellID)
     local actionType, actionID, subType = GetActionInfo(slotID)
 
@@ -29,6 +50,50 @@ local function GetKeyBinding(actionButtonName, itemID, name, slotID, spellID)
 
                 if body:find("/cast item:" .. itemID, 1, true) then
                     return GetBindingKey(actionButtonName)
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
+local function ProcessSpell(playerSpecID, spellBank, specID, spellIndex, tableIconDetails)
+    local itemInfo = C_SpellBook.GetSpellBookItemInfo(spellIndex, spellBank)
+    if not itemInfo then
+        return nil
+    end
+
+    if itemInfo.itemType == Enum.SpellBookItemType.Spell or itemInfo.itemType == Enum.SpellBookItemType.PetAction then
+        if itemInfo.isOffSpec then
+            return nil
+        end
+        
+        if itemInfo.isPassive then
+            local baseChargeInfo = C_Spell.GetSpellCharges(itemInfo.spellID)
+            if baseChargeInfo then
+                return AddIconDetail(-1, playerSpecID, specID, itemInfo.spellID, tableIconDetails)
+            else
+                local cooldownMS, gcdMS = GetSpellBaseCooldown(itemInfo.spellID)
+                if cooldownMS and cooldownMS > 0 then
+                    return AddIconDetail(-1, playerSpecID, specID, itemInfo.spellID, tableIconDetails)
+                end
+            end
+
+            return nil
+        end
+
+        return AddIconDetail(-1, playerSpecID, specID, itemInfo.spellID, tableIconDetails)
+    end
+
+    if itemInfo.itemType == Enum.SpellBookItemType.Flyout then
+        local flyoutName, flyoutDescription, flyoutSlots, flyoutKnown = GetFlyoutInfo(itemInfo.actionID)
+        if flyoutKnown then
+            for slot = 1, flyoutSlots do
+                local slotSpellID, slotOverrideSpellID, slotIsKnown, slotSpellName, slotSlotSpecID = GetFlyoutSlotInfo(
+                    itemInfo.actionID, slot)
+                if slotIsKnown and not C_Spell.IsSpellPassive(slotSpellID) then
+                    AddIconDetail(-1, playerSpecID, specID, slotSpellID, tableIconDetails)
                 end
             end
         end
@@ -369,6 +434,71 @@ function addon:GetValidCategories(addForced)
     end
 
     return results
+end
+
+function addon:GetIconDetails()
+    local currentSpec = GetSpecialization()
+    if not currentSpec then
+        return nil
+    end
+
+    local playerSpecID = GetSpecializationInfo(currentSpec)
+    if not playerSpecID then
+        return nil
+    end
+
+    local numPetSpells, petNameToken = C_SpellBook.HasPetSpells()
+    local tableIconDetails = {}
+
+    if numPetSpells and numPetSpells > 0 then
+        for i = 1, numPetSpells do
+            ProcessSpell(playerSpecID, Enum.SpellBookSpellBank.Pet, 0, i, tableIconDetails)
+        end
+    end
+
+    for i = 1, C_SpellBook.GetNumSpellBookSkillLines() + 1 do
+        local lineInfo = C_SpellBook.GetSpellBookSkillLineInfo(i)
+
+        if lineInfo then
+            if lineInfo.name == "General" then
+                for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
+                    ProcessSpell(playerSpecID, Enum.SpellBookSpellBank.Player, 0, j, tableIconDetails)
+                end
+            else
+                if lineInfo.specID then
+                    if lineInfo.specID == playerSpecID then
+                        for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
+                            ProcessSpell(playerSpecID, Enum.SpellBookSpellBank.Player, playerSpecID, j, tableIconDetails)
+                        end
+                    end
+                else
+                    for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
+                        ProcessSpell(playerSpecID, Enum.SpellBookSpellBank.Player, playerSpecID, j, tableIconDetails)
+                    end
+                end
+            end
+        end
+    end
+
+    local forcedSpells = SettingsDB.forcedSpells[0]
+    if forcedSpells and next(forcedSpells) ~= nil then
+        for i = 1, #forcedSpells do
+            AddIconDetail(-1, playerSpecID, 0, forcedSpells[i], tableIconDetails)
+        end
+    end
+
+    forcedSpells = SettingsDB.forcedSpells[playerSpecID]
+    if forcedSpells and next(forcedSpells) ~= nil then
+        for i = 1, #forcedSpells do
+            AddIconDetail(-1, playerSpecID, 0, forcedSpells[i], tableIconDetails)
+        end
+    end
+
+    for i = 1, #SettingsDB.validItems do
+        AddIconDetail(SettingsDB.validItems[i], playerSpecID, 0, -1, tableIconDetails)
+    end
+
+    return tableIconDetails
 end
 
 function addon:GetValueNumber(value)
