@@ -4,8 +4,8 @@
 ## Notes: Organizes abilities and buffs
 ## Author: Poesboi
 ## Credits: 
-## Version: 25.0.4.217
-## RequiredDeps: Blizzard_Professions
+## Version: 25.0.4.218
+## RequiredDeps: Blizzard_Professions, SharedMedia
 ## SavedVariables: CategoryOrderDB, SettingsDB, SpellsDB
 
 Data.lua

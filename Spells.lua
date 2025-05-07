@@ -817,6 +817,14 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, target
 end
 
 function addon:CheckLockState()
+    if InCombatLockdown() then
+        addon:Debounce("CheckLockState", 1, function()
+            addon:CheckLockState()
+        end)
+
+        return
+    end
+
     local validCategories = addon:GetValidCategories(false)
 
     for i = 1, #validCategories do
@@ -843,6 +851,14 @@ function addon:CheckLockState()
 end
 
 function addon:CreateIcons()
+    if InCombatLockdown() then
+        addon:Debounce("CreateIcons", 1, function()
+            addon:CreateIcons()
+        end)
+
+        return
+    end
+
     for settingName, iconFrame in pairs(iconFrames) do
         UnregisterAttributeDriver(iconFrame, "state-visibility")
 

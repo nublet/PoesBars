@@ -26,10 +26,25 @@ end
 local function GetKeyBinding(actionButtonName, itemID, name, slotID, spellID)
     local actionType, actionID, subType = GetActionInfo(slotID)
 
-    if actionType == "item" and actionID == itemID then
-        return GetBindingKey(actionButtonName)
-    elseif actionType == "spell" and actionID == spellID then
-        return GetBindingKey(actionButtonName)
+    if actionType == "item" then
+        if actionID == itemID then
+            return GetBindingKey(actionButtonName)
+        end
+    elseif actionType == "spell" then
+        if actionID == spellID then
+            return GetBindingKey(actionButtonName)
+        end
+
+        if name and name ~= "" then
+            local spellName = C_Spell.GetSpellName(actionID)
+            if spellName and spellName ~= "" then
+                spellName = spellName:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
+
+                if name == spellName then
+                    return GetBindingKey(actionButtonName)
+                end
+            end
+        end
     elseif actionType == "macro" then
         local actionText = GetActionText(slotID)
         if actionText then
@@ -68,7 +83,7 @@ local function ProcessSpell(playerSpecID, spellBank, specID, spellIndex, tableIc
         if itemInfo.isOffSpec then
             return nil
         end
-        
+
         if itemInfo.isPassive then
             local baseChargeInfo = C_Spell.GetSpellCharges(itemInfo.spellID)
             if baseChargeInfo then
