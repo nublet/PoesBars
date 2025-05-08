@@ -105,12 +105,7 @@ local function CreateTestIcon()
 			end
 		end
 
-		local binding = addon:GetKeyBind(itemID, itemName, -1)
-		if binding then
-			textBinding:SetText(addon:ReplaceBindings(binding))
-		else
-			textBinding:SetText("S4")
-		end
+		textBinding:SetText("S4")
 	end)
 end
 
@@ -274,7 +269,7 @@ function addon:CreateSettingsGeneral()
 	local textCooldownFontSize = addon:GetControlLabel(false, parentFrame, "Size", 30)
 	textCooldownFontSize:SetPoint("LEFT", textCooldownLabel, "RIGHT", 10, 0)
 
-	local inputCooldown= addon:GetControlInput(false, parentFrame, 30, function(control)
+	local inputCooldown = addon:GetControlInput(false, parentFrame, 30, function(control)
 		SettingsDB.cooldownFontSize = addon:GetValueNumber(control:GetText())
 		CreateTestIcon()
 	end)

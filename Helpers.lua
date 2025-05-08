@@ -202,6 +202,10 @@ function addon:GetSlotDetails()
                     slotInfo = GetSlotInformation(actionText, -1, "", "", actionID)
                     wasHandled = true
                 end
+            elseif actionType == "flyout" then
+                if actionSubType == "" then
+                    wasHandled = true
+                end
             elseif actionType == "item" then
                 if actionSubType == "" then
                     slotInfo = GetSlotInformation(actionText, actionID, "", "", -1)
@@ -214,6 +218,8 @@ function addon:GetSlotDetails()
                     end
                     local macroName, macroIcon, macroBody = GetMacroInfo(actionID)
                     slotInfo = GetSlotInformation(actionText, -1, macroBody, macroName, -1)
+                    wasHandled = true
+                elseif actionSubType == "item" then
                     wasHandled = true
                 elseif actionSubType == "MOUNT" then
                     wasHandled = true
@@ -228,10 +234,13 @@ function addon:GetSlotDetails()
                 end
             elseif actionType == "summonmount" then
                 if actionSubType == "" then
-                    local _, spellID = C_MountJournal.GetMountInfoByID(actionID)
+                    local mountID = tonumber(actionID) or -1
+                    if mountID > 0 then
+                        local _, spellID = C_MountJournal.GetMountInfoByID(mountID)
 
-                    slotInfo = GetSlotInformation(actionText, -1, "", "", spellID)
-                    wasHandled = true
+                        slotInfo = GetSlotInformation(actionText, -1, "", "", spellID)
+                        wasHandled = true
+                    end
                 end
             end
 
