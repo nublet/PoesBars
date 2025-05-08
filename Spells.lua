@@ -167,18 +167,25 @@ local function CreateIconFrame(iconDetail)
             if not newFrame.iconName or newFrame.iconName == "" then
                 newFrame.iconName = ""
             end
-
-            local binding = addon:GetKeyBind(itemID, newFrame.iconName, spellID)
-            if binding then
-                textBinding:SetText(addon:ReplaceBindings(binding))
-            end
         end)
     elseif spellID > 0 then
         local spellInfo = C_Spell.GetSpellInfo(spellID)
+        if spellInfo then
+            newFrame.iconName = spellInfo.name
+            textureIcon:SetTexture(spellInfo.iconID)
+        else
+            local newSpellID = C_Spell.GetOverrideSpell(spellID) or spellID
+            if newSpellID and newSpellID ~= spellID then
+                spellInfo = C_Spell.GetSpellInfo(newSpellID)
+                if spellInfo then
+                    spellID = newSpellID
+                    newFrame.iconName = spellInfo.name
+                    textureIcon:SetTexture(spellInfo.iconID)
+                end
+            end
+        end
 
-        newFrame.iconName = spellInfo.name
         textID:SetText(tostring(spellID))
-        textureIcon:SetTexture(spellInfo.iconID)
 
         if not newFrame.iconName or newFrame.iconName == "" then
             newFrame.iconName = ""
@@ -188,11 +195,6 @@ local function CreateIconFrame(iconDetail)
             newFrame.isHarmful = true
         else
             newFrame.isHarmful = false
-        end
-
-        local binding = addon:GetKeyBind(itemID, newFrame.iconName, spellID)
-        if binding then
-            textBinding:SetText(addon:ReplaceBindings(binding))
         end
 
         local baseChargeInfo = C_Spell.GetSpellCharges(spellID)
@@ -887,6 +889,7 @@ function addon:CreateIcons()
     end
 
     addon:CheckLockState()
+    addon:UpdateIconBinds()
 end
 
 function addon:RefreshCategoryFrames()
@@ -953,6 +956,19 @@ function addon:RefreshCategoryFrames()
 
             RefreshCategoryFrame(category, parentTable, playerSpecID)
             addon:FrameRestore(category, parentTable.frame)
+        end
+    end
+end
+
+function addon:UpdateIconBinds()
+    local slotDetails = addon:GetSlotDetails()
+
+    for settingName, iconFrame in pairs(iconFrames) do
+        local binding = addon:GetKeyBind( iconFrame.itemID, iconFrame.iconName, slotDetails,iconFrame.spellID)
+        if binding then
+            iconFrame.textBinding:SetText(addon:ReplaceBindings(binding))
+        else
+            iconFrame.textBinding:SetText("")
         end
     end
 end

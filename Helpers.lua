@@ -23,54 +23,45 @@ local function AddIconDetail(itemID, playerSpecID, specID, spellID, tableIconDet
     return nil
 end
 
-local function GetKeyBinding(actionButtonName, itemID, name, slotID, spellID)
-    local actionType, actionID, subType = GetActionInfo(slotID)
+local function GetSlotInformation(actionText, itemID, macroBody, macroName, spellID)
+    local result = {}
 
-    if actionType == "item" then
-        if actionID == itemID then
-            return GetBindingKey(actionButtonName)
-        end
-    elseif actionType == "spell" then
-        if actionID == spellID then
-            return GetBindingKey(actionButtonName)
-        end
+    result.actionText = actionText or ""
+    result.itemID = itemID or -1
+    result.macroBody = macroBody or ""
+    result.macroName = macroName or ""
+    result.spellID = spellID or -1
 
-        if name and name ~= "" then
-            local spellName = C_Spell.GetSpellName(actionID)
-            if spellName and spellName ~= "" then
-                spellName = spellName:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
+    result.actionText = result.actionText:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
+    result.macroBody = result.macroBody:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
+    result.macroName = result.macroName:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
 
-                if name == spellName then
-                    return GetBindingKey(actionButtonName)
-                end
-            end
-        end
-    elseif actionType == "macro" then
-        local actionText = GetActionText(slotID)
-        if actionText then
-            local body = GetMacroBody(actionText)
-
-            if body and body ~= "" then
-                body = body:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
-
-                if name and name ~= "" then
-                    if body:find(name, 1, true) then
-                        return GetBindingKey(actionButtonName)
-                    end
-                end
-
-                if body:find("/use item:" .. itemID, 1, true) then
-                    return GetBindingKey(actionButtonName)
-                end
-
-                if body:find("/cast item:" .. itemID, 1, true) then
-                    return GetBindingKey(actionButtonName)
+    if result.itemID > 0 then
+        local item = Item:CreateFromItemID(result.itemID)
+        item:ContinueOnItemLoad(function()
+            result.name = item:GetItemName()
+        end)
+    elseif result.spellID > 0 then
+        local spellInfo = C_Spell.GetSpellInfo(result.spellID)
+        if spellInfo then
+            result.name = spellInfo.name
+        else
+            local overrideSpellID = C_Spell.GetOverrideSpell(result.spellID) or result.spellID
+            if overrideSpellID and overrideSpellID ~= result.spellID then
+                spellInfo = C_Spell.GetSpellInfo(overrideSpellID)
+                if spellInfo then
+                    result.overrideSpellID = overrideSpellID
+                    result.name = spellInfo.name
                 end
             end
         end
     end
 
-    return nil
+    result.name = result.name or ""
+    result.name = result.name:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
+    result.overrideSpellID = result.overrideSpellID or -1
+
+    return result
 end
 
 local function ProcessSpell(playerSpecID, spellBank, specID, spellIndex, tableIconDetails)
@@ -188,6 +179,111 @@ function addon:Debounce(key, delay, func)
         func()
         DebounceTimers[key] = nil
     end)
+end
+
+function addon:GetSlotDetails()
+    local numGeneral, numCharacter = GetNumMacros()
+    local results = {}
+
+    for slot = 1, 180 do
+        local actionType, actionID, actionSubType = GetActionInfo(slot)
+        local actionText = GetActionText(slot)
+
+        if actionType then
+            local wasHandled = false
+            local slotInfo
+
+            if not actionSubType then
+                actionSubType = ""
+            end
+
+            if actionType == "companion" then
+                if actionSubType == "MOUNT" then
+                    slotInfo = GetSlotInformation(actionText, -1, "", "", actionID)
+                    wasHandled = true
+                end
+            elseif actionType == "item" then
+                if actionSubType == "" then
+                    slotInfo = GetSlotInformation(actionText, actionID, "", "", -1)
+                    wasHandled = true
+                end
+            elseif actionType == "macro" then
+                if actionSubType == "" then
+                    if actionID > numGeneral then
+                        actionID = actionID - numGeneral + 120
+                    end
+                    local macroName, macroIcon, macroBody = GetMacroInfo(actionID)
+                    slotInfo = GetSlotInformation(actionText, -1, macroBody, macroName, -1)
+                    wasHandled = true
+                elseif actionSubType == "MOUNT" then
+                    wasHandled = true
+                elseif actionSubType == "spell" then
+                    slotInfo = GetSlotInformation(actionText, -1, "", "", actionID)
+                    wasHandled = true
+                end
+            elseif actionType == "spell" then
+                if actionSubType == "spell" then
+                    slotInfo = GetSlotInformation(actionText, -1, "", "", actionID)
+                    wasHandled = true
+                end
+            elseif actionType == "summonmount" then
+                if actionSubType == "" then
+                    local _, spellID = C_MountJournal.GetMountInfoByID(actionID)
+
+                    slotInfo = GetSlotInformation(actionText, -1, "", "", spellID)
+                    wasHandled = true
+                end
+            end
+
+            if wasHandled then
+                if slotInfo then
+                    local actionButtonName = addon.actionButtons[slot]
+                    if actionButtonName and actionButtonName ~= "" then
+                        local binding = GetBindingKey(actionButtonName)
+                        if binding and binding ~= "" then
+                            slotInfo.binding = binding
+                        end
+                    end
+
+                    if not slotInfo.binding or slotInfo.binding == "" then
+                        if _G["ElvUI"] and _G["ElvUI_Bar1Button1"] then
+                            local barIndex = math.floor((slot - 1) / 12) + 1
+                            local buttonIndex = ((slot - 1) % 12) + 1
+                            local button = _G["ElvUI_Bar" .. barIndex .. "Button" .. buttonIndex]
+                            if button then
+                                actionButtonName = button.bindstring or button.keyBoundTarget
+                                if not actionButtonName then
+                                    actionButtonName = "CLICK " .. button:GetName() .. ":LeftButton"
+                                end
+
+                                local binding = GetBindingKey(actionButtonName)
+                                if binding and binding ~= "" then
+                                    slotInfo.binding = binding
+                                end
+                            end
+                        end
+                    end
+
+                    if not slotInfo.binding or slotInfo.binding == "" then
+                        if _G["Bartender4"] then
+                            actionButtonName = "CLICK BT4Button" .. slot .. ":Keybind"
+                            local binding = GetBindingKey(actionButtonName)
+                            if binding and binding ~= "" then
+                                slotInfo.binding = binding
+                            end
+                        end
+                    end
+
+                    results[slot] = slotInfo
+                end
+            else
+                print("GetActionBars. slot:", slot, ", actionType:", actionType, ", actionSubType:", actionSubType,
+                    ", actionID:", actionID)
+            end
+        end
+    end
+
+    return results
 end
 
 function addon:GetControlButton(addToTable, label, parent, width, onClick)
@@ -309,114 +405,91 @@ function addon:GetFrame(name)
     return newFrame
 end
 
-function addon:GetKeyBind(itemID, name, spellID)
+function addon:GetKeyBind(itemID, name, slotDetails, spellID)
+    itemID = itemID or -1
+    name = name or ""
+    spellID = spellID or -1
+
     name = name:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
 
-    if _G["Bartender4"] then
-        for i = 1, 180 do
-            local actionButtonName = "CLICK BT4Button" .. i .. ":Keybind"
+    for slot, slotInfo in pairs(slotDetails) do
+        local wasMatched = false
 
-            local bindingKey = GetKeyBinding(actionButtonName, itemID, name, i, spellID)
-            if bindingKey then
-                return bindingKey
+        if itemID > 0 then
+            if slotInfo.itemID == itemID then
+                wasMatched = true
+            elseif slotInfo.macroBody:find("/use item:" .. itemID, 1, true) then
+                wasMatched = true
+            elseif slotInfo.macroBody:find("/cast item:" .. itemID, 1, true) then
+                wasMatched = true
             end
         end
-    elseif _G["ElvUI"] and _G["ElvUI_Bar1Button1"] then
-        for i = 1, 15 do
-            for b = 1, 12 do
-                local btn = _G["ElvUI_Bar" .. i .. "Button" .. b]
 
-                if btn then
-                    local binding = btn.bindstring or btn.keyBoundTarget or
-                        ("CLICK " .. btn:GetName() .. ":LeftButton")
-                    if i > 6 then
-                        local bar = _G["ElvUI_Bar" .. i]
+        if spellID > 0 then
+            if slotInfo.spellID == spellID then
+                wasMatched = true
+            elseif slotInfo.overrideSpellID == spellID then
+                wasMatched = true
+            end
+        end
 
-                        if not bar or not bar.db.enabled then
-                            binding = "ACTIONBUTTON" .. b
-                        end
-                    end
+        if name ~= "" then
+            if slotInfo.name ~= "" then
+                if slotInfo.name == name then
+                    wasMatched = true
+                end
 
-                    local action, aType = btn._state_action, "spell"
-                    if action and type(action) == "number" then
-                        local slot = ((i - 1) * 12) + b
-                        local bindingKey = GetKeyBinding(binding, itemID, name, slot, spellID)
-                        if bindingKey then
-                            return bindingKey
-                        end
-                    end
+                if slotInfo.name:find(name, 1, true) then
+                    wasMatched = true
+                end
+            end
+
+            if slotInfo.actionText ~= "" then
+                if slotInfo.actionText:find(name, 1, true) then
+                    wasMatched = true
+                end
+            end
+
+            if slotInfo.macroBody ~= "" then
+                if slotInfo.macroBody:find(name, 1, true) then
+                    wasMatched = true
+                end
+            end
+
+            if slotInfo.macroName ~= "" then
+                if slotInfo.macroName:find(name, 1, true) then
+                    wasMatched = true
                 end
             end
         end
-    end
 
-    for i = 1, 12 do
-        local bindingKey = GetKeyBinding("ACTIONBUTTON" .. i, itemID, name, i, spellID)
-        if bindingKey then
-            return bindingKey
-        end
-    end
+        if wasMatched then
+            local binding
 
-    for i = 13, 24 do
-        local bindingKey = GetKeyBinding("ACTIONBUTTON" .. i - 12, itemID, name, i, spellID)
-        if bindingKey then
-            return bindingKey
-        end
-    end
+            local actionButtonName = addon.actionButtons[slot]
+            if actionButtonName and actionButtonName ~= "" then
+                binding = GetBindingKey(actionButtonName)
+                if binding and binding ~= "" then
+                    return binding
+                end
+            end
 
-    for i = 25, 36 do
-        local bindingKey = GetKeyBinding("MULTIACTIONBAR3BUTTON" .. i - 24, itemID, name, i, spellID)
-        if bindingKey then
-            return bindingKey
-        end
-    end
+            if _G["ElvUI"] and _G["ElvUI_Bar1Button1"] then
+                local barIndex = math.floor((slot - 1) / 12) + 1
+                local buttonIndex = ((slot - 1) % 12) + 1
+                local button = _G["ElvUI_Bar" .. barIndex .. "Button" .. buttonIndex]
+                if button then
+                    actionButtonName = button.bindstring or button.keyBoundTarget
+                    if not actionButtonName then
+                        actionButtonName = "CLICK " .. button:GetName() .. ":LeftButton"
+                    end
 
-    for i = 37, 48 do
-        local bindingKey = GetKeyBinding("MULTIACTIONBAR4BUTTON" .. i - 36, itemID, name, i, spellID)
-        if bindingKey then
-            return bindingKey
-        end
-    end
-
-    for i = 49, 60 do
-        local bindingKey = GetKeyBinding("MULTIACTIONBAR2BUTTON" .. i - 48, itemID, name, i, spellID)
-        if bindingKey then
-            return bindingKey
-        end
-    end
-
-    for i = 61, 72 do
-        local bindingKey = GetKeyBinding("MULTIACTIONBAR1BUTTON" .. i - 60, itemID, name, i, spellID)
-        if bindingKey then
-            return bindingKey
-        end
-    end
-
-    for i = 72, 143 do
-        local bindingKey = GetKeyBinding("ACTIONBUTTON" .. 1 + (i - 72) % 12, itemID, name, i, spellID)
-        if bindingKey then
-            return bindingKey
-        end
-    end
-
-    for i = 145, 156 do
-        local bindingKey = GetKeyBinding("MULTIACTIONBAR5BUTTON" .. i - 144, itemID, name, i, spellID)
-        if bindingKey then
-            return bindingKey
-        end
-    end
-
-    for i = 157, 168 do
-        local bindingKey = GetKeyBinding("MULTIACTIONBAR6BUTTON" .. i - 156, itemID, name, i, spellID)
-        if bindingKey then
-            return bindingKey
-        end
-    end
-
-    for i = 169, 180 do
-        local bindingKey = GetKeyBinding("MULTIACTIONBAR7BUTTON" .. i - 168, itemID, name, i, spellID)
-        if bindingKey then
-            return bindingKey
+                    binding = GetBindingKey(actionButtonName)
+                    if binding and binding ~= "" then
+                        return binding
+                    end
+                end
+            end
         end
     end
 
@@ -548,13 +621,13 @@ function addon:FrameRestore(name, parentFrame)
 end
 
 function addon:ReplaceBindings(binding)
-    binding = binding:gsub("ALT%-", "A+")
+    binding = binding:gsub("ALT%-", "A")
     binding = binding:gsub("%BUTTON", "M")
     binding = binding:gsub("%MOUSEWHEELDOWN", "WD")
     binding = binding:gsub("%MOUSEWHEELUP", "WU")
-    binding = binding:gsub("CTRL%-", "C+")
+    binding = binding:gsub("CTRL%-", "C")
     binding = binding:gsub("NUMPAD", "N")
-    binding = binding:gsub("SHIFT%-", "S+")
+    binding = binding:gsub("SHIFT%-", "S")
 
     return binding
 end

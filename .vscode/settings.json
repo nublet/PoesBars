@@ -1,28 +1,4 @@
 {
-  "Lua.diagnostics.globals": [
-    "CreateFrame",
-    "GetSpellCooldown",
-    "UIParent",
-    "SLASH_PBC1",
-    "UIDropDownMenu_SetWidth",
-    "UIDropDownMenu_Initialize",
-    "UIDropDownMenu_SetText",
-    "Settings",
-    "UIDropDownMenu_AddButton",
-    "UIDropDownMenu_SetSelectedName",
-    "UIDropDownMenu_GetSelectedName",
-    "UIDropDownMenu_CreateInfo",
-    "SlashCmdList",
-    "ActionButton_HideOverlayGlow",
-    "ActionButton_ShowOverlayGlow",
-    "CooldownFrame_Set",
-    "STANDARD_TEXT_FONT",
-    "TooltipUtil",
-    "RegisterStateDriver",
-    "UnregisterStateDriver",
-    "RegisterAttributeDriver",
-    "UnregisterAttributeDriver"
-  ],
   "Lua.format.defaultConfig": {
     "lineWidth": "0"
   },
@@ -42,4 +18,19 @@
     "~\\.vscode\\extensions\\ketho.wow-api-0.20.6\\Annotations\\Core"
   ],
   "Lua.type.weakUnionCheck": true,
+  "Lua.diagnostics.globals": [
+    "UnregisterAttributeDriver",
+    "ActionButton_HideOverlayGlow",
+    "ActionButton_ShowOverlayGlow",
+    "CooldownFrame_Set",
+    "RegisterAttributeDriver",
+    "UIDropDownMenu_SetWidth",
+    "SlashCmdList",
+    "Settings",
+    "UIDropDownMenu_Initialize",
+    "UIDropDownMenu_SetText",
+    "UIDropDownMenu_AddButton",
+    "UIDropDownMenu_CreateInfo",
+    "UIDropDownMenu_SetSelectedName"
+  ],
 }
