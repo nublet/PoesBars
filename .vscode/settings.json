@@ -30,6 +30,9 @@
     "UIDropDownMenu_SetText",
     "UIDropDownMenu_AddButton",
     "UIDropDownMenu_CreateInfo",
-    "UIDropDownMenu_SetSelectedName"
+    "UIDropDownMenu_SetSelectedName",
+    "MAX_TOTEMS",
+    "DEFAULT_CHAT_FRAME"
   ],
+  "Lua.type.weakUnionCheck": true,
 }

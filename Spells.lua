@@ -246,6 +246,21 @@ local function GetAura(auraList, spellID, spellName)
     return nil
 end
 
+local function GetTotem(playerTotems, spellID, spellName)
+    if not playerTotems then
+        return nil
+    end
+
+    for i = 1, #playerTotems do
+        local totem = playerTotems[i]
+        if totem.spellID == spellID or totem.totemName == spellName then
+            return totem
+        end
+    end
+
+    return nil
+end
+
 local function RefreshCategoryFrame(category, parentTable, playerSpecID)
     if not category then
         return
@@ -565,6 +580,31 @@ local function updateIconDebuff(frame, showOnCooldown, spellID, targetDebuffs)
     end
 end
 
+local function updateIconTotem(frame, playerTotems, spellID)
+    if spellID <= 0 then
+        return
+    end
+
+    local totem = GetTotem(playerTotems, SettingsDB.buffOverrides[spellID] or spellID, frame.iconName)
+
+    if totem then
+        local remaining = (totem.startTime + totem.duration) - GetTime()
+        frame.textCharges:SetText("")
+
+        if remaining > 0 then
+            frame.textCooldown:SetText(string.format("%d", remaining))
+            frame.textCooldown:SetTextColor(0, 1, 0, 1)
+        else
+            frame.textCooldown:SetText("")
+        end
+
+        frame.auraActive = true
+        frame.textureIcon:SetVertexColor(0, 1, 0)
+    else
+        frame.auraActive = false
+    end
+end
+
 local function updateIconItem(category, frame, playerBuffs)
     frame.frameBorder:Hide()
 
@@ -635,7 +675,7 @@ local function updateIconItem(category, frame, playerBuffs)
     frame.textCharges:SetText(count)
 end
 
-local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, targetDebuffs)
+local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, playerTotems, targetDebuffs)
     frame.frameBorder:Hide()
 
     if category == addon.ignored or category == addon.unknown then
@@ -708,9 +748,6 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, target
                 return
             end
 
-            frame.textBinding:Show()
-            frame.textCooldown:SetText("")
-
             if frameSpellID ~= currentSpellID then
                 updateIconBuff(frame, playerBuffs, frameSpellID)
 
@@ -725,6 +762,37 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, target
                     return
                 end
             end
+
+            updateIconTotem(frame, playerTotems, currentSpellID)
+
+            if frame.auraActive then
+                if not frame.glowActive then
+                    ActionButton_ShowOverlayGlow(frame)
+                    frame.glowActive = true
+                end
+
+                frame:SetAlpha(1.0)
+
+                return
+            end
+
+            if frameSpellID ~= currentSpellID then
+                updateIconTotem(frame, playerTotems, frameSpellID)
+
+                if frame.auraActive then
+                    if not frame.glowActive then
+                        ActionButton_ShowOverlayGlow(frame)
+                        frame.glowActive = true
+                    end
+
+                    frame:SetAlpha(1.0)
+
+                    return
+                end
+            end
+
+            frame.textBinding:Show()
+            frame.textCooldown:SetText("")
 
             if currentSpellID ~= frame.currentSpellID then
                 local spellInfo = C_Spell.GetSpellInfo(currentSpellID)
@@ -964,7 +1032,7 @@ function addon:UpdateIconBinds()
     local slotDetails = addon:GetSlotDetails()
 
     for settingName, iconFrame in pairs(iconFrames) do
-        local binding = addon:GetKeyBind( iconFrame.itemID, iconFrame.iconName, slotDetails,iconFrame.spellID)
+        local binding = addon:GetKeyBind(iconFrame.itemID, iconFrame.iconName, slotDetails, iconFrame.spellID)
         if binding then
             iconFrame.textBinding:SetText(addon:ReplaceBindings(binding))
         else
@@ -980,6 +1048,7 @@ function addon:UpdateIconState()
         local auraIndex = 1
         local gcdCooldown = C_Spell.GetSpellCooldown(61304)
         local playerBuffs = {}
+        local playerTotems = {}
         local targetDebuffs = {}
 
         while true do
@@ -1023,6 +1092,15 @@ function addon:UpdateIconState()
             auraIndex = auraIndex + 1
         end
 
+        for totemIndex = 1, MAX_TOTEMS do
+            local haveTotem, totemName, startTime, duration, icon, modRate, spellID = GetTotemInfo(totemIndex)
+            if totemName and totemName ~= "" then
+                table.insert(playerTotems,
+                    { haveTotem = haveTotem, totemName = totemName, startTime = startTime, duration = duration, icon =
+                    icon, modRate = modRate, spellID = spellID })
+            end
+        end
+
         for index = 1, #validCategories do
             local category = validCategories[index]
 
@@ -1037,7 +1115,8 @@ function addon:UpdateIconState()
 
                 if parentTable.spells then
                     for i = 1, #parentTable.spells do
-                        updateIconSpell(category, parentTable.spells[i], gcdCooldown, playerBuffs, targetDebuffs)
+                        updateIconSpell(category, parentTable.spells[i], gcdCooldown, playerBuffs, playerTotems,
+                            targetDebuffs)
                     end
                 end
             end
