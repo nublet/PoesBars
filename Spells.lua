@@ -738,9 +738,16 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, player
             updateIconBuff(frame, playerBuffs, currentSpellID)
 
             if frame.auraActive then
-                if not frame.glowActive then
-                    ActionButton_ShowOverlayGlow(frame)
-                    frame.glowActive = true
+                if showOnCooldown then
+                    if frame.glowActive then
+                        ActionButton_HideOverlayGlow(frame)
+                        frame.glowActive = true
+                    end
+                else
+                    if not frame.glowActive then
+                        ActionButton_ShowOverlayGlow(frame)
+                        frame.glowActive = true
+                    end
                 end
 
                 frame:SetAlpha(1.0)
@@ -752,9 +759,16 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, player
                 updateIconBuff(frame, playerBuffs, frameSpellID)
 
                 if frame.auraActive then
-                    if not frame.glowActive then
-                        ActionButton_ShowOverlayGlow(frame)
-                        frame.glowActive = true
+                    if showOnCooldown then
+                        if frame.glowActive then
+                            ActionButton_HideOverlayGlow(frame)
+                            frame.glowActive = true
+                        end
+                    else
+                        if not frame.glowActive then
+                            ActionButton_ShowOverlayGlow(frame)
+                            frame.glowActive = true
+                        end
                     end
 
                     frame:SetAlpha(1.0)
@@ -766,9 +780,16 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, player
             updateIconTotem(frame, playerTotems, currentSpellID)
 
             if frame.auraActive then
-                if not frame.glowActive then
-                    ActionButton_ShowOverlayGlow(frame)
-                    frame.glowActive = true
+                if showOnCooldown then
+                    if frame.glowActive then
+                        ActionButton_HideOverlayGlow(frame)
+                        frame.glowActive = true
+                    end
+                else
+                    if not frame.glowActive then
+                        ActionButton_ShowOverlayGlow(frame)
+                        frame.glowActive = true
+                    end
                 end
 
                 frame:SetAlpha(1.0)
@@ -780,9 +801,16 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, player
                 updateIconTotem(frame, playerTotems, frameSpellID)
 
                 if frame.auraActive then
-                    if not frame.glowActive then
-                        ActionButton_ShowOverlayGlow(frame)
-                        frame.glowActive = true
+                    if showOnCooldown then
+                        if frame.glowActive then
+                            ActionButton_HideOverlayGlow(frame)
+                            frame.glowActive = true
+                        end
+                    else
+                        if not frame.glowActive then
+                            ActionButton_ShowOverlayGlow(frame)
+                            frame.glowActive = true
+                        end
                     end
 
                     frame:SetAlpha(1.0)
@@ -1096,8 +1124,16 @@ function addon:UpdateIconState()
             local haveTotem, totemName, startTime, duration, icon, modRate, spellID = GetTotemInfo(totemIndex)
             if totemName and totemName ~= "" then
                 table.insert(playerTotems,
-                    { haveTotem = haveTotem, totemName = totemName, startTime = startTime, duration = duration, icon =
-                    icon, modRate = modRate, spellID = spellID })
+                    {
+                        haveTotem = haveTotem,
+                        totemName = totemName,
+                        startTime = startTime,
+                        duration = duration,
+                        icon =
+                            icon,
+                        modRate = modRate,
+                        spellID = spellID
+                    })
             end
         end
 
