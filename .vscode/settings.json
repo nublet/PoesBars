@@ -32,6 +32,7 @@
     "UIDropDownMenu_CreateInfo",
     "UIDropDownMenu_SetSelectedName",
     "MAX_TOTEMS",
-    "DEFAULT_CHAT_FRAME"
+    "DEFAULT_CHAT_FRAME",
+    "TooltipDataProcessor"
   ],
 }

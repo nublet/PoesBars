@@ -164,6 +164,22 @@ local function SaveFramePosition(name, parentFrame)
     SettingsDB[name] = settingTable
 end
 
+function addon:AddTooltipID(id, label, tooltip)
+    if not id or id == 0 then
+        return
+    end
+
+    for i = 1, tooltip:NumLines() do
+        local line = _G[tooltip:GetName() .. "TextLeft" .. i]
+        if line and line:GetText() and line:GetText():find(label) then
+            return
+        end
+    end
+
+    tooltip:AddLine(string.format("|cff999999%s: %d", label, id))
+    tooltip:Show()
+end
+
 function addon:ClearRadios(radioGroup)
     for i = 1, #radioGroup do
         radioGroup[i]:SetChecked(false)

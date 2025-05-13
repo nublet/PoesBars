@@ -124,3 +124,29 @@ f:SetScript("OnUpdate", function(frame, elapsed)
 	timeSinceLastUpdate = 0
 end)
 f:SetSize(1, 1)
+
+TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tooltip, data)
+    if data and data.id then
+        addon:AddTooltipID(data.id, "Item ID", tooltip)
+    end
+end)
+
+TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Spell, function(tooltip, data)
+    if data and data.id then
+        addon:AddTooltipID(data.id, "Spell ID", tooltip)
+    end
+end)
+
+TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Quest, function(tooltip, data)
+    if data and data.id then
+		addon:AddTooltipID(data.id, "Quest ID", tooltip)
+    end
+end)
+
+hooksecurefunc(GameTooltip, "SetUnitAura", function(control, unit, index, filter)
+	local aura = C_UnitAuras.GetAuraDataByIndex(unit, index, filter)
+	if aura then
+		addon:AddTooltipID(aura.spellId, "Spell ID", control)
+	end
+end)
+
