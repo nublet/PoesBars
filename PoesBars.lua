@@ -149,4 +149,3 @@ hooksecurefunc(GameTooltip, "SetUnitAura", function(control, unit, index, filter
 		addon:AddTooltipID(aura.spellId, "Spell ID", control)
 	end
 end)
-
