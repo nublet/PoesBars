@@ -1,7 +1,4 @@
 {
-  "Lua.format.defaultConfig": {
-    "lineWidth": "0"
-  },
   "Lua.runtime.version": "Lua 5.1",
   "Lua.runtime.builtin": {
     "basic": "disable",
@@ -35,4 +32,13 @@
     "DEFAULT_CHAT_FRAME",
     "TooltipDataProcessor"
   ],
+  "Lua.format.defaultConfig": {
+    "break_all_list_when_line_exceed": "false",
+    "break_before_braces": "false",
+    "indent_style": "tab",
+    "indent_size": "4",
+    "max_line_length": "9999",
+    "tab_width": "4"
+  },
+  "Lua.type.weakUnionCheck": true,
 }

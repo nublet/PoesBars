@@ -6,6 +6,35 @@ local iconFrames = {}
 local LSM = LibStub("LibSharedMedia-3.0")
 local font = LSM:Fetch("font", "Naowh") or "Fonts\\FRIZQT__.TTF"
 
+local function CheckFrameGlowAura(frame, glowWhenAuraActive, showOnCooldown)
+    if glowWhenAuraActive then
+        if frame.auraActive then
+            if showOnCooldown then
+                if frame.glowActive then
+                    ActionButton_HideOverlayGlow(frame)
+                    frame.glowActive = false
+                end
+            else
+                if not frame.glowActive then
+                    ActionButton_ShowOverlayGlow(frame)
+                    frame.glowActive = true
+                end
+            end
+        end
+    else
+        if frame.glowActive then
+            ActionButton_HideOverlayGlow(frame)
+            frame.glowActive = false
+        end
+    end
+
+    if frame.auraActive then
+        return true
+    end
+
+    return false
+end
+
 local function CreateIconFrame(iconDetail)
     local itemID = iconDetail.itemID or -1
     local specID = iconDetail.specID or -1
@@ -614,6 +643,7 @@ local function updateIconItem(category, frame, playerBuffs)
 
     local settingsTable = SettingsDB[category] or {}
 
+    local glowWhenAuraActive = settingsTable.glowWhenAuraActive or true
     local itemID = frame.itemID or 0
     local showOnCooldown = settingsTable.showOnCooldown or false
     local spellID = frame.spellID or 0
@@ -632,12 +662,7 @@ local function updateIconItem(category, frame, playerBuffs)
 
     updateIconBuff(frame, playerBuffs, spellID)
 
-    if frame.auraActive then
-        if not frame.glowActive then
-            ActionButton_ShowOverlayGlow(frame)
-            frame.glowActive = true
-        end
-
+    if CheckFrameGlowAura(frame, glowWhenAuraActive, showOnCooldown) then
         return
     end
 
@@ -683,8 +708,6 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, player
     end
 
     local frameSpellID = frame.spellID or 0
-    local glowActive = false
-
     local currentSpellID = C_Spell.GetOverrideSpell(frameSpellID) or frameSpellID
 
     if C_Spell.IsSpellDisabled(currentSpellID) then
@@ -694,6 +717,9 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, player
 
     local settingsTable = SettingsDB[category] or {}
 
+    local glowActive = false
+    local glowWhenAuraActive = settingsTable.glowWhenAuraActive or false
+    local glowWhenOverridden = settingsTable.glowWhenOverridden or false
     local isUsable, insufficientPower = C_Spell.IsSpellUsable(currentSpellID)
     local showOnCooldown = settingsTable.showOnCooldown or false
     local showWhenAvailable = settingsTable.showWhenAvailable or false
@@ -737,19 +763,7 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, player
         else
             updateIconBuff(frame, playerBuffs, currentSpellID)
 
-            if frame.auraActive then
-                if showOnCooldown then
-                    if frame.glowActive then
-                        ActionButton_HideOverlayGlow(frame)
-                        frame.glowActive = true
-                    end
-                else
-                    if not frame.glowActive then
-                        ActionButton_ShowOverlayGlow(frame)
-                        frame.glowActive = true
-                    end
-                end
-
+            if CheckFrameGlowAura(frame, glowWhenAuraActive, showOnCooldown) then
                 frame:SetAlpha(1.0)
 
                 return
@@ -758,19 +772,7 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, player
             if frameSpellID ~= currentSpellID then
                 updateIconBuff(frame, playerBuffs, frameSpellID)
 
-                if frame.auraActive then
-                    if showOnCooldown then
-                        if frame.glowActive then
-                            ActionButton_HideOverlayGlow(frame)
-                            frame.glowActive = true
-                        end
-                    else
-                        if not frame.glowActive then
-                            ActionButton_ShowOverlayGlow(frame)
-                            frame.glowActive = true
-                        end
-                    end
-
+                if CheckFrameGlowAura(frame, glowWhenAuraActive, showOnCooldown) then
                     frame:SetAlpha(1.0)
 
                     return
@@ -779,19 +781,7 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, player
 
             updateIconTotem(frame, playerTotems, currentSpellID)
 
-            if frame.auraActive then
-                if showOnCooldown then
-                    if frame.glowActive then
-                        ActionButton_HideOverlayGlow(frame)
-                        frame.glowActive = true
-                    end
-                else
-                    if not frame.glowActive then
-                        ActionButton_ShowOverlayGlow(frame)
-                        frame.glowActive = true
-                    end
-                end
-
+            if CheckFrameGlowAura(frame, glowWhenAuraActive, showOnCooldown) then
                 frame:SetAlpha(1.0)
 
                 return
@@ -800,19 +790,7 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, player
             if frameSpellID ~= currentSpellID then
                 updateIconTotem(frame, playerTotems, frameSpellID)
 
-                if frame.auraActive then
-                    if showOnCooldown then
-                        if frame.glowActive then
-                            ActionButton_HideOverlayGlow(frame)
-                            frame.glowActive = true
-                        end
-                    else
-                        if not frame.glowActive then
-                            ActionButton_ShowOverlayGlow(frame)
-                            frame.glowActive = true
-                        end
-                    end
-
+                if CheckFrameGlowAura(frame, glowWhenAuraActive, showOnCooldown) then
                     frame:SetAlpha(1.0)
 
                     return
@@ -823,12 +801,14 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, player
             frame.textCooldown:SetText("")
 
             if currentSpellID ~= frame.currentSpellID then
-                local spellInfo = C_Spell.GetSpellInfo(currentSpellID)
-
                 frame.currentSpellID = currentSpellID
-                frame.textureIcon:SetTexture(spellInfo.iconID)
 
-                if currentSpellID ~= frameSpellID then
+                local spellInfo = C_Spell.GetSpellInfo(currentSpellID)
+                if spellInfo then
+                    frame.textureIcon:SetTexture(spellInfo.iconID)
+                end
+
+                if glowWhenOverridden and currentSpellID ~= frameSpellID then
                     glowActive = true
                 end
             end
@@ -945,15 +925,11 @@ function addon:CheckLockState()
         end
     end
 
-    addon:RefreshCategoryFrames()
+    addon:RefreshCategoryFrames(false)
 end
 
 function addon:CreateIcons()
     if InCombatLockdown() then
-        addon:Debounce("CreateIcons", 1, function()
-            addon:CreateIcons()
-        end)
-
         return
     end
 
@@ -988,10 +964,10 @@ function addon:CreateIcons()
     addon:UpdateIconBinds()
 end
 
-function addon:RefreshCategoryFrames()
+function addon:RefreshCategoryFrames(isBags)
     if InCombatLockdown() then
         addon:Debounce("RefreshCategoryFrames", 1, function()
-            addon:RefreshCategoryFrames()
+            addon:RefreshCategoryFrames(isBags)
         end)
 
         return
@@ -1011,18 +987,22 @@ function addon:RefreshCategoryFrames()
 
     for i = 1, #validCategories do
         local name = validCategories[i]
+        local parentTable
 
         if categories[name] then
-            local parentTable = categories[name]
-            parentTable.items = {}
-            parentTable.spells = {}
+            parentTable = categories[name]
         else
-            local parentTable = {}
+            parentTable = {}
             parentTable.frame = addon:GetFrame(name)
-            parentTable.items = {}
-            parentTable.spells = {}
 
             categories[name] = parentTable
+        end
+
+        parentTable.hasItems = false
+        parentTable.items = {}
+
+        if not isBags then
+            parentTable.spells = {}
         end
     end
 
@@ -1037,10 +1017,14 @@ function addon:RefreshCategoryFrames()
             if count <= 0 then
                 table.insert(categories[addon.ignored].items, iconFrame)
             else
+                categories[category].hasItems = true
+
                 table.insert(categories[category].items, iconFrame)
             end
         else
-            table.insert(categories[category].spells, iconFrame)
+            if not isBags then
+                table.insert(categories[category].spells, iconFrame)
+            end
         end
     end
 
@@ -1050,8 +1034,15 @@ function addon:RefreshCategoryFrames()
         if categories[category] then
             local parentTable = categories[category]
 
-            RefreshCategoryFrame(category, parentTable, playerSpecID)
-            addon:FrameRestore(category, parentTable.frame)
+            if isBags then
+                if parentTable.hasItems then
+                    RefreshCategoryFrame(category, parentTable, playerSpecID)
+                    addon:FrameRestore(category, parentTable.frame)
+                end
+            else
+                RefreshCategoryFrame(category, parentTable, playerSpecID)
+                addon:FrameRestore(category, parentTable.frame)
+            end
         end
     end
 end

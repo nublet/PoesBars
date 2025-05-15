@@ -51,7 +51,7 @@ local function OnEvent(self, event, ...)
 		if addon.isLoaded then
 			addon.isLoaded = false
 
-			addon:Debounce("CreateIcons", 1, function()
+			addon:Debounce("CreateIcons", 5, function()
 				addon:CreateIcons()
 				addon.isLoaded = true
 			end)
@@ -59,7 +59,7 @@ local function OnEvent(self, event, ...)
 	elseif event == "BAG_UPDATE_DELAYED" then
 		if addon.isLoaded and not InCombatLockdown() then
 			addon:Debounce("RefreshCategoryFrames", 1, function()
-				addon:RefreshCategoryFrames()
+				addon:RefreshCategoryFrames(true)
 			end)
 		end
 	elseif event == "VARIABLES_LOADED" then

@@ -67,7 +67,7 @@ local function LoadLayout(category, playerSpecID)
 		if optionLines[settingName] then
 			seenSettingNames[settingName] = true
 
-			optionLines[settingName]:SetPoint("TOPLEFT", 10, yOffset)
+			optionLines[settingName]:SetPoint("TOPLEFT", 0, yOffset)
 
 			yOffset = yOffset - addon.settingsIconSize - 10
 		end
@@ -75,7 +75,7 @@ local function LoadLayout(category, playerSpecID)
 
 	for settingName, frameLine in pairs(optionLines) do
 		if not seenSettingNames[settingName] then
-			frameLine:SetPoint("TOPLEFT", 10, yOffset)
+			frameLine:SetPoint("TOPLEFT", 0, yOffset)
 
 			table.insert(CategoryOrderDB[category], settingName)
 
@@ -286,7 +286,6 @@ function addon:CreateSettingsSpells(mainCategory)
 					categoryInput:Hide()
 
 					scrollFrame = CreateFrame("ScrollFrame", nil, parentFrame, "UIPanelScrollFrameTemplate")
-					scrollFrame:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -10, 10)
 
 					scrollFrameChild = CreateFrame("Frame", nil, scrollFrame)
 					scrollFrameChild:SetSize(1, 1)
@@ -302,8 +301,11 @@ function addon:CreateSettingsSpells(mainCategory)
 
 					if category ~= addon.ignored and category ~= addon.unknown then
 						local settingsTable = SettingsDB[category] or {}
+
 						local anchor = settingsTable.anchor or "CENTER"
 						local displayWhen = settingsTable.displayWhen or "Always"
+						local glowWhenAuraActive = settingsTable.glowWhenAuraActive or false
+						local glowWhenOverridden = settingsTable.glowWhenOverridden or false
 						local iconSize = settingsTable.iconSize or 64
 						local iconSpacing = settingsTable.iconSpacing or 2
 						local isClickable = settingsTable.isClickable or false
@@ -334,18 +336,87 @@ function addon:CreateSettingsSpells(mainCategory)
 						end)
 						categoryDelete:SetPoint("LEFT", categoryInput, "RIGHT", 10, 0)
 
-						local showOnCooldownCheckbox = addon:GetControlCheckbox(true,
-							"Only Show On Cooldown or Aura Active", parentFrame)
-						showOnCooldownCheckbox:SetPoint("TOPLEFT", categoryLabel, "BOTTOMLEFT", 0, -10)
+						local displayLabel = addon:GetControlLabel(true, parentFrame, "Display:", 100)
+						displayLabel:SetPoint("TOPLEFT", categoryLabel, "BOTTOMLEFT", 0, -5)
+
+						local displayAlways = addon:GetControlRadioButton(true, parentFrame, radioDisplay, "Always", function(control)
+							addon:ClearRadios(radioDisplay)
+							control:SetChecked(true)
+
+							settingsTable.displayWhen = "Always"
+						end)
+						displayAlways:SetPoint("LEFT", displayLabel, "RIGHT", 10, 0)
+
+						local displayInCombat = addon:GetControlRadioButton(true, parentFrame, radioDisplay, "In Combat", function(control)
+							addon:ClearRadios(radioDisplay)
+							control:SetChecked(true)
+
+							settingsTable.displayWhen = "In Combat"
+						end)
+						displayInCombat:SetPoint("LEFT", displayAlways, "RIGHT", 60, 0)
+
+						local displayOutOfCombat = addon:GetControlRadioButton(true, parentFrame, radioDisplay, "Out Of Combat", function(control)
+							addon:ClearRadios(radioDisplay)
+							control:SetChecked(true)
+
+							settingsTable.displayWhen = "Out Of Combat"
+						end)
+						displayOutOfCombat:SetPoint("LEFT", displayInCombat, "RIGHT", 70, 0)
+
+						if displayWhen == "" or displayWhen == "Always" then
+							displayAlways:SetChecked(true)
+							displayInCombat:SetChecked(false)
+							displayOutOfCombat:SetChecked(false)
+						elseif displayWhen == "In Combat" then
+							displayAlways:SetChecked(false)
+							displayInCombat:SetChecked(true)
+							displayOutOfCombat:SetChecked(false)
+						else
+							displayAlways:SetChecked(false)
+							displayInCombat:SetChecked(false)
+							displayOutOfCombat:SetChecked(true)
+						end
+
+						local isClickableCheckbox = addon:GetControlCheckbox(true, "Make Clickable", parentFrame, function(control)
+							settingsTable.isClickable = control:GetChecked()
+						end)
+						isClickableCheckbox:SetPoint("TOPLEFT", displayLabel, "BOTTOMLEFT", 0, 0)
+						if isClickable then
+							isClickableCheckbox:SetChecked(true)
+						else
+							isClickableCheckbox:SetChecked(false)
+						end
+
+						local glowWhenAuraActiveCheckbox = addon:GetControlCheckbox(true, "Glow When Aura Active", parentFrame, function(control)
+							settingsTable.glowWhenAuraActive = control:GetChecked()
+						end)
+						glowWhenAuraActiveCheckbox:SetPoint("LEFT", isClickableCheckbox, "RIGHT", 100, 0)
+						if glowWhenAuraActive then
+							glowWhenAuraActiveCheckbox:SetChecked(true)
+						else
+							glowWhenAuraActiveCheckbox:SetChecked(false)
+						end
+
+						local glowWhenOverriddenCheckbox = addon:GetControlCheckbox(true, "Glow When Overridden ", parentFrame, function(control)
+							settingsTable.glowWhenOverridden = control:GetChecked()
+						end)
+						glowWhenOverriddenCheckbox:SetPoint("LEFT", glowWhenAuraActiveCheckbox, "RIGHT", 150, 0)
+						if glowWhenOverridden then
+							glowWhenOverriddenCheckbox:SetChecked(true)
+						else
+							glowWhenOverriddenCheckbox:SetChecked(false)
+						end
+
+						local showOnCooldownCheckbox = addon:GetControlCheckbox(true, "Only Show On Cooldown or Aura Active", parentFrame)
+						showOnCooldownCheckbox:SetPoint("TOPLEFT", isClickableCheckbox, "BOTTOMLEFT", 0, 0)
 						if showOnCooldown then
 							showOnCooldownCheckbox:SetChecked(true)
 						else
 							showOnCooldownCheckbox:SetChecked(false)
 						end
 
-						local showWhenAvailableCheckbox = addon:GetControlCheckbox(true, "Only Show When Available",
-							parentFrame)
-						showWhenAvailableCheckbox:SetPoint("LEFT", showOnCooldownCheckbox, "RIGHT", 200, 0)
+						local showWhenAvailableCheckbox = addon:GetControlCheckbox(true, "Only Show When Available", parentFrame)
+						showWhenAvailableCheckbox:SetPoint("LEFT", showOnCooldownCheckbox, "RIGHT", 215, 0)
 						if showWhenAvailable then
 							showOnCooldownCheckbox:SetChecked(true)
 						else
@@ -368,65 +439,8 @@ function addon:CreateSettingsSpells(mainCategory)
 							end
 						end)
 
-						local displayLabel = addon:GetControlLabel(true, parentFrame, "Display:", 100)
-						displayLabel:SetPoint("TOPLEFT", showOnCooldownCheckbox, "BOTTOMLEFT", 0, -10)
-
-						local displayAlways = addon:GetControlRadioButton(true, parentFrame, radioDisplay, "Always",
-							function(control)
-								addon:ClearRadios(radioDisplay)
-								control:SetChecked(true)
-
-								settingsTable.displayWhen = "Always"
-							end)
-						displayAlways:SetPoint("LEFT", displayLabel, "RIGHT", 10, 0)
-
-						local displayInCombat = addon:GetControlRadioButton(true, parentFrame, radioDisplay,
-							"In Combat",
-							function(control)
-								addon:ClearRadios(radioDisplay)
-								control:SetChecked(true)
-
-								settingsTable.displayWhen = "In Combat"
-							end)
-						displayInCombat:SetPoint("LEFT", displayAlways, "RIGHT", 110, 0)
-
-						local displayOutOfCombat = addon:GetControlRadioButton(true, parentFrame, radioDisplay,
-							"Out Of Combat",
-							function(control)
-								addon:ClearRadios(radioDisplay)
-								control:SetChecked(true)
-
-								settingsTable.displayWhen = "Out Of Combat"
-							end)
-						displayOutOfCombat:SetPoint("LEFT", displayInCombat, "RIGHT", 110, 0)
-
-						if displayWhen == "" or displayWhen == "Always" then
-							displayAlways:SetChecked(true)
-							displayInCombat:SetChecked(false)
-							displayOutOfCombat:SetChecked(false)
-						elseif displayWhen == "In Combat" then
-							displayAlways:SetChecked(false)
-							displayInCombat:SetChecked(true)
-							displayOutOfCombat:SetChecked(false)
-						else
-							displayAlways:SetChecked(false)
-							displayInCombat:SetChecked(false)
-							displayOutOfCombat:SetChecked(true)
-						end
-
-						local isClickableCheckbox = addon:GetControlCheckbox(true, "Make Clickable", parentFrame,
-							function(control)
-								settingsTable.isClickable = control:GetChecked()
-							end)
-						isClickableCheckbox:SetPoint("TOPLEFT", displayLabel, "BOTTOMLEFT", 0, -10)
-						if isClickable then
-							isClickableCheckbox:SetChecked(true)
-						else
-							isClickableCheckbox:SetChecked(false)
-						end
-
 						local iconSizeLabel = addon:GetControlLabel(true, parentFrame, "Icon Size:", 100)
-						iconSizeLabel:SetPoint("TOPLEFT", isClickableCheckbox, "BOTTOMLEFT", 0, -10)
+						iconSizeLabel:SetPoint("TOPLEFT", showOnCooldownCheckbox, "BOTTOMLEFT", 0, 0)
 
 						local iconSizeInput = addon:GetControlInput(true, parentFrame, 40, function(control)
 							settingsTable.iconSize = addon:GetValueNumber(control:GetText())
@@ -435,67 +449,59 @@ function addon:CreateSettingsSpells(mainCategory)
 						iconSizeInput:SetPoint("LEFT", iconSizeLabel, "RIGHT", 10, 0)
 						iconSizeInput:SetText(iconSize)
 
-						local positionXLabel = addon:GetControlLabel(true, parentFrame, "X:", 100)
+						local positionXLabel = addon:GetControlLabel(true, parentFrame, "X:", 30)
 						positionXLabel:SetPoint("LEFT", iconSizeInput, "RIGHT", 10, 0)
 
-						local positionXInput = addon:GetControlInput(true, parentFrame, 40, function(control)
+						local positionXInput = addon:GetControlInput(true, parentFrame, 80, function(control)
 							settingsTable.x = addon:GetValueNumber(control:GetText())
 						end)
-						positionXInput:SetNumeric(true)
 						positionXInput:SetPoint("LEFT", positionXLabel, "RIGHT", 10, 0)
 						positionXInput:SetText(x)
 
 						local iconSpacingLabel = addon:GetControlLabel(true, parentFrame, "Icon Gap:", 100)
-						iconSpacingLabel:SetPoint("TOPLEFT", iconSizeLabel, "BOTTOMLEFT", 0, -10)
+						iconSpacingLabel:SetPoint("TOPLEFT", iconSizeLabel, "BOTTOMLEFT", 0, 0)
 
 						local iconSpacingInput = addon:GetControlInput(true, parentFrame, 40, function(control)
 							settingsTable.iconSpacing = addon:GetValueNumber(control:GetText())
 						end)
-						iconSpacingInput:SetNumeric(true)
 						iconSpacingInput:SetPoint("LEFT", iconSpacingLabel, "RIGHT", 10, 0)
 						iconSpacingInput:SetText(iconSpacing)
 
-						local positionYLabel = addon:GetControlLabel(true, parentFrame, "Y:", 100)
+						local positionYLabel = addon:GetControlLabel(true, parentFrame, "Y:", 30)
 						positionYLabel:SetPoint("LEFT", iconSpacingInput, "RIGHT", 10, 0)
 
-						local positionYInput = addon:GetControlInput(true, parentFrame, 40, function(control)
+						local positionYInput = addon:GetControlInput(true, parentFrame, 80, function(control)
 							settingsTable.y = addon:GetValueNumber(control:GetText())
 						end)
-						positionYInput:SetNumeric(true)
 						positionYInput:SetPoint("LEFT", positionYLabel, "RIGHT", 10, 0)
 						positionYInput:SetText(y)
 
 						local wrapAfterLabel = addon:GetControlLabel(true, parentFrame, "Wrap After:", 100)
-						wrapAfterLabel:SetPoint("TOPLEFT", iconSpacingLabel, "BOTTOMLEFT", 0, -10)
+						wrapAfterLabel:SetPoint("TOPLEFT", iconSpacingLabel, "BOTTOMLEFT", 0, 0)
 
 						local wrapAfterInput = addon:GetControlInput(true, parentFrame, 40, function(control)
 							settingsTable.wrapAfter = addon:GetValueNumber(control:GetText())
 						end)
-						wrapAfterInput:SetNumeric(true)
 						wrapAfterInput:SetPoint("LEFT", wrapAfterLabel, "RIGHT", 10, 0)
 						wrapAfterInput:SetText(wrapAfter)
 
 						local orientationLabel = addon:GetControlLabel(true, parentFrame, "Orientation:", 100)
-						orientationLabel:SetPoint("TOPLEFT", wrapAfterLabel, "BOTTOMLEFT", 0, -10)
+						orientationLabel:SetPoint("TOPLEFT", wrapAfterLabel, "BOTTOMLEFT", 0, 0)
 
-						local orientationHorizontal = addon:GetControlRadioButton(true, parentFrame, radioOrientation,
-							"Horizontal",
-							function(control)
-								addon:ClearRadios(radioOrientation)
-								control:SetChecked(true)
+						local orientationHorizontal = addon:GetControlRadioButton(true, parentFrame, radioOrientation, "Horizontal", function(control)
+							addon:ClearRadios(radioOrientation)
+							control:SetChecked(true)
 
-								settingsTable.isVertical = false
-							end)
+							settingsTable.isVertical = false
+						end)
 						orientationHorizontal:SetPoint("LEFT", orientationLabel, "RIGHT", 10, 0)
 
-						local orientationVertical = addon:GetControlRadioButton(true, parentFrame, radioOrientation,
-							"Vertical",
-							function(control)
-								addon:ClearRadios(radioOrientation)
-								control:SetChecked(true)
+						local orientationVertical = addon:GetControlRadioButton(true, parentFrame, radioOrientation, "Vertical", function(control)
+							addon:ClearRadios(radioOrientation)
+							control:SetChecked(true)
 
-								settingsTable.isVertical = true
-							end)
+							settingsTable.isVertical = true
+						end)
 						orientationVertical:SetPoint("LEFT", orientationHorizontal, "RIGHT", 110, 0)
 
 						if isVertical then
@@ -507,90 +513,78 @@ function addon:CreateSettingsSpells(mainCategory)
 						end
 
 						local anchorLabel = addon:GetControlLabel(true, parentFrame, "Anchor:", 100)
-						anchorLabel:SetPoint("TOPLEFT", orientationLabel, "BOTTOMLEFT", 0, -10)
+						anchorLabel:SetPoint("TOPLEFT", orientationLabel, "BOTTOMLEFT", 0, 0)
 
-						local anchorTopLeft = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Top Left",
-							function(control)
-								addon:ClearRadios(radioAnchors)
-								control:SetChecked(true)
+						local anchorTopLeft = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Top Left", function(control)
+							addon:ClearRadios(radioAnchors)
+							control:SetChecked(true)
 
-								settingsTable.anchor = "TOPLEFT"
-							end)
+							settingsTable.anchor = "TOPLEFT"
+						end)
 						anchorTopLeft:SetPoint("LEFT", anchorLabel, "RIGHT", 10, 0)
 
-						local anchorTop = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Top",
-							function(control)
-								addon:ClearRadios(radioAnchors)
-								control:SetChecked(true)
+						local anchorTop = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Top", function(control)
+							addon:ClearRadios(radioAnchors)
+							control:SetChecked(true)
 
-								settingsTable.anchor = "TOP"
-							end)
+							settingsTable.anchor = "TOP"
+						end)
 						anchorTop:SetPoint("LEFT", anchorTopLeft, "RIGHT", 110, 0)
 
-						local anchorTopRight = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Top Right",
-							function(control)
-								addon:ClearRadios(radioAnchors)
-								control:SetChecked(true)
+						local anchorTopRight = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Top Right", function(control)
+							addon:ClearRadios(radioAnchors)
+							control:SetChecked(true)
 
-								settingsTable.anchor = "TOPRIGHT"
-							end)
+							settingsTable.anchor = "TOPRIGHT"
+						end)
 						anchorTopRight:SetPoint("LEFT", anchorTop, "RIGHT", 110, 0)
 
-						local anchorLeft = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Left",
-							function(control)
-								addon:ClearRadios(radioAnchors)
-								control:SetChecked(true)
+						local anchorLeft = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Left", function(control)
+							addon:ClearRadios(radioAnchors)
+							control:SetChecked(true)
 
-								settingsTable.anchor = "LEFT"
-							end)
-						anchorLeft:SetPoint("TOPLEFT", anchorTopLeft, "BOTTOMLEFT", 0, -10)
+							settingsTable.anchor = "LEFT"
+						end)
+						anchorLeft:SetPoint("TOPLEFT", anchorTopLeft, "BOTTOMLEFT", 0, 0)
 
-						local anchorCenter = addon:GetControlRadioButton(true, parentFrame, radioAnchors,
-							"Center",
-							function(control)
-								addon:ClearRadios(radioAnchors)
-								control:SetChecked(true)
+						local anchorCenter = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Center", function(control)
+							addon:ClearRadios(radioAnchors)
+							control:SetChecked(true)
 
-								settingsTable.anchor = "CENTER"
-							end)
+							settingsTable.anchor = "CENTER"
+						end)
 						anchorCenter:SetPoint("LEFT", anchorLeft, "RIGHT", 110, 0)
 
-						local anchorRight = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Right",
-							function(control)
-								addon:ClearRadios(radioAnchors)
-								control:SetChecked(true)
+						local anchorRight = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Right", function(control)
+							addon:ClearRadios(radioAnchors)
+							control:SetChecked(true)
 
-								settingsTable.anchor = "RIGHT"
-							end)
+							settingsTable.anchor = "RIGHT"
+						end)
 						anchorRight:SetPoint("LEFT", anchorCenter, "RIGHT", 110, 0)
 
-						local anchorBottomLeft = addon:GetControlRadioButton(true, parentFrame, radioAnchors,
-							"Bottom Left",
-							function(control)
-								addon:ClearRadios(radioAnchors)
-								control:SetChecked(true)
+						local anchorBottomLeft = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Bottom Left", function(control)
+							addon:ClearRadios(radioAnchors)
+							control:SetChecked(true)
 
-								settingsTable.anchor = "BOTTOMLEFT"
-							end)
-						anchorBottomLeft:SetPoint("TOPLEFT", anchorLeft, "BOTTOMLEFT", 0, -10)
+							settingsTable.anchor = "BOTTOMLEFT"
+						end)
+						anchorBottomLeft:SetPoint("TOPLEFT", anchorLeft, "BOTTOMLEFT", 0, 0)
 
-						local anchorBottom = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Bottom",
-							function(control)
-								addon:ClearRadios(radioAnchors)
-								control:SetChecked(true)
+						local anchorBottom = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Bottom", function(control)
+							addon:ClearRadios(radioAnchors)
+							control:SetChecked(true)
 
-								settingsTable.anchor = "BOTTOM"
-							end)
+							settingsTable.anchor = "BOTTOM"
+						end)
 						anchorBottom:SetPoint("LEFT", anchorBottomLeft, "RIGHT", 110, 0)
 
-						local anchorBottomRight = addon:GetControlRadioButton(true, parentFrame, radioAnchors,
-							"Bottom Right",
-							function(control)
-								addon:ClearRadios(radioAnchors)
-								control:SetChecked(true)
+						local anchorBottomRight = addon:GetControlRadioButton(true, parentFrame, radioAnchors, "Bottom Right", function(control)
+							addon:ClearRadios(radioAnchors)
+							control:SetChecked(true)
 
-								settingsTable.anchor = "BOTTOMRIGHT"
-							end)
+							settingsTable.anchor = "BOTTOMRIGHT"
+						end)
 						anchorBottomRight:SetPoint("LEFT", anchorBottom, "RIGHT", 110, 0)
 
 						if anchor == "TOPLEFT" then
@@ -613,11 +607,11 @@ function addon:CreateSettingsSpells(mainCategory)
 							anchorCenter:SetChecked(true)
 						end
 
-						scrollFrame:SetPoint("TOPLEFT", anchorLabel, "BOTTOMLEFT", 0, -80)
+						scrollFrame:SetPoint("TOPLEFT", anchorLabel, "BOTTOMLEFT", 0, -30)
 					else
-						scrollFrame:SetPoint("TOPLEFT", categoryLabel, "BOTTOMLEFT", 0, -10)
-						scrollFrame:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -10, 10)
+						scrollFrame:SetPoint("TOPLEFT", categoryLabel, "BOTTOMLEFT", 0, 0)
 					end
+					scrollFrame:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -10, 0)
 
 					local tableIconDetails = addon:GetIconDetails()
 
@@ -684,7 +678,7 @@ function addon:CreateSettingsSpells(mainCategory)
 		end)
 	end)
 
-	local subCategory = Settings.RegisterCanvasLayoutSubcategory(mainCategory, parentFrame, parentFrame.name);
-	Settings.RegisterAddOnCategory(subCategory);
+	local subCategory = Settings.RegisterCanvasLayoutSubcategory(mainCategory, parentFrame, parentFrame.name)
+	Settings.RegisterAddOnCategory(subCategory)
 	return subCategory:GetID()
 end
