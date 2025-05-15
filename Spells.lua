@@ -925,7 +925,7 @@ function addon:CheckLockState()
         end
     end
 
-    addon:RefreshCategoryFrames(false)
+    addon:RefreshCategoryFrames()
 end
 
 function addon:CreateIcons()
@@ -964,12 +964,8 @@ function addon:CreateIcons()
     addon:UpdateIconBinds()
 end
 
-function addon:RefreshCategoryFrames(isBags)
+function addon:RefreshCategoryFrames()
     if InCombatLockdown() then
-        addon:Debounce("RefreshCategoryFrames", 1, function()
-            addon:RefreshCategoryFrames(isBags)
-        end)
-
         return
     end
 
@@ -998,12 +994,8 @@ function addon:RefreshCategoryFrames(isBags)
             categories[name] = parentTable
         end
 
-        parentTable.hasItems = false
         parentTable.items = {}
-
-        if not isBags then
-            parentTable.spells = {}
-        end
+        parentTable.spells = {}
     end
 
     for settingName, iconFrame in pairs(iconFrames) do
@@ -1017,14 +1009,10 @@ function addon:RefreshCategoryFrames(isBags)
             if count <= 0 then
                 table.insert(categories[addon.ignored].items, iconFrame)
             else
-                categories[category].hasItems = true
-
                 table.insert(categories[category].items, iconFrame)
             end
         else
-            if not isBags then
-                table.insert(categories[category].spells, iconFrame)
-            end
+            table.insert(categories[category].spells, iconFrame)
         end
     end
 
@@ -1034,15 +1022,8 @@ function addon:RefreshCategoryFrames(isBags)
         if categories[category] then
             local parentTable = categories[category]
 
-            if isBags then
-                if parentTable.hasItems then
-                    RefreshCategoryFrame(category, parentTable, playerSpecID)
-                    addon:FrameRestore(category, parentTable.frame)
-                end
-            else
-                RefreshCategoryFrame(category, parentTable, playerSpecID)
-                addon:FrameRestore(category, parentTable.frame)
-            end
+            RefreshCategoryFrame(category, parentTable, playerSpecID)
+            addon:FrameRestore(category, parentTable.frame)
         end
     end
 end

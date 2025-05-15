@@ -30,7 +30,8 @@
     "UIDropDownMenu_SetSelectedName",
     "MAX_TOTEMS",
     "DEFAULT_CHAT_FRAME",
-    "TooltipDataProcessor"
+    "TooltipDataProcessor",
+    "NUM_BAG_SLOTS"
   ],
   "Lua.format.defaultConfig": {
     "break_all_list_when_line_exceed": "false",
