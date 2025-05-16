@@ -123,6 +123,8 @@ function addon:CreateSettingsBuffs(mainCategory)
         if not exists then
             SettingsDB.buffOverrides[newSpellID] = newBuffID
         end
+
+        addon:GetDataBuffs()
     end)
     newItemButton:SetPoint("LEFT", buffIDInput, "RIGHT", 10, 0)
 

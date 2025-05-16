@@ -71,8 +71,14 @@ local function OnEvent(self, event, ...)
 		return
 	end
 
-	if event == "ACTIVE_TALENT_GROUP_CHANGED" or event == "PLAYER_SPECIALIZATION_CHANGED" or event == "PLAYER_TALENT_UPDATE" or event == "TRAIT_CONFIG_UPDATED" then
-		if addon.isLoaded then
+	if event == "PLAYER_ENTERING_WORLD" then
+		addon.suppressTalentEvents = true
+
+		addon:Debounce("PlayerEnteringWorld", 5, function()
+			addon.suppressTalentEvents = false
+		end)
+	elseif event == "ACTIVE_TALENT_GROUP_CHANGED" or event == "PLAYER_SPECIALIZATION_CHANGED" or event == "PLAYER_TALENT_UPDATE" or event == "TRAIT_CONFIG_UPDATED" then
+		if addon.isLoaded and not addon.suppressTalentEvents then
 			addon.isLoaded = false
 
 			addon:Debounce("CreateIcons", 5, function()
@@ -163,6 +169,7 @@ end
 local f = CreateFrame("Frame")
 f:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
 f:RegisterEvent("BAG_UPDATE_DELAYED")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 f:RegisterEvent("PLAYER_TALENT_UPDATE")
 f:RegisterEvent("TRAIT_CONFIG_UPDATED")
