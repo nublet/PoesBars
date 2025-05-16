@@ -56,6 +56,10 @@ local function ClearScrollFrame()
 end
 
 local function LoadLayout(category, playerSpecID)
+	if InCombatLockdown() then
+		return
+	end
+
 	if not CategoryOrderDB[category] then
 		CategoryOrderDB[category] = {}
 	end
@@ -274,6 +278,10 @@ function addon:CreateSettingsSpells(mainCategory)
 			local info = UIDropDownMenu_CreateInfo()
 			info.text = text
 			info.func = function()
+				if InCombatLockdown() then
+					return
+				end
+
 				ClearScrollFrame()
 
 				if text == "Add New..." then

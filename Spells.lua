@@ -176,6 +176,7 @@ local function CreateIconFrame(iconDetail)
             local itemLink = item:GetItemLink()
             local itemTexture = item:GetItemIcon()
 
+            newFrame.iconID = itemTexture
             newFrame.iconName = itemName
             textureIcon:SetTexture(itemTexture)
 
@@ -200,6 +201,7 @@ local function CreateIconFrame(iconDetail)
     elseif spellID > 0 then
         local spellInfo = C_Spell.GetSpellInfo(spellID)
         if spellInfo then
+            newFrame.iconID = spellInfo.iconID
             newFrame.iconName = spellInfo.name
             textureIcon:SetTexture(spellInfo.iconID)
         else
@@ -208,6 +210,7 @@ local function CreateIconFrame(iconDetail)
                 spellInfo = C_Spell.GetSpellInfo(newSpellID)
                 if spellInfo then
                     spellID = newSpellID
+                    newFrame.iconID = spellInfo.iconID
                     newFrame.iconName = spellInfo.name
                     textureIcon:SetTexture(spellInfo.iconID)
                 end
@@ -484,7 +487,7 @@ local function RefreshCategoryFrame(category, parentTable, playerSpecID)
     end
 end
 
-local function updateIconBuff(frame, playerBuffs, spellID)
+local function updateAuraBuff(frame, playerBuffs, spellID)
     frame.textureIcon:SetDesaturated(false)
     frame.textureIcon:SetVertexColor(1, 1, 1)
 
@@ -514,12 +517,16 @@ local function updateIconBuff(frame, playerBuffs, spellID)
 
         frame.auraActive = true
         frame.textureIcon:SetVertexColor(0, 1, 0)
+
+        if frame.iconID ~= aura.icon then
+            frame.textureIcon:SetTexture(aura.icon)
+        end
     else
         frame.auraActive = false
     end
 end
 
-local function updateIconDebuff(frame, showOnCooldown, spellID, targetDebuffs)
+local function updateAuraDebuff(frame, showOnCooldown, spellID, targetDebuffs)
     if spellID <= 0 then
         return
     end
@@ -609,7 +616,7 @@ local function updateIconDebuff(frame, showOnCooldown, spellID, targetDebuffs)
     end
 end
 
-local function updateIconTotem(frame, playerTotems, spellID)
+local function updateAuraTotem(frame, playerTotems, spellID)
     if spellID <= 0 then
         return
     end
@@ -629,6 +636,10 @@ local function updateIconTotem(frame, playerTotems, spellID)
 
         frame.auraActive = true
         frame.textureIcon:SetVertexColor(0, 1, 0)
+
+        if frame.iconID ~= totem.icon then
+            frame.textureIcon:SetTexture(totem.icon)
+        end
     else
         frame.auraActive = false
     end
@@ -660,7 +671,7 @@ local function updateIconItem(category, frame, playerBuffs)
         frame:SetAlpha(1.0)
     end
 
-    updateIconBuff(frame, playerBuffs, spellID)
+    updateAuraBuff(frame, playerBuffs, spellID)
 
     if CheckFrameGlowAura(frame, glowWhenAuraActive, showOnCooldown) then
         return
@@ -726,14 +737,14 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, player
     local spellCharges = C_Spell.GetSpellCharges(currentSpellID)
 
     if frame.isHarmful and frame.spellCooldown <= 0 then
-        updateIconDebuff(frame, showOnCooldown, currentSpellID, targetDebuffs)
+        updateAuraDebuff(frame, showOnCooldown, currentSpellID, targetDebuffs)
 
         if frame.auraActive then
             return
         end
 
         if frameSpellID ~= currentSpellID then
-            updateIconDebuff(frame, showOnCooldown, frameSpellID, targetDebuffs)
+            updateAuraDebuff(frame, showOnCooldown, frameSpellID, targetDebuffs)
 
             if frame.auraActive then
                 return
@@ -761,7 +772,7 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, player
                 end
             end
         else
-            updateIconBuff(frame, playerBuffs, currentSpellID)
+            updateAuraBuff(frame, playerBuffs, currentSpellID)
 
             if CheckFrameGlowAura(frame, glowWhenAuraActive, showOnCooldown) then
                 frame:SetAlpha(1.0)
@@ -770,7 +781,7 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, player
             end
 
             if frameSpellID ~= currentSpellID then
-                updateIconBuff(frame, playerBuffs, frameSpellID)
+                updateAuraBuff(frame, playerBuffs, frameSpellID)
 
                 if CheckFrameGlowAura(frame, glowWhenAuraActive, showOnCooldown) then
                     frame:SetAlpha(1.0)
@@ -779,7 +790,7 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, player
                 end
             end
 
-            updateIconTotem(frame, playerTotems, currentSpellID)
+            updateAuraBuff(frame, playerTotems, currentSpellID)
 
             if CheckFrameGlowAura(frame, glowWhenAuraActive, showOnCooldown) then
                 frame:SetAlpha(1.0)
@@ -788,7 +799,7 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, player
             end
 
             if frameSpellID ~= currentSpellID then
-                updateIconTotem(frame, playerTotems, frameSpellID)
+                updateAuraTotem(frame, playerTotems, frameSpellID)
 
                 if CheckFrameGlowAura(frame, glowWhenAuraActive, showOnCooldown) then
                     frame:SetAlpha(1.0)
@@ -800,12 +811,16 @@ local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, player
             frame.textBinding:Show()
             frame.textCooldown:SetText("")
 
-            if currentSpellID ~= frame.currentSpellID then
+            if currentSpellID == frame.currentSpellID then
+                frame.textureIcon:SetTexture(frame.iconID)
+            else
                 frame.currentSpellID = currentSpellID
 
                 local spellInfo = C_Spell.GetSpellInfo(currentSpellID)
                 if spellInfo then
-                    frame.textureIcon:SetTexture(spellInfo.iconID)
+                    if frame.iconID ~= spellInfo.iconID then
+                        frame.textureIcon:SetTexture(spellInfo.iconID)
+                    end
                 end
 
                 if glowWhenOverridden and currentSpellID ~= frameSpellID then
@@ -1101,8 +1116,7 @@ function addon:UpdateIconState()
                         totemName = totemName,
                         startTime = startTime,
                         duration = duration,
-                        icon =
-                            icon,
+                        icon = icon,
                         modRate = modRate,
                         spellID = spellID
                     })
