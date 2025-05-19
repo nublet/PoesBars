@@ -307,25 +307,10 @@ function addon:CreateSettingsSpells(mainCategory)
 
 					UIDropDownMenu_SetSelectedName(categoryDropdown, category)
 
-					if category ~= addon.ignored and category ~= addon.unknown then
-						local settingsTable = SettingsDB[category] or {}
-
-						local anchor = settingsTable.anchor or "CENTER"
-						local displayWhen = settingsTable.displayWhen or "Always"
-						local glowWhenAuraActive = settingsTable.glowWhenAuraActive or false
-						local glowWhenOverridden = settingsTable.glowWhenOverridden or false
-						local iconSize = settingsTable.iconSize or 64
-						local iconSpacing = settingsTable.iconSpacing or 2
-						local isClickable = settingsTable.isClickable or false
-						local isVertical = settingsTable.isVertical or false
-						local showOnCooldown = settingsTable.showOnCooldown or false
-						local showWhenAvailable = settingsTable.showWhenAvailable or false
-						local wrapAfter = settingsTable.wrapAfter or 0
-						local x = settingsTable.x or 0
-						local y = settingsTable.y or 0
-
-						x = math.floor(x + 0.5)
-						y = math.floor(y + 0.5)
+					if category == addon.ignored or category == addon.unknown then
+						scrollFrame:SetPoint("TOPLEFT", categoryLabel, "BOTTOMLEFT", 0, 0)
+					else
+						local settingsTable = addon:GetSettingsTable(category)
 
 						local categoryDelete = addon:GetControlButton(true, "Delete", parentFrame, 60, function(control)
 							if category == "" or category == addon.ignored or category == "Add New..." or category == addon.unknown then
@@ -371,11 +356,11 @@ function addon:CreateSettingsSpells(mainCategory)
 						end)
 						displayOutOfCombat:SetPoint("LEFT", displayInCombat, "RIGHT", 70, 0)
 
-						if displayWhen == "" or displayWhen == "Always" then
+						if settingsTable.displayWhen == "" or settingsTable.displayWhen == "Always" then
 							displayAlways:SetChecked(true)
 							displayInCombat:SetChecked(false)
 							displayOutOfCombat:SetChecked(false)
-						elseif displayWhen == "In Combat" then
+						elseif settingsTable.displayWhen == "In Combat" then
 							displayAlways:SetChecked(false)
 							displayInCombat:SetChecked(true)
 							displayOutOfCombat:SetChecked(false)
@@ -389,17 +374,27 @@ function addon:CreateSettingsSpells(mainCategory)
 							settingsTable.isClickable = control:GetChecked()
 						end)
 						isClickableCheckbox:SetPoint("TOPLEFT", displayLabel, "BOTTOMLEFT", 0, 0)
-						if isClickable then
+						if settingsTable.isClickable then
 							isClickableCheckbox:SetChecked(true)
 						else
 							isClickableCheckbox:SetChecked(false)
 						end
 
+						local colorBasedOnStateCheckbox = addon:GetControlCheckbox(true, "Color Based on State", parentFrame, function(control)
+							settingsTable.colorBasedOnState = control:GetChecked()
+						end)
+						colorBasedOnStateCheckbox:SetPoint("LEFT", isClickableCheckbox, "RIGHT", 215, 0)
+						if settingsTable.colorBasedOnState then
+							colorBasedOnStateCheckbox:SetChecked(true)
+						else
+							colorBasedOnStateCheckbox:SetChecked(false)
+						end
+
 						local glowWhenAuraActiveCheckbox = addon:GetControlCheckbox(true, "Glow When Aura Active", parentFrame, function(control)
 							settingsTable.glowWhenAuraActive = control:GetChecked()
 						end)
-						glowWhenAuraActiveCheckbox:SetPoint("LEFT", isClickableCheckbox, "RIGHT", 100, 0)
-						if glowWhenAuraActive then
+						glowWhenAuraActiveCheckbox:SetPoint("TOPLEFT", isClickableCheckbox, "BOTTOMLEFT", 0, 0)
+						if settingsTable.glowWhenAuraActive then
 							glowWhenAuraActiveCheckbox:SetChecked(true)
 						else
 							glowWhenAuraActiveCheckbox:SetChecked(false)
@@ -408,16 +403,16 @@ function addon:CreateSettingsSpells(mainCategory)
 						local glowWhenOverriddenCheckbox = addon:GetControlCheckbox(true, "Glow When Overridden ", parentFrame, function(control)
 							settingsTable.glowWhenOverridden = control:GetChecked()
 						end)
-						glowWhenOverriddenCheckbox:SetPoint("LEFT", glowWhenAuraActiveCheckbox, "RIGHT", 150, 0)
-						if glowWhenOverridden then
+						glowWhenOverriddenCheckbox:SetPoint("LEFT", glowWhenAuraActiveCheckbox, "RIGHT", 215, 0)
+						if settingsTable.glowWhenOverridden then
 							glowWhenOverriddenCheckbox:SetChecked(true)
 						else
 							glowWhenOverriddenCheckbox:SetChecked(false)
 						end
 
 						local showOnCooldownCheckbox = addon:GetControlCheckbox(true, "Only Show On Cooldown or Aura Active", parentFrame)
-						showOnCooldownCheckbox:SetPoint("TOPLEFT", isClickableCheckbox, "BOTTOMLEFT", 0, 0)
-						if showOnCooldown then
+						showOnCooldownCheckbox:SetPoint("TOPLEFT", glowWhenAuraActiveCheckbox, "BOTTOMLEFT", 0, 0)
+						if settingsTable.showOnCooldown then
 							showOnCooldownCheckbox:SetChecked(true)
 						else
 							showOnCooldownCheckbox:SetChecked(false)
@@ -425,10 +420,10 @@ function addon:CreateSettingsSpells(mainCategory)
 
 						local showWhenAvailableCheckbox = addon:GetControlCheckbox(true, "Only Show When Available", parentFrame)
 						showWhenAvailableCheckbox:SetPoint("LEFT", showOnCooldownCheckbox, "RIGHT", 215, 0)
-						if showWhenAvailable then
-							showOnCooldownCheckbox:SetChecked(true)
+						if settingsTable.showWhenAvailable then
+							showWhenAvailableCheckbox:SetChecked(true)
 						else
-							showOnCooldownCheckbox:SetChecked(false)
+							showWhenAvailableCheckbox:SetChecked(false)
 						end
 
 						showOnCooldownCheckbox:SetScript("OnClick", function(control)
@@ -455,7 +450,7 @@ function addon:CreateSettingsSpells(mainCategory)
 						end)
 						iconSizeInput:SetNumeric(true)
 						iconSizeInput:SetPoint("LEFT", iconSizeLabel, "RIGHT", 10, 0)
-						iconSizeInput:SetText(iconSize)
+						iconSizeInput:SetText(settingsTable.iconSize)
 
 						local positionXLabel = addon:GetControlLabel(true, parentFrame, "X:", 30)
 						positionXLabel:SetPoint("LEFT", iconSizeInput, "RIGHT", 10, 0)
@@ -464,7 +459,7 @@ function addon:CreateSettingsSpells(mainCategory)
 							settingsTable.x = addon:GetValueNumber(control:GetText())
 						end)
 						positionXInput:SetPoint("LEFT", positionXLabel, "RIGHT", 10, 0)
-						positionXInput:SetText(x)
+						positionXInput:SetText(settingsTable.x)
 
 						local iconSpacingLabel = addon:GetControlLabel(true, parentFrame, "Icon Gap:", 100)
 						iconSpacingLabel:SetPoint("TOPLEFT", iconSizeLabel, "BOTTOMLEFT", 0, 0)
@@ -473,7 +468,7 @@ function addon:CreateSettingsSpells(mainCategory)
 							settingsTable.iconSpacing = addon:GetValueNumber(control:GetText())
 						end)
 						iconSpacingInput:SetPoint("LEFT", iconSpacingLabel, "RIGHT", 10, 0)
-						iconSpacingInput:SetText(iconSpacing)
+						iconSpacingInput:SetText(settingsTable.iconSpacing)
 
 						local positionYLabel = addon:GetControlLabel(true, parentFrame, "Y:", 30)
 						positionYLabel:SetPoint("LEFT", iconSpacingInput, "RIGHT", 10, 0)
@@ -482,7 +477,7 @@ function addon:CreateSettingsSpells(mainCategory)
 							settingsTable.y = addon:GetValueNumber(control:GetText())
 						end)
 						positionYInput:SetPoint("LEFT", positionYLabel, "RIGHT", 10, 0)
-						positionYInput:SetText(y)
+						positionYInput:SetText(settingsTable.y)
 
 						local wrapAfterLabel = addon:GetControlLabel(true, parentFrame, "Wrap After:", 100)
 						wrapAfterLabel:SetPoint("TOPLEFT", iconSpacingLabel, "BOTTOMLEFT", 0, 0)
@@ -491,7 +486,7 @@ function addon:CreateSettingsSpells(mainCategory)
 							settingsTable.wrapAfter = addon:GetValueNumber(control:GetText())
 						end)
 						wrapAfterInput:SetPoint("LEFT", wrapAfterLabel, "RIGHT", 10, 0)
-						wrapAfterInput:SetText(wrapAfter)
+						wrapAfterInput:SetText(settingsTable.wrapAfter)
 
 						local orientationLabel = addon:GetControlLabel(true, parentFrame, "Orientation:", 100)
 						orientationLabel:SetPoint("TOPLEFT", wrapAfterLabel, "BOTTOMLEFT", 0, 0)
@@ -512,7 +507,7 @@ function addon:CreateSettingsSpells(mainCategory)
 						end)
 						orientationVertical:SetPoint("LEFT", orientationHorizontal, "RIGHT", 110, 0)
 
-						if isVertical then
+						if settingsTable.isVertical then
 							orientationHorizontal:SetChecked(false)
 							orientationVertical:SetChecked(true)
 						else
@@ -595,29 +590,27 @@ function addon:CreateSettingsSpells(mainCategory)
 						end)
 						anchorBottomRight:SetPoint("LEFT", anchorBottom, "RIGHT", 110, 0)
 
-						if anchor == "TOPLEFT" then
+						if settingsTable.anchor == "TOPLEFT" then
 							anchorTopLeft:SetChecked(true)
-						elseif anchor == "TOPRIGHT" then
+						elseif settingsTable.anchor == "TOPRIGHT" then
 							anchorTopRight:SetChecked(true)
-						elseif anchor == "TOP" then
+						elseif settingsTable.anchor == "TOP" then
 							anchorTop:SetChecked(true)
-						elseif anchor == "BOTTOMLEFT" then
+						elseif settingsTable.anchor == "BOTTOMLEFT" then
 							anchorBottomLeft:SetChecked(true)
-						elseif anchor == "BOTTOMRIGHT" then
+						elseif settingsTable.anchor == "BOTTOMRIGHT" then
 							anchorBottomRight:SetChecked(true)
-						elseif anchor == "BOTTOM" then
+						elseif settingsTable.anchor == "BOTTOM" then
 							anchorBottom:SetChecked(true)
-						elseif anchor == "LEFT" then
+						elseif settingsTable.anchor == "LEFT" then
 							anchorLeft:SetChecked(true)
-						elseif anchor == "RIGHT" then
+						elseif settingsTable.anchor == "RIGHT" then
 							anchorRight:SetChecked(true)
 						else
 							anchorCenter:SetChecked(true)
 						end
 
 						scrollFrame:SetPoint("TOPLEFT", anchorLabel, "BOTTOMLEFT", 0, -30)
-					else
-						scrollFrame:SetPoint("TOPLEFT", categoryLabel, "BOTTOMLEFT", 0, 0)
 					end
 					scrollFrame:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -10, 0)
 

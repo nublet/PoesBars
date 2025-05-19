@@ -6,35 +6,6 @@ local iconFrames = {}
 local LSM = LibStub("LibSharedMedia-3.0")
 local font = LSM:Fetch("font", "Naowh") or "Fonts\\FRIZQT__.TTF"
 
-local function CheckFrameGlowAura(frame, glowWhenAuraActive, showOnCooldown)
-    if glowWhenAuraActive then
-        if frame.auraActive then
-            if showOnCooldown then
-                if frame.glowActive then
-                    ActionButton_HideOverlayGlow(frame)
-                    frame.glowActive = false
-                end
-            else
-                if not frame.glowActive then
-                    ActionButton_ShowOverlayGlow(frame)
-                    frame.glowActive = true
-                end
-            end
-        end
-    else
-        if frame.glowActive then
-            ActionButton_HideOverlayGlow(frame)
-            frame.glowActive = false
-        end
-    end
-
-    if frame.auraActive then
-        return true
-    end
-
-    return false
-end
-
 local function CreateIconFrame(iconDetail)
     local itemID = iconDetail.itemID or -1
     local specID = iconDetail.specID or -1
@@ -293,6 +264,89 @@ local function GetTotem(playerTotems, spellID, spellName)
     return nil
 end
 
+local function IsAuraActiveBuff(frame, playerBuffs, spellID)
+    if spellID <= 0 then
+        return
+    end
+
+    local aura = GetAura(playerBuffs, spellID, frame.iconName)
+
+    if aura then
+        if aura.applications and aura.applications > 0 then
+            frame.auraStacks = aura.applications
+        elseif aura.charges and aura.charges > 0 then
+            frame.auraStacks = aura.charges
+        end
+
+        if aura.expirationTime <= 0 then
+            frame.auraIcon = aura.icon or -1
+            return true
+        else
+            local remaining = aura.expirationTime - GetTime()
+
+            if remaining > 0 then
+                frame.auraIcon = aura.icon or -1
+                frame.auraRemaining = remaining
+
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+local function IsAuraActiveDebuff(frame, spellID, targetDebuffs)
+    if spellID <= 0 then
+        return
+    end
+
+    local aura = GetAura(targetDebuffs, spellID, frame.iconName)
+
+    if aura then
+        if aura.applications and aura.applications > 0 then
+            frame.auraStacks = aura.applications
+        elseif aura.charges and aura.charges > 0 then
+            frame.auraStacks = aura.charges
+        end
+
+        if aura.expirationTime <= 0 then
+            frame.auraIcon = aura.icon or -1
+            return true
+        else
+            local remaining = aura.expirationTime - GetTime()
+
+            if remaining > 0 then
+                frame.auraIcon = aura.icon or -1
+                frame.auraRemaining = remaining
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+local function IsAuraActiveTotem(frame, playerTotems, spellID)
+    if spellID <= 0 then
+        return
+    end
+
+    local totem = GetTotem(playerTotems, spellID, frame.iconName)
+
+    if totem then
+        local remaining = (totem.startTime + totem.duration) - GetTime()
+
+        if remaining > 0 then
+            frame.auraIcon = totem.icon or -1
+            frame.auraRemaining = remaining
+            return true
+        end
+    end
+
+    return false
+end
+
 local function RefreshCategoryFrame(category, parentTable, playerSpecID)
     if not category then
         return
@@ -487,211 +541,91 @@ local function RefreshCategoryFrame(category, parentTable, playerSpecID)
     end
 end
 
-local function updateAuraBuff(frame, playerBuffs, spellID)
-    frame.textureIcon:SetDesaturated(false)
-    frame.textureIcon:SetVertexColor(1, 1, 1)
+local function updateIconItem(frame, gcdCooldown, playerBuffs, playerTotems, settingsTable, targetDebuffs)
+    frame.itemID = frame.itemID or -1
+    frame.spellID = frame.spellID or -1
 
-    if spellID <= 0 then
+    local count = C_Item.GetItemCount(frame.itemID, false, true, false, false)
+    if count > 0 then
+        frame.textCharges:SetText(count)
+    else
+        frame:SetAlpha(0.0)
         return
     end
 
-    local aura = GetAura(playerBuffs, SettingsDB.buffOverrides[spellID] or spellID, frame.iconName)
+    local isAuraActive = false
 
-    if aura then
-        local remaining = aura.expirationTime - GetTime()
-
-        if aura.applications and aura.applications > 0 then
-            frame.textCharges:SetText(aura.applications)
-        elseif aura.charges and aura.charges > 0 then
-            frame.textCharges:SetText(aura.charges)
-        else
-            frame.textCharges:SetText("")
+    if frame.spellID > 0 then
+        if IsAuraActiveBuff(frame, playerBuffs, frame.spellID) then
+            isAuraActive = true
+        elseif IsAuraActiveTotem(frame, playerTotems, frame.spellID) then
+            isAuraActive = true
+        elseif frame.spellCooldown <= 0 and IsAuraActiveDebuff(frame, frame.spellID, targetDebuffs) then
+            isAuraActive = true
         end
+    end
 
-        if remaining > 0 then
-            frame.textCooldown:SetText(string.format("%d", remaining))
+    if isAuraActive then
+        if frame.auraRemaining > 0 then
+            frame.textCooldown:SetText(string.format("%d", frame.auraRemaining))
             frame.textCooldown:SetTextColor(0, 1, 0, 1)
         else
             frame.textCooldown:SetText("")
         end
 
-        frame.auraActive = true
-        frame.textureIcon:SetVertexColor(0, 1, 0)
-
-        if frame.iconID ~= aura.icon then
-            frame.textureIcon:SetTexture(aura.icon)
-        end
-    else
-        frame.auraActive = false
-    end
-end
-
-local function updateAuraDebuff(frame, showOnCooldown, spellID, targetDebuffs)
-    if spellID <= 0 then
-        return
-    end
-
-    local aura = GetAura(targetDebuffs, spellID, frame.iconName)
-
-    if aura then
-        if aura.applications and aura.applications > 0 then
-            frame.textCharges:SetText(aura.applications)
-        elseif aura.charges and aura.charges > 0 then
-            frame.textCharges:SetText(aura.charges)
+        if frame.auraStacks > 0 then
+            frame.textCharges:SetText(frame.auraStacks)
         else
             frame.textCharges:SetText("")
         end
 
-        if aura.expirationTime <= 0 then
-            if showOnCooldown then
-                frame:SetAlpha(0.0)
-            end
-
-            frame.auraActive = true
-            frame.frameBorder:Hide()
-            frame.textureIcon:SetDesaturated(false)
-        else
-            local remaining = aura.expirationTime - GetTime()
-
-            if remaining > 0 then
-                frame.textCooldown:SetText(string.format("%d", remaining))
-                frame.textCooldown:SetTextColor(0, 1, 0, 1)
-
-                if remaining <= 5 then
-                    if showOnCooldown then
-                        frame:SetAlpha(1.0)
-                    end
-
-                    if not frame.glowActive then
-                        ActionButton_ShowOverlayGlow(frame)
-                        frame.glowActive = true
-                    end
-                elseif frame.glowActive then
-                    ActionButton_HideOverlayGlow(frame)
-                    frame.glowActive = false
-
-                    if showOnCooldown then
-                        frame:SetAlpha(0.0)
-                    end
-                else
-                    if showOnCooldown then
-                        frame:SetAlpha(0.0)
-                    end
-                end
-
-                frame.auraActive = true
-                frame.frameBorder:Hide()
-                frame.textureIcon:SetDesaturated(false)
-            else
-                if showOnCooldown then
-                    frame:SetAlpha(1.0)
-                end
-
-                if frame.glowActive then
-                    ActionButton_HideOverlayGlow(frame)
-                    frame.glowActive = false
-                end
-
-                frame.auraActive = false
-                frame.frameBorder:Show()
-                frame.textCooldown:SetText("")
-                frame.textureIcon:SetDesaturated(true)
-            end
+        if frame.auraIcon > 0 and frame.currentIcon ~= frame.auraIcon then
+            frame.currentIcon = frame.auraIcon
+            frame.textureIcon:SetTexture(frame.auraIcon)
         end
-    else
-        if showOnCooldown then
+
+        frame.frameBorder:Hide()
+        frame.textureIcon:SetDesaturated(false)
+
+        if settingsTable.colorBasedOnState then
+            frame.textureIcon:SetVertexColor(0, 1, 0)
+        end
+
+        if settingsTable.glowWhenAuraActive and not frame.isGlowActive then
+            ActionButton_ShowOverlayGlow(frame)
+            frame.isGlowActive = true
+        end
+
+        if settingsTable.showOnCooldown then
+            if frame.isHarmful then
+                if frame.auraRemaining >= 0 and frame.auraRemaining <= 5 then
+                    frame:SetAlpha(1.0)
+                else
+                    frame:SetAlpha(0.0)
+                end
+            else
+                frame:SetAlpha(1.0)
+            end
+        else
             frame:SetAlpha(1.0)
         end
 
-        if frame.glowActive then
-            ActionButton_HideOverlayGlow(frame)
-            frame.glowActive = false
-        end
-
-        frame.auraActive = false
-        frame.frameBorder:Show()
-        frame.textCharges:SetText("")
-        frame.textCooldown:SetText("")
-        frame.textureIcon:SetDesaturated(true)
-    end
-end
-
-local function updateAuraTotem(frame, playerTotems, spellID)
-    if spellID <= 0 then
         return
     end
 
-    local totem = GetTotem(playerTotems, SettingsDB.buffOverrides[spellID] or spellID, frame.iconName)
-
-    if totem then
-        local remaining = (totem.startTime + totem.duration) - GetTime()
-        frame.textCharges:SetText("")
-
-        if remaining > 0 then
-            frame.textCooldown:SetText(string.format("%d", remaining))
-            frame.textCooldown:SetTextColor(0, 1, 0, 1)
-        else
-            frame.textCooldown:SetText("")
-        end
-
-        frame.auraActive = true
-        frame.textureIcon:SetVertexColor(0, 1, 0)
-
-        if frame.iconID ~= totem.icon then
-            frame.textureIcon:SetTexture(totem.icon)
-        end
-    else
-        frame.auraActive = false
-    end
-end
-
-local function updateIconItem(category, frame, playerBuffs)
-    frame.frameBorder:Hide()
-
-    if category == addon.ignored or category == addon.unknown then
-        return
+    if settingsTable.colorBasedOnState then
+        frame.textureIcon:SetVertexColor(1, 1, 1)
     end
 
-    local settingsTable = SettingsDB[category] or {}
+    local isGlowActive = false
+    local isOnCooldown = false
+    local isVisible = false
 
-    local glowWhenAuraActive = settingsTable.glowWhenAuraActive or true
-    local itemID = frame.itemID or 0
-    local showOnCooldown = settingsTable.showOnCooldown or false
-    local spellID = frame.spellID or 0
-
-    local count = C_Item.GetItemCount(itemID, false, true, false, false)
-    if count <= 0 then
-        frame:SetAlpha(0.0)
-        return
-    end
-
-    if showOnCooldown then
-        frame:SetAlpha(0.0)
-    else
-        frame:SetAlpha(1.0)
-    end
-
-    updateAuraBuff(frame, playerBuffs, spellID)
-
-    if CheckFrameGlowAura(frame, glowWhenAuraActive, showOnCooldown) then
-        return
-    end
-
-    if frame.glowActive then
-        ActionButton_HideOverlayGlow(frame)
-        frame.glowActive = false
-    end
-
-    local startTime, duration, enable = C_Container.GetItemCooldown(itemID)
+    local startTime, duration, enable = C_Container.GetItemCooldown(frame.itemID)
     if enable == 1 and duration > 2 then
         local remaining = (startTime + duration) - GetTime()
 
         if remaining > 0 then
-            frame.frameBorder:Show()
-            frame.textBinding:Hide()
-            frame.textureIcon:SetDesaturated(true)
-            frame:SetAlpha(1.0)
-
             if remaining < 90 then
                 frame.textCooldown:SetText(string.format("%d", remaining))
                 frame.textCooldown:SetTextColor(1, 0, 0, 1)
@@ -699,213 +633,282 @@ local function updateIconItem(category, frame, playerBuffs)
                 frame.textCooldown:SetText("")
             end
 
+            if settingsTable.showOnCooldown then
+                isVisible = true
+            end
+
+            isOnCooldown = true
+        end
+    else
+        if settingsTable.showWhenAvailable then
+            isVisible = true
+        end
+    end
+
+    if isVisible then
+        frame:SetAlpha(1.0)
+
+        if isOnCooldown then
+            frame.frameBorder:Show()
+            frame.textBinding:Hide()
             frame.textureIcon:SetDesaturated(true)
-            frame.textureIcon:SetVertexColor(1, 0, 0)
+        else
+            frame.frameBorder:Hide()
+            frame.textBinding:Show()
+            frame.textCooldown:SetText("")
+
+            frame.textureIcon:SetDesaturated(false)
+        end
+
+        if isGlowActive and not frame.glowActive then
+            ActionButton_ShowOverlayGlow(frame)
+            frame.glowActive = true
+        end
+
+        if not isGlowActive and frame.glowActive then
+            ActionButton_HideOverlayGlow(frame)
+            frame.glowActive = false
+        end
+    else
+        frame:SetAlpha(0.0)
+    end
+end
+
+local function updateIconSpell(frame, gcdCooldown, playerBuffs, playerTotems, settingsTable, targetDebuffs)
+    frame.auraIcon = -1
+    frame.auraRemaining = -1
+    frame.auraStacks = -1
+    frame.spellID = frame.spellID or -1
+
+    local buffOverrideSpellID = SettingsDB.buffOverrides[frame.spellID] or frame.spellID
+    local isAuraActive = false
+    local overrideSpellID = C_Spell.GetOverrideSpell(frame.spellID) or frame.spellID
+
+    if IsAuraActiveBuff(frame, playerBuffs, frame.spellID) then
+        isAuraActive = true
+    elseif IsAuraActiveTotem(frame, playerTotems, frame.spellID) then
+        isAuraActive = true
+    elseif frame.spellCooldown <= 0 and IsAuraActiveDebuff(frame, frame.spellID, targetDebuffs) then
+        isAuraActive = true
+    end
+
+    if not isAuraActive and frame.spellID ~= buffOverrideSpellID then
+        if IsAuraActiveBuff(frame, playerBuffs, buffOverrideSpellID) then
+            isAuraActive = true
+        elseif IsAuraActiveTotem(frame, playerTotems, buffOverrideSpellID) then
+            isAuraActive = true
+        elseif frame.spellCooldown <= 0 and IsAuraActiveDebuff(frame, buffOverrideSpellID, targetDebuffs) then
+            isAuraActive = true
+        end
+    end
+
+    if not isAuraActive and frame.spellID ~= overrideSpellID then
+        if IsAuraActiveBuff(frame, playerBuffs, overrideSpellID) then
+            isAuraActive = true
+        elseif IsAuraActiveTotem(frame, playerTotems, overrideSpellID) then
+            isAuraActive = true
+        elseif frame.spellCooldown <= 0 and IsAuraActiveDebuff(frame, overrideSpellID, targetDebuffs) then
+            isAuraActive = true
+        end
+    end
+
+    if isAuraActive then
+        if frame.auraRemaining > 0 then
+            frame.textCooldown:SetText(string.format("%d", frame.auraRemaining))
+            frame.textCooldown:SetTextColor(0, 1, 0, 1)
         else
             frame.textCooldown:SetText("")
         end
-    else
-        frame.textCooldown:SetText("")
-    end
 
-    frame.textCharges:SetText(count)
-end
-
-local function updateIconSpell(category, frame, gcdCooldown, playerBuffs, playerTotems, targetDebuffs)
-    frame.frameBorder:Hide()
-
-    if category == addon.ignored or category == addon.unknown then
-        return
-    end
-
-    local frameSpellID = frame.spellID or 0
-    local currentSpellID = C_Spell.GetOverrideSpell(frameSpellID) or frameSpellID
-
-    if C_Spell.IsSpellDisabled(currentSpellID) then
-        frame:SetAlpha(0.0)
-        return
-    end
-
-    local settingsTable = SettingsDB[category] or {}
-
-    local glowActive = false
-    local glowWhenAuraActive = settingsTable.glowWhenAuraActive or false
-    local glowWhenOverridden = settingsTable.glowWhenOverridden or false
-    local isUsable, insufficientPower = C_Spell.IsSpellUsable(currentSpellID)
-    local showOnCooldown = settingsTable.showOnCooldown or false
-    local showWhenAvailable = settingsTable.showWhenAvailable or false
-    local spellCharges = C_Spell.GetSpellCharges(currentSpellID)
-
-    if frame.isHarmful and frame.spellCooldown <= 0 then
-        updateAuraDebuff(frame, showOnCooldown, currentSpellID, targetDebuffs)
-
-        if frame.auraActive then
-            return
+        if frame.auraStacks > 0 then
+            frame.textCharges:SetText(frame.auraStacks)
+        else
+            frame.textCharges:SetText("")
         end
 
-        if frameSpellID ~= currentSpellID then
-            updateAuraDebuff(frame, showOnCooldown, frameSpellID, targetDebuffs)
+        if frame.auraIcon > 0 and frame.currentIcon ~= frame.auraIcon then
+            frame.currentIcon = frame.auraIcon
+            frame.textureIcon:SetTexture(frame.auraIcon)
+        end
 
-            if frame.auraActive then
-                return
+        frame.frameBorder:Hide()
+        frame.textureIcon:SetDesaturated(false)
+
+        if settingsTable.colorBasedOnState then
+            frame.textureIcon:SetVertexColor(0, 1, 0)
+        end
+
+        if settingsTable.glowWhenAuraActive and not frame.isGlowActive then
+            ActionButton_ShowOverlayGlow(frame)
+            frame.isGlowActive = true
+        end
+
+        if settingsTable.showOnCooldown then
+            if frame.isHarmful then
+                if frame.auraRemaining >= 0 and frame.auraRemaining <= 5 then
+                    frame:SetAlpha(1.0)
+                else
+                    frame:SetAlpha(0.0)
+                end
+            else
+                frame:SetAlpha(1.0)
             end
-        end
-    else
-        if showOnCooldown or showWhenAvailable then
-            frame:SetAlpha(0.0)
         else
             frame:SetAlpha(1.0)
         end
 
-        if showWhenAvailable then
-            if spellCharges and spellCharges.maxCharges > 1 then
-                frame.textCharges:SetText(spellCharges.currentCharges)
+        return
+    else
+        if frame.isHarmful and frame.spellCooldown <= 0 then
+            frame.frameBorder:Hide()
+            frame:SetAlpha(1.0)
+            frame.textCooldown:SetText("")
+            frame.textureIcon:SetDesaturated(true)
 
-                if spellCharges.currentCharges > 0 then
-                    frame:SetAlpha(1.0)
-                end
-            else
-                local spellCooldown = C_Spell.GetSpellCooldown(currentSpellID)
-                if spellCooldown.isEnabled and spellCooldown.duration > 2 then
-                else
-                    frame:SetAlpha(1.0)
-                end
+            if settingsTable.glowWhenAuraActive and frame.isGlowActive then
+                ActionButton_HideOverlayGlow(frame)
+                frame.isGlowActive = false
+            end
+
+            return
+        end
+    end
+
+    local isSpellDisabled = C_Spell.IsSpellDisabled(overrideSpellID)
+
+    if isSpellDisabled then
+        frame:SetAlpha(0.0)
+        return
+    end
+
+    local isGlowActive = false
+    local isOnCooldown = false
+    local isSpellUsable, inSufficientPower = C_Spell.IsSpellUsable(overrideSpellID)
+    local isVisible = false
+    local spellCharges = C_Spell.GetSpellCharges(overrideSpellID)
+    local spellCooldown = C_Spell.GetSpellCooldown(overrideSpellID)
+
+    frame.textureIcon:SetDesaturated(false)
+    frame.textureIcon:SetVertexColor(1, 1, 1)
+
+    if not settingsTable.showOnCooldown and not settingsTable.showWhenAvailable then
+        isVisible = true
+    end
+
+    if frame.spellID == overrideSpellID then
+        if frame.currentIcon ~= frame.iconID then
+            frame.currentIcon = frame.iconID
+            frame.textureIcon:SetTexture(frame.iconID)
+        end
+    else
+        local spellInfo = C_Spell.GetSpellInfo(overrideSpellID)
+        if spellInfo then
+            if frame.currentIcon ~= spellInfo.iconID then
+                frame.currentIcon = spellInfo.iconID
+                frame.textureIcon:SetTexture(spellInfo.iconID)
+            end
+        end
+
+        if settingsTable.glowWhenOverridden then
+            isGlowActive = true
+        end
+    end
+
+    if spellCharges and spellCharges.maxCharges > 1 then
+        frame.textCharges:SetText(spellCharges.currentCharges)
+
+        if spellCharges.currentCharges > 0 then
+            if settingsTable.showWhenAvailable then
+                isVisible = true
+            end
+
+            if isVisible and spellCharges.currentCharges < spellCharges.maxCharges then
+                frame.frameBorder:Show()
             end
         else
-            updateAuraBuff(frame, playerBuffs, currentSpellID)
+            if spellCharges.cooldownStartTime and spellCharges.cooldownDuration and spellCharges.cooldownDuration > 2 then
+                local remaining = (spellCharges.cooldownStartTime + spellCharges.cooldownDuration) - GetTime()
+                if remaining > 0 then
+                    if remaining < 90 then
+                        frame.textCooldown:SetText(string.format("%d", remaining))
+                        frame.textCooldown:SetTextColor(1, 0, 0, 1)
+                    else
+                        frame.textCooldown:SetText("")
+                    end
 
-            if CheckFrameGlowAura(frame, glowWhenAuraActive, showOnCooldown) then
-                frame:SetAlpha(1.0)
+                    if settingsTable.showOnCooldown then
+                        isVisible = true
+                    end
 
-                return
-            end
-
-            if frameSpellID ~= currentSpellID then
-                updateAuraBuff(frame, playerBuffs, frameSpellID)
-
-                if CheckFrameGlowAura(frame, glowWhenAuraActive, showOnCooldown) then
-                    frame:SetAlpha(1.0)
-
-                    return
+                    isOnCooldown = true
                 end
             end
-
-            updateAuraBuff(frame, playerTotems, currentSpellID)
-
-            if CheckFrameGlowAura(frame, glowWhenAuraActive, showOnCooldown) then
-                frame:SetAlpha(1.0)
-
-                return
-            end
-
-            if frameSpellID ~= currentSpellID then
-                updateAuraTotem(frame, playerTotems, frameSpellID)
-
-                if CheckFrameGlowAura(frame, glowWhenAuraActive, showOnCooldown) then
-                    frame:SetAlpha(1.0)
-
-                    return
+        end
+    else
+        if spellCooldown.isEnabled and spellCooldown.duration > 2 then
+            local remaining = (spellCooldown.startTime + spellCooldown.duration) - GetTime()
+            if remaining > 0 then
+                if remaining < 90 then
+                    frame.textCooldown:SetText(string.format("%d", remaining))
+                    frame.textCooldown:SetTextColor(1, 0, 0, 1)
+                else
+                    frame.textCooldown:SetText("")
                 end
-            end
 
+                if settingsTable.showOnCooldown then
+                    isVisible = true
+                end
+
+                isOnCooldown = true
+            end
+        else
+            if settingsTable.showWhenAvailable then
+                isVisible = true
+            end
+        end
+    end
+
+    if isVisible then
+        frame:SetAlpha(1.0)
+
+        if isOnCooldown then
+            frame.frameBorder:Show()
+            frame.textBinding:Hide()
+            frame.textureIcon:SetDesaturated(true)
+        else
+            frame.frameBorder:Hide()
             frame.textBinding:Show()
             frame.textCooldown:SetText("")
 
-            if currentSpellID == frame.currentSpellID then
-                frame.textureIcon:SetTexture(frame.iconID)
-            else
-                frame.currentSpellID = currentSpellID
-
-                local spellInfo = C_Spell.GetSpellInfo(currentSpellID)
-                if spellInfo then
-                    if frame.iconID ~= spellInfo.iconID then
-                        frame.textureIcon:SetTexture(spellInfo.iconID)
-                    end
-                end
-
-                if glowWhenOverridden and currentSpellID ~= frameSpellID then
-                    glowActive = true
-                end
-            end
-
-            if spellCharges and spellCharges.maxCharges > 1 then
-                frame.textCharges:SetText(spellCharges.currentCharges)
-
-                if spellCharges.currentCharges <= 0 then
-                    frame.frameBorder:Show()
-                    frame.textBinding:Hide()
-                    frame.textureIcon:SetDesaturated(true)
-                    frame:SetAlpha(1.0)
-
-                    if spellCharges.cooldownStartTime and spellCharges.cooldownDuration and spellCharges.cooldownDuration > 2 then
-                        local remaining = (spellCharges.cooldownStartTime + spellCharges.cooldownDuration) - GetTime()
-                        if remaining > 0 then
-                            if remaining < 90 then
-                                frame.textCooldown:SetText(string.format("%d", remaining))
-                                frame.textCooldown:SetTextColor(1, 0, 0, 1)
-                            else
-                                frame.textCooldown:SetText("")
-                            end
-                        end
-                    end
-                elseif spellCharges.currentCharges < spellCharges.maxCharges then
-                    frame.frameBorder:Show()
-                    frame:SetAlpha(1.0)
+            frame.textureIcon:SetDesaturated(false)
+            if not isSpellUsable then
+                if inSufficientPower then
+                    frame.textureIcon:SetVertexColor(0.5, 0.5, 1)
                 else
-                    if not isUsable then
-                        if insufficientPower then
-                            frame.textureIcon:SetVertexColor(0.5, 0.5, 1)
-                        else
-                            frame.textureIcon:SetVertexColor(1, 0, 0)
-                        end
-                    end
+                    frame.textureIcon:SetVertexColor(1, 0, 0)
                 end
-            else
-                local spellCooldown = C_Spell.GetSpellCooldown(currentSpellID)
-                if spellCooldown.isEnabled and spellCooldown.duration > 2 then
-                    local remaining = (spellCooldown.startTime + spellCooldown.duration) - GetTime()
-                    if remaining > 0 then
-                        frame.frameBorder:Show()
-                        frame.textBinding:Hide()
-                        frame.textureIcon:SetDesaturated(true)
-                        frame:SetAlpha(1.0)
-
-                        if remaining < 90 then
-                            frame.textCooldown:SetText(string.format("%d", remaining))
-                            frame.textCooldown:SetTextColor(1, 0, 0, 1)
-                        else
-                            frame.textCooldown:SetText("")
-                        end
-                    end
-                else
-                    if not isUsable then
-                        if insufficientPower then
-                            frame.textureIcon:SetVertexColor(0.5, 0.5, 1)
-                        else
-                            frame.textureIcon:SetVertexColor(1, 0, 0)
-                        end
-                    end
-                end
-            end
-
-            if SettingsDB.showGlobalSweep and frame.cooldownFrame then
-                if gcdCooldown.isEnabled and gcdCooldown.duration > 0 then
-                    CooldownFrame_Set(frame.cooldownFrame, gcdCooldown.startTime, gcdCooldown.duration, true)
-                else
-                    frame.cooldownFrame:Clear()
-                end
-            end
-
-            if glowActive and not frame.glowActive then
-                ActionButton_ShowOverlayGlow(frame)
-                frame.glowActive = true
-            end
-
-            if not glowActive and frame.glowActive then
-                ActionButton_HideOverlayGlow(frame)
-                frame.glowActive = false
             end
         end
+
+        if SettingsDB.showGlobalSweep and frame.cooldownFrame then
+            if gcdCooldown.isEnabled and gcdCooldown.duration > 0 then
+                CooldownFrame_Set(frame.cooldownFrame, gcdCooldown.startTime, gcdCooldown.duration, true)
+            else
+                frame.cooldownFrame:Clear()
+            end
+        end
+
+        if isGlowActive and not frame.glowActive then
+            ActionButton_ShowOverlayGlow(frame)
+            frame.glowActive = true
+        end
+
+        if not isGlowActive and frame.glowActive then
+            ActionButton_HideOverlayGlow(frame)
+            frame.glowActive = false
+        end
+    else
+        frame:SetAlpha(0.0)
     end
 end
 
@@ -1125,20 +1128,19 @@ function addon:UpdateIconState()
 
         for index = 1, #validCategories do
             local category = validCategories[index]
-
-            if categories[category] then
+            if category ~= addon.ignored and category ~= addon.unknown and categories[category] then
                 local parentTable = categories[category]
+                local settingsTable = addon:GetSettingsTable(category)
 
                 if parentTable.items then
                     for i = 1, #parentTable.items do
-                        updateIconItem(category, parentTable.items[i], playerBuffs)
+                        updateIconItem(parentTable.items[i], gcdCooldown, playerBuffs, playerTotems, settingsTable, targetDebuffs)
                     end
                 end
 
                 if parentTable.spells then
                     for i = 1, #parentTable.spells do
-                        updateIconSpell(category, parentTable.spells[i], gcdCooldown, playerBuffs, playerTotems,
-                            targetDebuffs)
+                        updateIconSpell(parentTable.spells[i], gcdCooldown, playerBuffs, playerTotems, settingsTable, targetDebuffs)
                     end
                 end
             end

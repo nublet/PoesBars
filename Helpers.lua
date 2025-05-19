@@ -472,6 +472,30 @@ function addon:GetKeyBind(itemID, name, slotDetails, spellID)
     return ""
 end
 
+function addon:GetSettingsTable(category)
+    local settingsTable = SettingsDB[category] or {}
+
+    settingsTable.anchor = settingsTable.anchor or "CENTER"
+    settingsTable.colorBasedOnState = settingsTable.colorBasedOnState or false
+    settingsTable.displayWhen = settingsTable.displayWhen or "Always"
+    settingsTable.glowWhenAuraActive = settingsTable.glowWhenAuraActive or false
+    settingsTable.glowWhenOverridden = settingsTable.glowWhenOverridden or false
+    settingsTable.iconSize = settingsTable.iconSize or 64
+    settingsTable.iconSpacing = settingsTable.iconSpacing or 2
+    settingsTable.isClickable = settingsTable.isClickable or false
+    settingsTable.isVertical = settingsTable.isVertical or false
+    settingsTable.showOnCooldown = settingsTable.showOnCooldown or false
+    settingsTable.showWhenAvailable = settingsTable.showWhenAvailable or false
+    settingsTable.wrapAfter = settingsTable.wrapAfter or 0
+    settingsTable.x = settingsTable.x or 0
+    settingsTable.y = settingsTable.y or 0
+
+    settingsTable.x = math.floor(settingsTable.x + 0.5)
+    settingsTable.y = math.floor(settingsTable.y + 0.5)
+
+    return settingsTable
+end
+
 function addon:GetSlotDetails()
     local numGeneral, numCharacter = GetNumMacros()
     local results = {}

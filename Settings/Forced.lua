@@ -102,19 +102,14 @@ function addon:CreateSettingsForced(mainCategory)
         end
 
         if not exists then
+            local specID = playerSpecID
             if allSpecs then
-                if not SettingsDB.forcedSpells[0] then
-                    SettingsDB.forcedSpells[0] = {}
-                end
-
-                table.insert(SettingsDB.forcedSpells[0], newSpellID)
-            else
-                if not SettingsDB.forcedSpells[playerSpecID] then
-                    SettingsDB.forcedSpells[playerSpecID] = {}
-                end
-
-                table.insert(SettingsDB.forcedSpells[playerSpecID], newSpellID)
+                specID = 0
             end
+
+            SettingsDB.forcedSpells[specID] = SettingsDB.forcedSpells[specID] or {}
+
+            table.insert(SettingsDB.forcedSpells[specID], newSpellID)
         end
 
         addon:GetDataForced()
