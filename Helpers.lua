@@ -527,20 +527,22 @@ function addon:GetSlotDetails()
                     wasHandled = true
                 end
             elseif actionType == "macro" then
+                local macroName, macroIcon, macroBody = GetMacroInfo(actionText)
+
                 if actionSubType == "" then
-                    if actionID > numGeneral then
-                        actionID = actionID - numGeneral + 120
-                    end
-                    local macroName, macroIcon, macroBody = GetMacroInfo(actionID)
                     slotInfo = GetSlotInformation(actionText, -1, macroBody, macroName, -1)
                     wasHandled = true
                 elseif actionSubType == "item" then
+                    slotInfo = GetSlotInformation(actionText, -1, macroBody, macroName, -1)
                     wasHandled = true
                 elseif actionSubType == "MOUNT" then
+                    slotInfo = GetSlotInformation(actionText, -1, macroBody, macroName, -1)
                     wasHandled = true
                 elseif actionSubType == "spell" then
-                    slotInfo = GetSlotInformation(actionText, -1, "", "", actionID)
+                    slotInfo = GetSlotInformation(actionText, -1, macroBody, macroName, actionID)
                     wasHandled = true
+                else
+                    print("actionSubType:", actionSubType, ", actionID:", actionID, ", actionText:", actionText, ", macroName:", macroName, ", macroBody:", macroBody)
                 end
             elseif actionType == "spell" then
                 if actionSubType == "pet" then

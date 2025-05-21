@@ -4,7 +4,7 @@
 ## Notes: Organizes abilities and buffs
 ## Author: Poesboi
 ## Credits: 
-## Version: 25.0.4.227
+## Version: 25.0.4.229
 ## RequiredDeps: SharedMedia
 ## SavedVariables: CategoryOrderDB, SettingsDB, SpellsDB
 
