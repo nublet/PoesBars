@@ -127,18 +127,6 @@ local function CreateIconFrame(iconDetail)
         local _, itemSpellID = C_Item.GetItemSpell(itemID)
         if itemSpellID and itemSpellID > 0 then
             newFrame.spellID = itemSpellID
-
-            local baseChargeInfo = C_Spell.GetSpellCharges(itemSpellID)
-            if baseChargeInfo then
-                newFrame.spellCooldown = baseChargeInfo.cooldownDuration * 1000
-            else
-                local cooldownMS, gcdMS = GetSpellBaseCooldown(itemSpellID)
-                if cooldownMS and cooldownMS > 0 then
-                    newFrame.spellCooldown = cooldownMS
-                else
-                    newFrame.spellCooldown = 0
-                end
-            end
         end
 
         local item = Item:CreateFromItemID(itemID)
@@ -198,18 +186,6 @@ local function CreateIconFrame(iconDetail)
             newFrame.isHarmful = true
         else
             newFrame.isHarmful = false
-        end
-
-        local baseChargeInfo = C_Spell.GetSpellCharges(spellID)
-        if baseChargeInfo then
-            newFrame.spellCooldown = baseChargeInfo.cooldownDuration * 1000
-        else
-            local cooldownMS, gcdMS = GetSpellBaseCooldown(spellID)
-            if cooldownMS and cooldownMS > 0 then
-                newFrame.spellCooldown = cooldownMS
-            else
-                newFrame.spellCooldown = 0
-            end
         end
     end
 
@@ -569,8 +545,6 @@ local function updateIconItem(frame, gcdCooldown, playerBuffs, playerTotems, set
                 isAuraActive = true
             elseif IsAuraActiveTotem(frame, playerTotems, frame.spellID) then
                 isAuraActive = true
-            elseif frame.spellCooldown <= 0 and IsAuraActiveDebuff(frame, frame.spellID, targetDebuffs) then
-                isAuraActive = true
             end
         end
 
@@ -694,35 +668,45 @@ local function updateIconSpell(frame, gcdCooldown, playerBuffs, playerTotems, se
     frame.auraStacks = -1
     frame.spellID = frame.spellID or -1
 
-    local buffOverrideSpellID = SettingsDB.buffOverrides[frame.spellID] or frame.spellID
     local isAuraActive = false
-    local overrideSpellID = C_Spell.GetOverrideSpell(frame.spellID) or frame.spellID
+    local overrideSpell = C_Spell.GetOverrideSpell(frame.spellID) or frame.spellID
+    local buffOverride = SettingsDB.buffOverrides[frame.spellID] or frame.spellID
+
+    local currentSpellID
+    if frame.spellID ~= overrideSpell then
+        currentSpellID = overrideSpell
+    elseif frame.spellID ~= buffOverride then
+        currentSpellID = buffOverride
+    else
+        currentSpellID = frame.spellID
+    end
+
+    local spellCharges = C_Spell.GetSpellCharges(currentSpellID)
+    local spellCooldown = C_Spell.GetSpellCooldown(currentSpellID)
+    local spellCooldownMS = 0
+
+    if spellCharges then
+        if spellCharges.cooldownDuration > 0 then
+            spellCooldownMS = spellCharges.cooldownDuration * 1000
+        else
+            spellCooldownMS = 0
+        end
+    else
+        local cooldownMS, gcdMS = GetSpellBaseCooldown(currentSpellID)
+        if cooldownMS > 0 then
+            spellCooldownMS = cooldownMS
+        else
+            spellCooldownMS = 0
+        end
+    end
 
     if not settingsTable.showWhenAvailable then
-        if IsAuraActiveBuff(frame, playerBuffs, frame.spellID) then
+        if IsAuraActiveBuff(frame, playerBuffs, currentSpellID) then
             isAuraActive = true
-        elseif IsAuraActiveTotem(frame, playerTotems, frame.spellID) then
+        elseif IsAuraActiveTotem(frame, playerTotems, currentSpellID) then
             isAuraActive = true
-        elseif frame.spellCooldown <= 0 and IsAuraActiveDebuff(frame, frame.spellID, targetDebuffs) then
-            isAuraActive = true
-        end
-
-        if not isAuraActive and frame.spellID ~= buffOverrideSpellID then
-            if IsAuraActiveBuff(frame, playerBuffs, buffOverrideSpellID) then
-                isAuraActive = true
-            elseif IsAuraActiveTotem(frame, playerTotems, buffOverrideSpellID) then
-                isAuraActive = true
-            elseif frame.spellCooldown <= 0 and IsAuraActiveDebuff(frame, buffOverrideSpellID, targetDebuffs) then
-                isAuraActive = true
-            end
-        end
-
-        if not isAuraActive and frame.spellID ~= overrideSpellID then
-            if IsAuraActiveBuff(frame, playerBuffs, overrideSpellID) then
-                isAuraActive = true
-            elseif IsAuraActiveTotem(frame, playerTotems, overrideSpellID) then
-                isAuraActive = true
-            elseif frame.spellCooldown <= 0 and IsAuraActiveDebuff(frame, overrideSpellID, targetDebuffs) then
+        elseif spellCooldownMS <= 0 then
+            if IsAuraActiveDebuff(frame, currentSpellID, targetDebuffs) then
                 isAuraActive = true
             end
         end
@@ -774,7 +758,7 @@ local function updateIconSpell(frame, gcdCooldown, playerBuffs, playerTotems, se
 
             return
         else
-            if frame.isHarmful and frame.spellCooldown <= 0 then
+            if frame.isHarmful and spellCooldownMS <= 0 then
                 frame.frameBorder:Hide()
                 frame:SetAlpha(1.0)
                 frame.textCooldown:SetText("")
@@ -790,7 +774,7 @@ local function updateIconSpell(frame, gcdCooldown, playerBuffs, playerTotems, se
         end
     end
 
-    local isSpellDisabled = C_Spell.IsSpellDisabled(overrideSpellID)
+    local isSpellDisabled = C_Spell.IsSpellDisabled(currentSpellID)
 
     if isSpellDisabled then
         frame:SetAlpha(0.0)
@@ -799,10 +783,8 @@ local function updateIconSpell(frame, gcdCooldown, playerBuffs, playerTotems, se
 
     local isGlowActive = false
     local isOnCooldown = false
-    local isSpellUsable, inSufficientPower = C_Spell.IsSpellUsable(overrideSpellID)
+    local isSpellUsable, inSufficientPower = C_Spell.IsSpellUsable(currentSpellID)
     local isVisible = false
-    local spellCharges = C_Spell.GetSpellCharges(overrideSpellID)
-    local spellCooldown = C_Spell.GetSpellCooldown(overrideSpellID)
 
     frame.textureIcon:SetDesaturated(false)
     frame.textureIcon:SetVertexColor(1, 1, 1)
@@ -811,13 +793,13 @@ local function updateIconSpell(frame, gcdCooldown, playerBuffs, playerTotems, se
         isVisible = true
     end
 
-    if frame.spellID == overrideSpellID then
+    if frame.spellID == currentSpellID then
         if frame.currentIcon ~= frame.iconID then
             frame.currentIcon = frame.iconID
             frame.textureIcon:SetTexture(frame.iconID)
         end
     else
-        local spellInfo = C_Spell.GetSpellInfo(overrideSpellID)
+        local spellInfo = C_Spell.GetSpellInfo(currentSpellID)
         if spellInfo then
             if frame.currentIcon ~= spellInfo.iconID then
                 frame.currentIcon = spellInfo.iconID
