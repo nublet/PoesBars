@@ -1,11 +1,11 @@
 local addonName, addon    = ...
+local lastActiveConfigID, lastImportString, lastSpecialization
 local previousBagState    = {}
 local timeSinceLastUpdate = 0
 local updateInterval      = 0.25
 
 local LSM                 = LibStub("LibSharedMedia-3.0")
-LSM:Register(LSM.MediaType.FONT, "Naowh", [[Interface\AddOns\PoesBars\FONTS\Naowh.ttf]],
-	LSM.LOCALE_BIT_ruRU + LSM.LOCALE_BIT_western)
+LSM:Register(LSM.MediaType.FONT, "Naowh", [[Interface\AddOns\PoesBars\FONTS\Naowh.ttf]], LSM.LOCALE_BIT_ruRU + LSM.LOCALE_BIT_western)
 
 local function CacheBagItems()
 	for bag = 0, NUM_BAG_SLOTS do
@@ -74,16 +74,44 @@ local function OnEvent(self, event, ...)
 	if event == "PLAYER_ENTERING_WORLD" then
 		addon.suppressTalentEvents = true
 
-		addon:Debounce("PlayerEnteringWorld", 5, function()
+		addon:Debounce("suppressTalentEvents", 5, function()
 			addon.suppressTalentEvents = false
 		end)
 	elseif event == "ACTIVE_TALENT_GROUP_CHANGED" or event == "PLAYER_SPECIALIZATION_CHANGED" or event == "PLAYER_TALENT_UPDATE" or event == "TRAIT_CONFIG_UPDATED" then
 		if addon.isLoaded and not addon.suppressTalentEvents then
-			addon.isLoaded = false
+			addon.suppressTalentEvents = true
 
-			addon:Debounce("CreateIcons", 5, function()
-				addon:CreateIcons()
-				addon.isLoaded = true
+			addon:Debounce("CreateIcons", 3, function()
+				local newActiveConfigID = C_ClassTalents.GetActiveConfigID()
+				local newImportString
+				local newSpecialization = GetSpecialization()
+				local wasChanged
+
+				if newActiveConfigID then
+					newImportString = C_Traits.GenerateImportString(newActiveConfigID)
+				else
+					newImportString = ""
+				end
+
+				if lastActiveConfigID ~= newActiveConfigID then
+					wasChanged = true
+				elseif lastImportString ~= newImportString then
+					wasChanged = true
+				elseif lastSpecialization ~= newSpecialization then
+					wasChanged = true
+				end
+
+				lastActiveConfigID = newActiveConfigID
+				lastImportString = newImportString
+				lastSpecialization = newSpecialization
+
+				if wasChanged then
+					addon:CreateIcons()
+				end
+
+				addon:Debounce("suppressTalentEvents", 3, function()
+					addon.suppressTalentEvents = false
+				end)
 			end)
 		end
 	elseif event == "BAG_UPDATE_DELAYED" then

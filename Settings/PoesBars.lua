@@ -374,10 +374,26 @@ function addon:CreateSettingsGeneral()
 		end)
 	end)
 	parentFrame:SetScript("OnShow", function(frame)
-		inputBinding:SetText(SettingsDB.bindingFontSize)
-		inputCharges:SetText(SettingsDB.chargesFontSize)
-		inputCooldown:SetText(SettingsDB.cooldownFontSize)
-		inputRank:SetText(SettingsDB.rankFontSize)
+		if SettingsDB.cooldownFontSize and SettingsDB.cooldownFontSize > 0 then
+			inputBinding:SetText(SettingsDB.cooldownFontSize)
+		else
+			inputBinding:SetText(12)
+		end
+		if SettingsDB.chargesFontSize and SettingsDB.chargesFontSize > 0 then
+			inputCharges:SetText(SettingsDB.chargesFontSize)
+		else
+			inputCharges:SetText(12)
+		end
+		if SettingsDB.cooldownFontSize and SettingsDB.cooldownFontSize > 0 then
+			inputCooldown:SetText(SettingsDB.cooldownFontSize)
+		else
+			inputCooldown:SetText(26)
+		end
+		if SettingsDB.rankFontSize and SettingsDB.rankFontSize > 0 then
+			inputRank:SetText(SettingsDB.rankFontSize)
+		else
+			inputRank:SetText(10)
+		end
 
 		CreateTestIcon()
 	end)
