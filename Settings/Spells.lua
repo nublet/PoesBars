@@ -1,5 +1,6 @@
 local addonName, addon = ...
 
+local isShown = false
 local optionLines = {}
 local parentFrame
 local radioAnchors = {}
@@ -671,12 +672,20 @@ function addon:CreateSettingsSpells(mainCategory)
 	UIDropDownMenu_SetText(categoryDropdown, "<Select>")
 
 	parentFrame:SetScript("OnHide", function(frame)
+		if not isShown then
+			return
+		end
+
 		addon.isLoaded = false
+		isShown = false
 
 		addon:Debounce("CreateIcons", 1, function()
 			addon:CreateIcons()
 			addon.isLoaded = true
 		end)
+	end)
+	parentFrame:SetScript("OnShow", function(frame)
+		isShown = true
 	end)
 
 	local subCategory = Settings.RegisterCanvasLayoutSubcategory(mainCategory, parentFrame, parentFrame.name)

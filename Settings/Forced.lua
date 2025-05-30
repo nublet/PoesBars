@@ -1,5 +1,6 @@
 local addonName, addon = ...
 
+local isShown = false
 local parentFrame
 local playerSpecID
 local scrollFrame
@@ -117,7 +118,12 @@ function addon:CreateSettingsForced(mainCategory)
     newItemButton:SetPoint("LEFT", everyoneCheckbox, "RIGHT", 100, 0)
 
     parentFrame:SetScript("OnHide", function(frame)
+        if not isShown then
+            return
+        end
+
         addon.isLoaded = false
+        isShown = false
 
         addon:Debounce("CreateIcons", 1, function()
             addon:CreateIcons()
@@ -125,6 +131,7 @@ function addon:CreateSettingsForced(mainCategory)
         end)
     end)
     parentFrame:SetScript("OnShow", function(frame)
+        isShown = true
         local currentSpec = GetSpecialization()
         if currentSpec then
             playerSpecID = GetSpecializationInfo(currentSpec)

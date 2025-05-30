@@ -1,6 +1,7 @@
 local addonName, addon = ...
 
 local frameSample
+local isShown = false
 local parentFrame
 
 local LSM = LibStub("LibSharedMedia-3.0")
@@ -366,7 +367,12 @@ function addon:CreateSettingsGeneral()
 	end
 
 	parentFrame:SetScript("OnHide", function(frame)
+		if not isShown then
+			return
+		end
+
 		addon.isLoaded = false
+		isShown = false
 
 		addon:Debounce("CreateIcons", 1, function()
 			addon:CreateIcons()
@@ -374,6 +380,7 @@ function addon:CreateSettingsGeneral()
 		end)
 	end)
 	parentFrame:SetScript("OnShow", function(frame)
+		isShown = true
 		if SettingsDB.cooldownFontSize and SettingsDB.cooldownFontSize > 0 then
 			inputBinding:SetText(SettingsDB.cooldownFontSize)
 		else
