@@ -888,11 +888,11 @@ local function updateIconSpell(frame, gcdCooldown, playerBuffs, playerTotems, se
             end
         end
 
-        if SettingsDB.showGlobalSweep and frame.cooldownFrame then
+        if SettingsDB.showGlobalSweep and frame.frameCooldown then
             if gcdCooldown.isEnabled and gcdCooldown.duration > 0 then
-                CooldownFrame_Set(frame.cooldownFrame, gcdCooldown.startTime, gcdCooldown.duration, true)
+                CooldownFrame_Set(frame.frameCooldown, gcdCooldown.startTime, gcdCooldown.duration, true)
             else
-                frame.cooldownFrame:Clear()
+                frame.frameCooldown:Clear()
             end
         end
 
