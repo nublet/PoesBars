@@ -1,6 +1,5 @@
 local addonName, addon = ...
 
-local isShown = false
 local parentFrame
 local scrollFrame
 local scrollFrameChild
@@ -116,12 +115,12 @@ function addon:CreateSettingsItems(mainCategory)
     newItemButton:SetPoint("LEFT", newItemInput, "RIGHT", 10, 0)
 
     parentFrame:SetScript("OnHide", function(frame)
-        if not isShown then
+        if not addon.isSettingsShown then
             return
         end
 
         addon.isLoaded = false
-        isShown = false
+        addon.isSettingsShown = false
 
         addon:Debounce("CreateIcons", 1, function()
             addon:CreateIcons()
@@ -129,7 +128,10 @@ function addon:CreateSettingsItems(mainCategory)
         end)
     end)
     parentFrame:SetScript("OnShow", function(frame)
-        isShown = true
+        if not addon.isSettingsShown then
+            return
+        end
+
         addon:GetDataItems()
     end)
 

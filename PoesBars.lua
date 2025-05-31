@@ -33,18 +33,26 @@ function PoesBarsCommands(msg, editbox)
 		Settings.OpenToCategory(addon.categoryPoesBarsID)
 		Settings.OpenToCategory(addon.categoryPoesBarsID)
 		Settings.OpenToCategory(addon.categoryPoesBarsID)
+
+		addon.isSettingsShown = true
 	elseif msg == "buffs" or msg == "b" then
 		Settings.OpenToCategory(addon.categoryBuffsID)
 		Settings.OpenToCategory(addon.categoryBuffsID)
 		Settings.OpenToCategory(addon.categoryBuffsID)
+
+		addon.isSettingsShown = true
 	elseif msg == "forced" or msg == "f" then
 		Settings.OpenToCategory(addon.categoryForcedID)
 		Settings.OpenToCategory(addon.categoryForcedID)
 		Settings.OpenToCategory(addon.categoryForcedID)
+
+		addon.isSettingsShown = true
 	elseif msg == "items" or msg == "i" then
 		Settings.OpenToCategory(addon.categoryItemsID)
 		Settings.OpenToCategory(addon.categoryItemsID)
 		Settings.OpenToCategory(addon.categoryItemsID)
+
+		addon.isSettingsShown = true
 	elseif msg == "lock" or msg == "l" then
 		SettingsDB.isLocked = true
 
@@ -53,6 +61,8 @@ function PoesBarsCommands(msg, editbox)
 		Settings.OpenToCategory(addon.categorySpellsID)
 		Settings.OpenToCategory(addon.categorySpellsID)
 		Settings.OpenToCategory(addon.categorySpellsID)
+
+		addon.isSettingsShown = true
 	elseif msg == "unlock" or msg == "u" then
 		SettingsDB.isLocked = false
 
