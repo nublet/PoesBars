@@ -57,6 +57,10 @@ function PoesBarsCommands(msg, editbox)
 		SettingsDB.isLocked = true
 
 		addon:CheckLockState()
+	elseif msg == "refresh" or msg == "r" then
+		addon.isLoaded = false
+		addon:CreateIcons()
+		addon.isLoaded = true
 	elseif msg == "spells" or msg == "s" then
 		Settings.OpenToCategory(addon.categorySpellsID)
 		Settings.OpenToCategory(addon.categorySpellsID)
