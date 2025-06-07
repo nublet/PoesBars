@@ -20,6 +20,7 @@ local function CreateIconFrame(iconDetail)
     newFrame:EnableMouse(false)
     newFrame:EnableMouseWheel(false)
     newFrame:Hide()
+    newFrame:SetFrameStrata("LOW")
     newFrame:SetHitRectInsets(0, 0, 0, 0)
     newFrame:SetPoint("CENTER", 0, 0)
     newFrame:SetPropagateKeyboardInput(true)
@@ -219,7 +220,7 @@ local function GetAura(auraList, spellID, spellName)
         local aura = auraList[i]
         if aura.spellId == spellID or aura.name == spellName then
             if spellName == "Ascendance" then
-                if aura.spellId == 457594 or aura.spellId == 458573 or aura.spellId == 463003 or aura.spellId == 463095 then
+                if aura.spellId == 457594 or aura.spellId == 458502 or aura.spellId == 458573 or aura.spellId == 463003 or aura.spellId == 463095 then
                 else
                     return aura
                 end
@@ -783,7 +784,6 @@ local function updateIconSpell(frame, gcdCooldown, playerBuffs, playerTotems, se
 
     local isGlowActive = false
     local isOnCooldown = false
-    local isSpellUsable, inSufficientPower = C_Spell.IsSpellUsable(currentSpellID)
     local isVisible = false
 
     frame.textureIcon:SetDesaturated(false)
@@ -879,6 +879,9 @@ local function updateIconSpell(frame, gcdCooldown, playerBuffs, playerTotems, se
             frame.textCooldown:SetText("")
 
             frame.textureIcon:SetDesaturated(false)
+
+            local isSpellUsable, inSufficientPower = C_Spell.IsSpellUsable(currentSpellID)
+
             if not isSpellUsable then
                 if inSufficientPower then
                     frame.textureIcon:SetVertexColor(0.5, 0.5, 1)
