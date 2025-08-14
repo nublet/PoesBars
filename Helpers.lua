@@ -545,7 +545,10 @@ function addon:GetSlotDetails()
                     print("actionSubType:", actionSubType, ", actionID:", actionID, ", actionText:", actionText, ", macroName:", macroName, ", macroBody:", macroBody)
                 end
             elseif actionType == "spell" then
-                if actionSubType == "pet" then
+                if actionSubType == "assistedcombat" then
+                    slotInfo = GetSlotInformation(actionText, -1, "", "", actionID)
+                    wasHandled = true
+                elseif actionSubType == "pet" then
                     slotInfo = GetSlotInformation(actionText, -1, "", "", actionID)
                     wasHandled = true
                 elseif actionSubType == "spell" then
@@ -606,8 +609,7 @@ function addon:GetSlotDetails()
                     results[slot] = slotInfo
                 end
             else
-                print("GetActionBars. slot:", slot, ", actionType:", actionType, ", actionSubType:", actionSubType,
-                    ", actionID:", actionID)
+                print("GetSlotDetails. slot:", slot, ", actionType:", actionType, ", actionSubType:", actionSubType, ", actionID:", actionID)
             end
         end
     end

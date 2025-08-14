@@ -1,10 +1,10 @@
-## Interface: 110007
+## Interface: 110200
 ## Title: PoesBars
 ## Description: Organizes abilities and buffs
 ## Notes: Organizes abilities and buffs
 ## Author: Poesboi
 ## Credits: 
-## Version: 25.0.5.206
+## Version: 25.0.6.201
 ## RequiredDeps: SharedMedia
 ## SavedVariables: CategoryOrderDB, SettingsDB, SpellsDB
 
