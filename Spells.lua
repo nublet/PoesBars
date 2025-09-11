@@ -554,13 +554,18 @@ local function updateIconItem(frame, gcdCooldown, playerBuffs, playerTotems, set
     frame.itemID = frame.itemID or -1
     frame.spellID = frame.spellID or -1
 
-    local count = C_Item.GetItemCount(frame.itemID, false, true, false, false)
-    if count > 0 then
+    if frame.isTrinket then
         frame:SetAlpha(1.0)
-        frame.textCharges:SetText(count)
+        frame.textCharges:SetText("")
     else
-        frame:SetAlpha(0.0)
-        return
+        local count = C_Item.GetItemCount(frame.itemID, false, true, false, false)
+        if count > 0 then
+            frame:SetAlpha(1.0)
+            frame.textCharges:SetText(count)
+        else
+            frame:SetAlpha(0.0)
+            return
+        end
     end
 
     if not settingsTable.showWhenAvailable then
