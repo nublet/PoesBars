@@ -623,7 +623,7 @@ function addon:GetSlotDetails()
     return results
 end
 
-function addon:GetValidCategories(addForced)
+function addon:GetValidCategories()
     local foundIgnored = false
     local foundTrinket = false
     local foundUnknown = false
@@ -642,16 +642,15 @@ function addon:GetValidCategories(addForced)
         table.insert(results, name)
     end
 
-    if addForced then
-        if not foundIgnored then
-            table.insert(results, addon.categoryIgnored)
-        end
-        if not foundTrinket then
-            table.insert(results, addon.categoryTrinket)
-        end
-        if not foundUnknown then
-            table.insert(results, addon.categoryUnknown)
-        end
+    if not foundIgnored then
+        table.insert(results, addon.categoryIgnored)
+    end
+    if not foundTrinket then
+        SettingsDB[addon.categoryTrinket] = addon:GetSettingsTable(addon.categoryTrinket)
+        table.insert(results, addon.categoryTrinket)
+    end
+    if not foundUnknown then
+        table.insert(results, addon.categoryUnknown)
     end
 
     return results

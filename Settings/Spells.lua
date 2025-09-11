@@ -238,7 +238,7 @@ local function CreateOptionLine(category, iconDetail)
 
 		addItem("")
 
-		local validCategories = addon:GetValidCategories(true)
+		local validCategories = addon:GetValidCategories()
 
 		for index = 1, #validCategories do
 			local name = validCategories[index]
@@ -647,7 +647,7 @@ function addon:CreateSettingsSpells(mainCategory)
 			return a < b
 		end)
 
-		local validCategories = addon:GetValidCategories(true)
+		local validCategories = addon:GetValidCategories()
 
 		for index = 1, #validCategories do
 			local name = validCategories[index]

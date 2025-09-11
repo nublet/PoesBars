@@ -503,12 +503,12 @@ local function RefreshCategoryFrame(category, parentTable, playerSpecID)
                         if isVertical then
                             iconFrame:SetPoint("TOPLEFT", previousWrap, "TOPRIGHT", iconSpacing, 0)
                         else
-                            iconFrame:SetPoint("TOPLEFT", previousWrap, "BOTTOMLEFT", 0, iconSpacing)
+                            iconFrame:SetPoint("TOPLEFT", previousWrap, "BOTTOMLEFT", 0, -iconSpacing)
                         end
                     else
                         local previous = allIcons[i - 1]
                         if isVertical then
-                            iconFrame:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, iconSpacing)
+                            iconFrame:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, -iconSpacing)
                         else
                             iconFrame:SetPoint("TOPLEFT", previous, "TOPRIGHT", iconSpacing, 0)
                         end
@@ -955,7 +955,7 @@ function addon:CheckLockState()
         return
     end
 
-    local validCategories = addon:GetValidCategories(false)
+    local validCategories = addon:GetValidCategories()
 
     for i = 1, #validCategories do
         local name = validCategories[i]
@@ -963,16 +963,18 @@ function addon:CheckLockState()
         if categories[name] then
             local frame = categories[name].frame
 
-            if SettingsDB.isLocked then
-                frame:EnableKeyboard(false)
-                frame:EnableMouse(false)
-                frame:EnableMouseWheel(false)
-                frame:RegisterForDrag()
-                frame:SetMovable(false)
-            else
-                frame:EnableMouse(true)
-                frame:RegisterForDrag("LeftButton")
-                frame:SetMovable(true)
+            if frame then
+                if SettingsDB.isLocked then
+                    frame:EnableKeyboard(false)
+                    frame:EnableMouse(false)
+                    frame:EnableMouseWheel(false)
+                    frame:RegisterForDrag()
+                    frame:SetMovable(false)
+                else
+                    frame:EnableMouse(true)
+                    frame:RegisterForDrag("LeftButton")
+                    frame:SetMovable(true)
+                end
             end
         end
     end
@@ -1031,7 +1033,7 @@ function addon:RefreshCategoryFrames()
         return
     end
 
-    local validCategories = addon:GetValidCategories(true)
+    local validCategories = addon:GetValidCategories()
 
     for i = 1, #validCategories do
         local name = validCategories[i]
@@ -1101,7 +1103,7 @@ function addon:UpdateIconBinds()
 end
 
 function addon:UpdateIconState()
-    local validCategories = addon:GetValidCategories(true)
+    local validCategories = addon:GetValidCategories()
 
     if SettingsDB.isLocked then
         local auraIndex = 1
