@@ -91,6 +91,18 @@ local function OnEvent(self, event, ...)
 		addon:Debounce("suppressTalentEvents", 5, function()
 			addon.suppressTalentEvents = false
 		end)
+	elseif event == "PLAYER_EQUIPMENT_CHANGED" then
+		if addon.isLoaded and not addon.suppressTalentEvents then
+			addon.suppressTalentEvents = true
+
+			addon:Debounce("CreateIcons", 3, function()
+				addon:CreateIcons()
+
+				addon:Debounce("suppressTalentEvents", 3, function()
+					addon.suppressTalentEvents = false
+				end)
+			end)
+		end
 	elseif event == "ACTIVE_TALENT_GROUP_CHANGED" or event == "PLAYER_SPECIALIZATION_CHANGED" or event == "PLAYER_TALENT_UPDATE" or event == "TRAIT_CONFIG_UPDATED" then
 		if addon.isLoaded and not addon.suppressTalentEvents then
 			addon.suppressTalentEvents = true
@@ -180,8 +192,7 @@ local function OnEvent(self, event, ...)
 			SettingsDB.forcedSpells[0] = {}
 		end
 		if type(SettingsDB.validCategories) ~= "table" then
-			SettingsDB.validCategories = { "Cooldowns", "Crowd Control", "Defensive", "Important", "Movement", "Racial",
-				"Rotation", "Utility" }
+			SettingsDB.validCategories = { "Cooldowns", "Crowd Control", "Defensive", "Important", "Movement", "Racial", "Rotation", "Utility" }
 		end
 		if type(SettingsDB.validItems) ~= "table" then
 			SettingsDB.validItems = { 211878, 211879, 211880, 5512, 224464, 212263, 212264, 212265 }
@@ -212,6 +223,7 @@ local f = CreateFrame("Frame")
 f:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
 f:RegisterEvent("BAG_UPDATE_DELAYED")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 f:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 f:RegisterEvent("PLAYER_TALENT_UPDATE")
 f:RegisterEvent("TRAIT_CONFIG_UPDATED")

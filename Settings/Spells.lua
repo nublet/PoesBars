@@ -127,7 +127,7 @@ local function CreateOptionLine(category, iconDetail)
 
 	local categoryValue = SpellsDB[specID][settingName]
 	if not categoryValue or categoryValue == "" then
-		categoryValue = addon.unknown
+		categoryValue = addon.categoryUnknown
 	end
 	if category ~= categoryValue then
 		return nil
@@ -237,9 +237,8 @@ local function CreateOptionLine(category, iconDetail)
 		end
 
 		addItem("")
-		addItem(addon.ignored)
 
-		local validCategories = addon:GetValidCategories(false)
+		local validCategories = addon:GetValidCategories(true)
 
 		for index = 1, #validCategories do
 			local name = validCategories[index]
@@ -302,18 +301,18 @@ function addon:CreateSettingsSpells(mainCategory)
 
 					local category = text
 					if not category or category == "" then
-						category = addon.unknown
+						category = addon.categoryUnknown
 					end
 
 					UIDropDownMenu_SetSelectedName(categoryDropdown, category)
 
-					if category == addon.ignored or category == addon.unknown then
+					if category == addon.categoryIgnored or category == addon.categoryUnknown then
 						scrollFrame:SetPoint("TOPLEFT", categoryLabel, "BOTTOMLEFT", 0, 0)
 					else
 						local settingsTable = addon:GetSettingsTable(category)
 
 						local categoryDelete = addon:GetControlButton(true, "Delete", parentFrame, 60, function(control)
-							if category == "" or category == addon.ignored or category == "Add New..." or category == addon.unknown then
+							if category == "" or category == addon.categoryIgnored or category == "Add New..." or category == addon.categoryUnknown then
 								return
 							end
 
@@ -620,9 +619,11 @@ function addon:CreateSettingsSpells(mainCategory)
 						for i = 1, #tableIconDetails do
 							local iconDetail = tableIconDetails[i]
 
-							local frameLine = CreateOptionLine(category, iconDetail)
-							if frameLine then
-								optionLines[frameLine.settingName] = frameLine
+							if iconDetail.isTrinket == false then
+								local frameLine = CreateOptionLine(category, iconDetail)
+								if frameLine then
+									optionLines[frameLine.settingName] = frameLine
+								end
 							end
 						end
 					end
@@ -641,13 +642,12 @@ function addon:CreateSettingsSpells(mainCategory)
 
 		addItem("")
 		addItem("Add New...")
-		addItem(addon.ignored)
 
 		table.sort(SettingsDB.validCategories, function(a, b)
 			return a < b
 		end)
 
-		local validCategories = addon:GetValidCategories(false)
+		local validCategories = addon:GetValidCategories(true)
 
 		for index = 1, #validCategories do
 			local name = validCategories[index]

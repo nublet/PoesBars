@@ -2,7 +2,8 @@ local addonName, addon = ...
 
 local DebounceTimers = {}
 
-local function AddIconDetail(itemID, playerSpecID, specID, spellID, tableIconDetails)
+local function AddIconDetail(isTrinket, itemID, playerSpecID, specID, spellID, tableIconDetails)
+    isTrinket = isTrinket or false
     itemID = itemID or -1
     playerSpecID = playerSpecID or -1
     specID = specID or -1
@@ -13,6 +14,7 @@ local function AddIconDetail(itemID, playerSpecID, specID, spellID, tableIconDet
     end
 
     local iconDetail = {}
+    iconDetail.isTrinket = isTrinket
     iconDetail.itemID = itemID
     iconDetail.playerSpecID = playerSpecID
     iconDetail.specID = specID
@@ -78,18 +80,18 @@ local function ProcessSpell(playerSpecID, spellBank, specID, spellIndex, tableIc
         if itemInfo.isPassive then
             local baseChargeInfo = C_Spell.GetSpellCharges(itemInfo.spellID)
             if baseChargeInfo then
-                return AddIconDetail(-1, playerSpecID, specID, itemInfo.spellID, tableIconDetails)
+                return AddIconDetail(false, -1, playerSpecID, specID, itemInfo.spellID, tableIconDetails)
             else
                 local cooldownMS, gcdMS = GetSpellBaseCooldown(itemInfo.spellID)
                 if cooldownMS and cooldownMS > 0 then
-                    return AddIconDetail(-1, playerSpecID, specID, itemInfo.spellID, tableIconDetails)
+                    return AddIconDetail(false, -1, playerSpecID, specID, itemInfo.spellID, tableIconDetails)
                 end
             end
 
             return nil
         end
 
-        return AddIconDetail(-1, playerSpecID, specID, itemInfo.spellID, tableIconDetails)
+        return AddIconDetail(false, -1, playerSpecID, specID, itemInfo.spellID, tableIconDetails)
     end
 
     if itemInfo.itemType == Enum.SpellBookItemType.Flyout then
@@ -99,7 +101,7 @@ local function ProcessSpell(playerSpecID, spellBank, specID, spellIndex, tableIc
                 local slotSpellID, slotOverrideSpellID, slotIsKnown, slotSpellName, slotSlotSpecID = GetFlyoutSlotInfo(
                     itemInfo.actionID, slot)
                 if slotIsKnown and not C_Spell.IsSpellPassive(slotSpellID) then
-                    AddIconDetail(-1, playerSpecID, specID, slotSpellID, tableIconDetails)
+                    AddIconDetail(false, -1, playerSpecID, specID, slotSpellID, tableIconDetails)
                 end
             end
         end
@@ -109,11 +111,11 @@ local function ProcessSpell(playerSpecID, spellBank, specID, spellIndex, tableIc
 end
 
 local function SaveFramePosition(name, parentFrame)
-    if name == addon.ignored then
+    if name == addon.categoryIgnored then
         return nil
     end
 
-    if name == addon.unknown then
+    if name == addon.categoryUnknown then
         return nil
     end
 
@@ -279,12 +281,12 @@ function addon:GetControlRadioButton(addToTable, parent, radioGroup, text, onCli
 end
 
 function addon:GetFrame(name)
-    if name == addon.ignored then
+    if name == addon.categoryIgnored then
         return nil
     end
 
     local newFrame = CreateFrame("Frame", name .. "Parent", UIParent)
-    if name ~= addon.unknown then
+    if name ~= addon.categoryUnknown then
         newFrame:EnableKeyboard(false)
         newFrame:EnableMouse(true)
         newFrame:EnableMouseWheel(false)
@@ -327,8 +329,12 @@ function addon:GetIconDetails()
         return nil
     end
 
-    local numPetSpells, petNameToken = C_SpellBook.HasPetSpells()
     local tableIconDetails = {}
+
+    AddIconDetail(true, GetInventoryItemID("player", 13), playerSpecID, 0, -1, tableIconDetails)
+    AddIconDetail(true, GetInventoryItemID("player", 14), playerSpecID, 0, -1, tableIconDetails)
+
+    local numPetSpells, petNameToken = C_SpellBook.HasPetSpells()
 
     if numPetSpells and numPetSpells > 0 then
         for i = 1, numPetSpells do
@@ -363,19 +369,19 @@ function addon:GetIconDetails()
     local forcedSpells = SettingsDB.forcedSpells[0]
     if forcedSpells and next(forcedSpells) ~= nil then
         for i = 1, #forcedSpells do
-            AddIconDetail(-1, playerSpecID, 0, forcedSpells[i], tableIconDetails)
+            AddIconDetail(false, -1, playerSpecID, 0, forcedSpells[i], tableIconDetails)
         end
     end
 
     forcedSpells = SettingsDB.forcedSpells[playerSpecID]
     if forcedSpells and next(forcedSpells) ~= nil then
         for i = 1, #forcedSpells do
-            AddIconDetail(-1, playerSpecID, 0, forcedSpells[i], tableIconDetails)
+            AddIconDetail(false, -1, playerSpecID, 0, forcedSpells[i], tableIconDetails)
         end
     end
 
     for i = 1, #SettingsDB.validItems do
-        AddIconDetail(SettingsDB.validItems[i], playerSpecID, 0, -1, tableIconDetails)
+        AddIconDetail(false, SettingsDB.validItems[i], playerSpecID, 0, -1, tableIconDetails)
     end
 
     return tableIconDetails
@@ -619,14 +625,17 @@ end
 
 function addon:GetValidCategories(addForced)
     local foundIgnored = false
+    local foundTrinket = false
     local foundUnknown = false
     local results = {}
 
     for i = 1, #SettingsDB.validCategories do
         local name = SettingsDB.validCategories[i]
-        if name == addon.ignored then
+        if name == addon.categoryIgnored then
             foundIgnored = true
-        elseif name == addon.unknown then
+        elseif name == addon.categoryTrinket then
+            foundTrinket = true
+        elseif name == addon.categoryUnknown then
             foundUnknown = true
         end
 
@@ -635,10 +644,13 @@ function addon:GetValidCategories(addForced)
 
     if addForced then
         if not foundIgnored then
-            table.insert(results, addon.ignored)
+            table.insert(results, addon.categoryIgnored)
+        end
+        if not foundTrinket then
+            table.insert(results, addon.categoryTrinket)
         end
         if not foundUnknown then
-            table.insert(results, addon.unknown)
+            table.insert(results, addon.categoryUnknown)
         end
     end
 
@@ -655,11 +667,11 @@ function addon:GetValueNumber(value)
 end
 
 function addon:FrameRestore(name, parentFrame)
-    if name == addon.ignored then
+    if name == addon.categoryIgnored then
         return
     end
 
-    if name == addon.unknown then
+    if name == addon.categoryUnknown then
         parentFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
     else
         local settingsTable = SettingsDB[name] or {}

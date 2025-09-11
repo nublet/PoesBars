@@ -57,13 +57,27 @@ local function CreateIconFrame(iconDetail)
     frameBorder:SetPropagateKeyboardInput(true)
     frameBorder:SetToplevel(false)
 
-    local frameCooldown = CreateFrame("Cooldown", nil, newFrame, "CooldownFrameTemplate")
-    frameCooldown:EnableKeyboard(false)
-    frameCooldown:EnableMouse(false)
-    frameCooldown:EnableMouseWheel(false)
-    frameCooldown:SetAllPoints(newFrame)
-    frameCooldown:SetPropagateKeyboardInput(true)
-    frameCooldown:SetToplevel(false)
+    local frameCooldownGCD = CreateFrame("Cooldown", nil, newFrame, "CooldownFrameTemplate")
+    frameCooldownGCD:EnableKeyboard(false)
+    frameCooldownGCD:EnableMouse(false)
+    frameCooldownGCD:EnableMouseWheel(false)
+    frameCooldownGCD:SetAllPoints(newFrame)
+    frameCooldownGCD:SetDrawEdge(false)
+    frameCooldownGCD:SetHideCountdownNumbers(true)
+    frameCooldownGCD:SetPropagateKeyboardInput(true)
+    frameCooldownGCD:SetSwipeTexture("Interface\\Cooldown\\ping4")
+    frameCooldownGCD:SetToplevel(false)
+
+    local frameCooldownSpell = CreateFrame("Cooldown", nil, newFrame, "CooldownFrameTemplate")
+    frameCooldownSpell:EnableKeyboard(false)
+    frameCooldownSpell:EnableMouse(false)
+    frameCooldownSpell:EnableMouseWheel(false)
+    frameCooldownSpell:SetAllPoints(newFrame)
+    frameCooldownSpell:SetDrawEdge(false)
+    frameCooldownSpell:SetHideCountdownNumbers(true)
+    frameCooldownSpell:SetPropagateKeyboardInput(true)
+    frameCooldownSpell:SetSwipeTexture("Interface\\Cooldown\\ping4")
+    frameCooldownSpell:SetToplevel(false)
 
     local textBinding = newFrame:CreateFontString(nil, "OVERLAY")
     textBinding:SetFont(font, SettingsDB.bindingFontSize or 12, SettingsDB.bindingFontFlags or "OUTLINE")
@@ -192,7 +206,9 @@ local function CreateIconFrame(iconDetail)
 
     newFrame.currentSpellID = spellID
     newFrame.frameBorder = frameBorder
-    newFrame.frameCooldown = frameCooldown
+    newFrame.frameCooldownGCD = frameCooldownGCD
+    newFrame.frameCooldownSpell = frameCooldownSpell
+    newFrame.isTrinket = iconDetail.isTrinket
     newFrame.itemID = itemID
     newFrame.settingName = itemID .. "_" .. spellID
     newFrame.specID = specID
@@ -340,7 +356,7 @@ local function RefreshCategoryFrame(category, parentTable, playerSpecID)
         return
     end
 
-    if category == addon.ignored then
+    if category == addon.categoryIgnored then
         if parentTable.items and next(parentTable.items) ~= nil then
             for i = 1, #parentTable.items do
                 local iconFrame = parentTable.items[i]
@@ -390,6 +406,14 @@ local function RefreshCategoryFrame(category, parentTable, playerSpecID)
             validSettingNames[iconFrame.settingName] = true
         end
 
+        for i = 1, #parentTable.items do
+            local iconFrame = parentTable.items[i]
+
+            if iconFrame.isTrinket then
+                table.insert(allIcons, iconFrame)
+            end
+        end
+
         for _, settingName in ipairs(CategoryOrderDB[category]) do
             if validSettingNames[settingName] and iconFrames[settingName] then
                 seenSettingNames[settingName] = true
@@ -409,8 +433,10 @@ local function RefreshCategoryFrame(category, parentTable, playerSpecID)
         for i = 1, #parentTable.items do
             local iconFrame = parentTable.items[i]
 
-            if not seenSettingNames[iconFrame.settingName] then
-                table.insert(allIcons, iconFrame)
+            if iconFrame.isTrinket == false then
+                if not seenSettingNames[iconFrame.settingName] then
+                    table.insert(allIcons, iconFrame)
+                end
             end
         end
 
@@ -418,7 +444,7 @@ local function RefreshCategoryFrame(category, parentTable, playerSpecID)
             for i = 1, #allIcons do
                 local iconFrame = allIcons[i]
 
-                if category == addon.unknown then
+                if category == addon.categoryUnknown then
                     iconFrame.textID:Show()
 
                     iconFrame:EnableMouse(false)
@@ -467,7 +493,6 @@ local function RefreshCategoryFrame(category, parentTable, playerSpecID)
                 iconFrame:SetParent(parentTable.frame)
 
                 iconFrame:SetSize(iconSize, iconSize)
-                iconFrame.textureIcon:SetAllPoints(iconFrame)
 
                 if i == 1 then
                     iconFrame:SetPoint("TOPLEFT", parentTable.frame, "TOPLEFT", 0, 0)
@@ -694,7 +719,7 @@ local function updateIconSpell(frame, gcdCooldown, playerBuffs, playerTotems, se
         end
     else
         local cooldownMS, gcdMS = GetSpellBaseCooldown(currentSpellID)
-        if cooldownMS > 0 then
+        if cooldownMS and cooldownMS > 0 then
             spellCooldownMS = cooldownMS
         else
             spellCooldownMS = 0
@@ -812,6 +837,12 @@ local function updateIconSpell(frame, gcdCooldown, playerBuffs, playerTotems, se
         end
     end
 
+    if spellCooldown and spellCooldown.isEnabled and spellCooldown.duration > 0 then
+        frame.frameCooldownSpell:SetCooldown(spellCooldown.startTime, spellCooldown.duration)
+    else
+        frame.frameCooldownSpell:Clear()
+    end
+
     if spellCharges and spellCharges.maxCharges > 1 then
         frame.textCharges:SetText(spellCharges.currentCharges)
 
@@ -843,7 +874,7 @@ local function updateIconSpell(frame, gcdCooldown, playerBuffs, playerTotems, se
             end
         end
     else
-        if spellCooldown.isEnabled and spellCooldown.duration > 2 then
+        if spellCooldown and spellCooldown.isEnabled and spellCooldown.duration > 2 then
             local remaining = (spellCooldown.startTime + spellCooldown.duration) - GetTime()
             if remaining > 0 then
                 if remaining < 90 then
@@ -891,11 +922,11 @@ local function updateIconSpell(frame, gcdCooldown, playerBuffs, playerTotems, se
             end
         end
 
-        if SettingsDB.showGlobalSweep and frame.frameCooldown then
+        if SettingsDB.showGlobalSweep and frame.frameCooldownGCD then
             if gcdCooldown.isEnabled and gcdCooldown.duration > 0 then
-                CooldownFrame_Set(frame.frameCooldown, gcdCooldown.startTime, gcdCooldown.duration, true)
+                frame.frameCooldownGCD:SetCooldown(gcdCooldown.startTime, gcdCooldown.duration)
             else
-                frame.frameCooldown:Clear()
+                frame.frameCooldownGCD:Clear()
             end
         end
 
@@ -1020,15 +1051,22 @@ function addon:RefreshCategoryFrames()
     end
 
     for settingName, iconFrame in pairs(iconFrames) do
-        local category = SpellsDB[iconFrame.specID][settingName]
+        local category = nil
+
+        if iconFrame.isTrinket then
+            category = addon.categoryTrinket
+        else
+            category = SpellsDB[iconFrame.specID][settingName]
+        end
+
         if not category or category == "" then
-            category = addon.unknown
+            category = addon.categoryUnknown
         end
 
         if iconFrame.itemID > 0 then
             local count = C_Item.GetItemCount(iconFrame.itemID, false, true, false, false)
             if count <= 0 then
-                table.insert(categories[addon.ignored].items, iconFrame)
+                table.insert(categories[addon.categoryIgnored].items, iconFrame)
             else
                 table.insert(categories[category].items, iconFrame)
             end
@@ -1131,7 +1169,7 @@ function addon:UpdateIconState()
 
         for index = 1, #validCategories do
             local category = validCategories[index]
-            if category ~= addon.ignored and category ~= addon.unknown and categories[category] then
+            if category ~= addon.categoryIgnored and category ~= addon.categoryUnknown and categories[category] then
                 local parentTable = categories[category]
                 local settingsTable = addon:GetSettingsTable(category)
 

@@ -1,10 +1,11 @@
 local addonName, addon   = ...
 addon.actionButtons      = {}
-addon.ignored            = "Ignored"
+addon.categoryIgnored    = "Ignored"
+addon.categoryTrinket    = "Trinket"
+addon.categoryUnknown    = "Unknown"
 addon.isLoaded           = false
 addon.settingsControls   = {}
 addon.settingsIconSize   = 36
-addon.unknown            = "Unknown"
 
 -- Action Bar 1
 addon.actionButtons[1]   = "ACTIONBUTTON1"
