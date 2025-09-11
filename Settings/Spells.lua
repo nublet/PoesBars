@@ -274,6 +274,10 @@ function addon:CreateSettingsSpells(mainCategory)
 
 	categoryDropdown.initializeFunc = function(frame, level, menuList)
 		local function addItem(text)
+			if text == addon.categoryUnknown then
+				return
+			end
+
 			local info = UIDropDownMenu_CreateInfo()
 			info.text = text
 			info.func = function()
