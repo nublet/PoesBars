@@ -640,24 +640,32 @@ local function updateIconItem(frame, gcdCooldown, playerBuffs, playerTotems, set
     end
 
     local startTime, duration, enable = C_Container.GetItemCooldown(frame.itemID)
-    if enable == 1 and duration > 2 then
-        local remaining = (startTime + duration) - GetTime()
 
-        if remaining > 0 then
-            if remaining < 90 then
-                frame.textCooldown:SetText(string.format("%d", remaining))
-                frame.textCooldown:SetTextColor(1, 0, 0, 1)
-            else
-                frame.textCooldown:SetText("")
+    if enable == 1 and duration > 0 then
+        if gcdCooldown.isEnabled and gcdCooldown.duration > 0 then
+        else
+            frame.frameCooldownSpell:SetCooldown(startTime, duration)
+
+            local remaining = (startTime + duration) - GetTime()
+
+            if remaining > 0 then
+                if remaining < 90 then
+                    frame.textCooldown:SetText(string.format("%d", remaining))
+                    frame.textCooldown:SetTextColor(1, 0, 0, 1)
+                else
+                    frame.textCooldown:SetText("")
+                end
+
+                if settingsTable.showOnCooldown then
+                    isVisible = true
+                end
+
+                isOnCooldown = true
             end
-
-            if settingsTable.showOnCooldown then
-                isVisible = true
-            end
-
-            isOnCooldown = true
         end
     else
+        frame.frameCooldownSpell:Clear()
+
         if settingsTable.showWhenAvailable then
             isVisible = true
         end
@@ -843,7 +851,10 @@ local function updateIconSpell(frame, gcdCooldown, playerBuffs, playerTotems, se
     end
 
     if spellCooldown and spellCooldown.isEnabled and spellCooldown.duration > 0 then
-        frame.frameCooldownSpell:SetCooldown(spellCooldown.startTime, spellCooldown.duration)
+        if gcdCooldown.isEnabled and gcdCooldown.duration > 0 then
+        else
+            frame.frameCooldownSpell:SetCooldown(spellCooldown.startTime, spellCooldown.duration)
+        end
     else
         frame.frameCooldownSpell:Clear()
     end
