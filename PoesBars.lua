@@ -35,12 +35,6 @@ function PoesBarsCommands(msg, editbox)
 		Settings.OpenToCategory(addon.categoryPoesBarsID)
 
 		addon.isSettingsShown = true
-	elseif msg == "buffs" or msg == "b" then
-		Settings.OpenToCategory(addon.categoryBuffsID)
-		Settings.OpenToCategory(addon.categoryBuffsID)
-		Settings.OpenToCategory(addon.categoryBuffsID)
-
-		addon.isSettingsShown = true
 	elseif msg == "forced" or msg == "f" then
 		Settings.OpenToCategory(addon.categoryForcedID)
 		Settings.OpenToCategory(addon.categoryForcedID)
@@ -92,15 +86,9 @@ local function OnEvent(self, event, ...)
 			addon.suppressTalentEvents = false
 		end)
 	elseif event == "PLAYER_EQUIPMENT_CHANGED" then
-		if addon.isLoaded and not addon.suppressTalentEvents then
-			addon.suppressTalentEvents = true
-
-			addon:Debounce("CreateIcons", 3, function()
+		if addon.isLoaded then
+			addon:Debounce("CreateIcons", 5, function()
 				addon:CreateIcons()
-
-				addon:Debounce("suppressTalentEvents", 3, function()
-					addon.suppressTalentEvents = false
-				end)
 			end)
 		end
 	elseif event == "ACTIVE_TALENT_GROUP_CHANGED" or event == "PLAYER_SPECIALIZATION_CHANGED" or event == "PLAYER_TALENT_UPDATE" or event == "TRAIT_CONFIG_UPDATED" then
@@ -181,12 +169,6 @@ local function OnEvent(self, event, ...)
 		SettingsDB = SettingsDB or {}
 		SpellsDB = SpellsDB or {}
 
-		if type(SettingsDB.buffOverrides) ~= "table" then
-			SettingsDB.buffOverrides = {}
-			SettingsDB.buffOverrides[342245] = 342246 -- Alter Time
-			SettingsDB.buffOverrides[414660] = 11426 -- Mass Barrier
-			SettingsDB.buffOverrides[53600] = 132403 -- Shield of the Righteous
-		end
 		if type(SettingsDB.forcedSpells) ~= "table" then
 			SettingsDB.forcedSpells = {}
 			SettingsDB.forcedSpells[0] = {}
@@ -211,7 +193,6 @@ local function OnEvent(self, event, ...)
 			local categoryPoesBars = addon:CreateSettingsGeneral()
 			addon.categoryPoesBarsID = categoryPoesBars:GetID()
 
-			addon.categoryBuffsID = addon:CreateSettingsBuffs(categoryPoesBars);
 			addon.categoryForcedID = addon:CreateSettingsForced(categoryPoesBars)
 			addon.categoryItemsID = addon:CreateSettingsItems(categoryPoesBars);
 			addon.categorySpellsID = addon:CreateSettingsSpells(categoryPoesBars);

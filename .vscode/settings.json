@@ -31,7 +31,9 @@
     "MAX_TOTEMS",
     "DEFAULT_CHAT_FRAME",
     "TooltipDataProcessor",
-    "NUM_BAG_SLOTS"
+    "NUM_BAG_SLOTS",
+    "ID",
+    "RAID"
   ],
   "Lua.format.defaultConfig": {
     "break_all_list_when_line_exceed": "false",

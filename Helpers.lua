@@ -329,12 +329,8 @@ function addon:GetIconDetails()
         return nil
     end
 
-    local tableIconDetails = {}
-
-    AddIconDetail(true, GetInventoryItemID("player", 13), playerSpecID, 0, -1, tableIconDetails)
-    AddIconDetail(true, GetInventoryItemID("player", 14), playerSpecID, 0, -1, tableIconDetails)
-
     local numPetSpells, petNameToken = C_SpellBook.HasPetSpells()
+    local tableIconDetails = {}
 
     if numPetSpells and numPetSpells > 0 then
         for i = 1, numPetSpells do
@@ -384,15 +380,20 @@ function addon:GetIconDetails()
         AddIconDetail(false, SettingsDB.validItems[i], playerSpecID, 0, -1, tableIconDetails)
     end
 
+    AddIconDetail(true, GetInventoryItemID("player", 13), playerSpecID, 0, -1, tableIconDetails)
+    AddIconDetail(true, GetInventoryItemID("player", 14), playerSpecID, 0, -1, tableIconDetails)
+
     return tableIconDetails
 end
 
-function addon:GetKeyBind(itemID, name, slotDetails, spellID)
-    itemID = itemID or -1
-    name = name or ""
-    spellID = spellID or -1
+function addon:GetKeyBind(frame, slotDetails)
+    local itemID = frame.itemID or -1
+    local itemName = frame.itemName or ""
+    local spellID = frame.spellID or -1
+    local spellName = frame.spellName or ""
 
-    name = name:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
+    itemName = itemName:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
+    spellName = spellName:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
 
     for slot, slotInfo in pairs(slotDetails) do
         local wasMatched = false
@@ -415,31 +416,61 @@ function addon:GetKeyBind(itemID, name, slotDetails, spellID)
             end
         end
 
-        if name ~= "" then
+        if itemName ~= "" then
             if slotInfo.name ~= "" then
-                if slotInfo.name == name then
+                if slotInfo.name == itemName then
                     wasMatched = true
                 end
 
-                if slotInfo.name:find(name, 1, true) then
+                if slotInfo.name:find(itemName, 1, true) then
                     wasMatched = true
                 end
             end
 
             if slotInfo.actionText ~= "" then
-                if slotInfo.actionText:find(name, 1, true) then
+                if slotInfo.actionText:find(itemName, 1, true) then
                     wasMatched = true
                 end
             end
 
             if slotInfo.macroBody ~= "" then
-                if slotInfo.macroBody:find(name, 1, true) then
+                if slotInfo.macroBody:find(itemName, 1, true) then
                     wasMatched = true
                 end
             end
 
             if slotInfo.macroName ~= "" then
-                if slotInfo.macroName:find(name, 1, true) then
+                if slotInfo.macroName:find(itemName, 1, true) then
+                    wasMatched = true
+                end
+            end
+        end
+
+        if spellName ~= "" then
+            if slotInfo.name ~= "" then
+                if slotInfo.name == spellName then
+                    wasMatched = true
+                end
+
+                if slotInfo.name:find(spellName, 1, true) then
+                    wasMatched = true
+                end
+            end
+
+            if slotInfo.actionText ~= "" then
+                if slotInfo.actionText:find(spellName, 1, true) then
+                    wasMatched = true
+                end
+            end
+
+            if slotInfo.macroBody ~= "" then
+                if slotInfo.macroBody:find(spellName, 1, true) then
+                    wasMatched = true
+                end
+            end
+
+            if slotInfo.macroName ~= "" then
+                if slotInfo.macroName:find(spellName, 1, true) then
                     wasMatched = true
                 end
             end
