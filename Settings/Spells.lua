@@ -296,6 +296,8 @@ function addon:CreateSettingsSpells(mainCategory)
 				else
 					categoryInput:Hide()
 
+					addon:SortSpells(SpellsDB)
+
 					scrollFrame = CreateFrame("ScrollFrame", nil, parentFrame, "UIPanelScrollFrameTemplate")
 
 					scrollFrameChild = CreateFrame("Frame", nil, scrollFrame)

@@ -3,6 +3,8 @@ local addonName, addon = ...
 local categories = {}
 local iconFrames = {}
 
+local LCG = LibStub("LibCustomGlow-1.0")
+
 local LSM = LibStub("LibSharedMedia-3.0")
 local font = LSM:Fetch("font", "Naowh") or "Fonts\\FRIZQT__.TTF"
 
@@ -61,6 +63,12 @@ local function CreateIconFrame(iconDetail)
     frameBorder:SetFrameLevel(newFrame:GetFrameLevel() + 1)
     frameBorder:SetPropagateKeyboardInput(true)
     frameBorder:SetToplevel(false)
+
+    for _, seasonSpellID in pairs(addon.currentSeason) do
+        if spellID == seasonSpellID then
+            LCG.PixelGlow_Start(newFrame, { 1, 1, 0, 1 }, 6, 0.2, 6, 2, 2, 0, 0)
+        end
+    end
 
     local frameCooldownGCD = CreateFrame("Cooldown", nil, newFrame, "CooldownFrameTemplate")
     frameCooldownGCD:EnableKeyboard(false)
@@ -818,11 +826,17 @@ local function updateIcon(isItem, frame, gcdCooldown, playerBuffs, playerTotems,
 
         local startTime, duration, enable = C_Container.GetItemCooldown(frame.itemID)
 
-        if enable == 1 and duration > 0 then
-            frame.frameCooldownSpell:SetCooldown(startTime, duration)
+        if enable and duration > 0 then
+            if gcdCooldown.isEnabled and gcdCooldown.duration > 0 then
+            else
+                frame.frameCooldownSpell:SetCooldown(startTime, duration)
+            end
+        else
+            frame.frameCooldownSpell:Clear()
+        end
 
+        if enable and duration > 2 then
             local remaining = (startTime + duration) - GetTime()
-
             if remaining > 0 then
                 if remaining < 90 then
                     frame.textCooldown:SetText(string.format("%d", remaining))
@@ -836,8 +850,6 @@ local function updateIcon(isItem, frame, gcdCooldown, playerBuffs, playerTotems,
                 isOnCooldown = true
             end
         else
-            frame.frameCooldownSpell:Clear()
-
             if settingsTable.showWhenAvailable then
                 isVisible = true
             end

@@ -3,6 +3,7 @@ addon.actionButtons      = {}
 addon.categoryIgnored    = "Ignored"
 addon.categoryTrinket    = "Trinket"
 addon.categoryUnknown    = "Unknown"
+addon.currentSeason      = { 445417, 445415, 445414, 445444, 1216786, 1237215, 354465, 367416 }
 addon.isLoaded           = false
 addon.itemBuffs          = {}
 addon.settingsControls   = {}
@@ -10,15 +11,18 @@ addon.settingsIconSize   = 36
 addon.spellBuffs         = {}
 addon.totemBuffs         = {}
 
-addon.itemBuffs[219314]  = { "Egg Sac", "Spiderling" } -- Ara-Kara Sacbrood
-addon.itemBuffs[219317]  = { "Volatile Energy" }       -- Harvester's Edict
-addon.itemBuffs[232541]  = { "Explosive Adrenaline" }  -- Improvised Seaforium Pacemaker
-addon.itemBuffs[242401]  = { "Infuriated" }            -- Brand of Ceaseless Ire
+addon.itemBuffs[219314]  = { "Egg Sac", "Spiderling" }                               -- Ara-Kara Sacbrood
+addon.itemBuffs[219317]  = { "Volatile Energy" }                                     -- Harvester's Edict
+addon.itemBuffs[232541]  = { "Explosive Adrenaline" }                                -- Improvised Seaforium Pacemaker
+addon.itemBuffs[242401]  = { "Infuriated" }                                          -- Brand of Ceaseless Ire
+addon.itemBuffs[242497]  = { "Mite-y Feast", "Azhiccaran Mite" }                     -- Azhiccaran Parapodia
 
-addon.spellBuffs[53600]  = { "Shield of the Righteous" }
-addon.spellBuffs[342245] = { "Alter Time" }
-addon.spellBuffs[342246] = { "Alter Time" }
-addon.spellBuffs[414660] = { "Blazing Barrier", "Ice Barrier", "Prismatic Barrier" }
+addon.spellBuffs[53600]  = { "Shield of the Righteous" }                             -- Shield of the Righteous
+addon.spellBuffs[85673]  = { "Faith in the Light" }                                  -- Word of Glory
+addon.spellBuffs[315921] = { "Faith in the Light" }                                  -- Word of Glory
+addon.spellBuffs[342245] = { "Alter Time" }                                          -- Alter Time
+addon.spellBuffs[342246] = { "Alter Time" }                                          -- Alter Time
+addon.spellBuffs[414660] = { "Blazing Barrier", "Ice Barrier", "Prismatic Barrier" } -- Mass Barrier
 
 addon.totemBuffs[205180] = { "Darkglare" }
 

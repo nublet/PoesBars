@@ -729,3 +729,30 @@ function addon:ReplaceBindings(binding)
 
     return binding
 end
+
+function addon:SortSpells(db)
+    for specId, spells in pairs(db) do
+        local ordered = {}
+        for spellId, category in pairs(spells) do
+            table.insert(ordered, { spellId = spellId, category = category })
+        end
+
+        local buckets, bucketOrder = {}, {}
+        for _, entry in ipairs(ordered) do
+            if not buckets[entry.category] then
+                buckets[entry.category] = {}
+                table.insert(bucketOrder, entry.category)
+            end
+            table.insert(buckets[entry.category], entry)
+        end
+
+        local newTable = {}
+        for _, cat in ipairs(bucketOrder) do
+            for _, entry in ipairs(buckets[cat]) do
+                newTable[entry.spellId] = entry.category
+            end
+        end
+
+        db[specId] = newTable
+    end
+end
