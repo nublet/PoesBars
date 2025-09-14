@@ -156,7 +156,10 @@ local function CreateIconFrame(iconDetail)
     if itemID > 0 then
         textID:SetText(tostring(itemID))
 
+        local usable, noMana = C_Item.IsUsableItem(itemID)
+
         newFrame.itemID = itemID
+        newFrame.itemIsUsable = usable
         newFrame.settingName = itemID .. "_-1"
 
         if spellID > 0 then
@@ -785,6 +788,13 @@ local function updateIcon(isItem, frame, gcdCooldown, playerBuffs, playerTotems,
         return
     end
 
+    if frame.itemIsUsable == false then
+        frame.frameBorder:Hide()
+        frame.textureIcon:SetDesaturated(true)
+
+        return
+    end
+
     if frame.isHarmful and spellCooldownMS <= 0 then
         frame:SetAlpha(1.0)
 
@@ -797,6 +807,12 @@ local function updateIcon(isItem, frame, gcdCooldown, playerBuffs, playerTotems,
             ActionButton_HideOverlayGlow(frame)
             frame.isGlowActive = false
         end
+
+        return
+    end
+
+    if settingsTable.showWhenAvailable and spellCooldownMS <= 0 then
+        frame:SetAlpha(0.0)
 
         return
     end
