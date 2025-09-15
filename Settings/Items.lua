@@ -128,10 +128,6 @@ function addon:CreateSettingsItems(mainCategory)
         end)
     end)
     parentFrame:SetScript("OnShow", function(frame)
-        if not addon.isSettingsShown then
-            return
-        end
-
         addon:GetDataItems()
     end)
 

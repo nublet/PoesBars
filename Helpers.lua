@@ -319,12 +319,7 @@ function addon:GetFrame(name)
 end
 
 function addon:GetIconDetails()
-    local currentSpec = GetSpecialization()
-    if not currentSpec then
-        return nil
-    end
-
-    local playerSpecID = GetSpecializationInfo(currentSpec)
+    local playerSpecID = addon:GetPlayerSpecID()
     if not playerSpecID then
         return nil
     end
@@ -507,6 +502,20 @@ function addon:GetKeyBind(frame, slotDetails)
     end
 
     return ""
+end
+
+function addon:GetPlayerSpecID()
+    local currentSpec = GetSpecialization()
+    if not currentSpec then
+        return -1
+    end
+
+    local playerSpecID = GetSpecializationInfo(currentSpec)
+    if not playerSpecID then
+        return -1
+    end
+
+    return playerSpecID
 end
 
 function addon:GetSettingsTable(category)

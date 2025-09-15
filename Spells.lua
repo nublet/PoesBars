@@ -50,6 +50,7 @@ local function CreateIconFrame(iconDetail)
 
     newFrame.isHarmful = false
     newFrame.itemID = -1
+    newFrame.itemIsUsable = true
     newFrame.itemName = ""
     newFrame.spellID = -1
     newFrame.spellName = ""
@@ -663,6 +664,22 @@ local function updateIconAuraBuff(currentSpellID, frame, playerBuffs, playerTote
         end
     end
 
+    if settingsTable.showOnCooldown then
+        if frame.auraRemaining > 5 then
+            if currentSpellID == 192081 then
+                if frame.auraStacks >= 3 then
+                    frame:SetAlpha(0.0)
+
+                    return true
+                end
+            else
+                frame:SetAlpha(0.0)
+
+                return true
+            end
+        end
+    end
+
     frame:SetAlpha(1.0)
     frame.frameBorder:SetBackdropBorderColor(0, 1, 0, 1)
     frame.frameBorder:Show()
@@ -788,39 +805,45 @@ local function updateIcon(isItem, frame, gcdCooldown, playerBuffs, playerTotems,
         return
     end
 
-    if frame.itemIsUsable == false then
-        frame.frameBorder:Hide()
-        frame.textureIcon:SetDesaturated(true)
-        frame.textureIcon:SetVertexColor(1, 1, 1)
+    if frame.itemID > 0 then
+        if frame.isTrinket and frame.itemIsUsable == false then
+            frame.frameBorder:Hide()
+            frame.textureIcon:SetDesaturated(true)
+            frame.textureIcon:SetVertexColor(1, 1, 1)
 
-        if settingsTable.glowWhenAuraActive and frame.isGlowActive then
-            ActionButton_HideOverlayGlow(frame)
-            frame.isGlowActive = false
+            if settingsTable.glowWhenAuraActive and frame.isGlowActive then
+                ActionButton_HideOverlayGlow(frame)
+                frame.isGlowActive = false
+            end
+
+            return
         end
+    else
+        if spellCooldownMS <= 0 then
+            if settingsTable.showWhenAvailable then
+                frame:SetAlpha(0.0)
+            elseif settingsTable.showOnCooldown then
+                frame:SetAlpha(0.0)
+            else
+                frame:SetAlpha(1.0)
 
-        return
-    end
+                if currentSpellID == 436854 or currentSpellID == 460003 or currentSpellID == 461063 or currentSpellID == 1231411 then
+                    frame.frameBorder:Hide()
+                else
+                    frame.frameBorder:SetBackdropBorderColor(1, 0, 0, 1)
+                    frame.frameBorder:Show()
+                    frame.textureIcon:SetDesaturated(true)
+                    frame.textureIcon:SetVertexColor(1, 1, 1)
+                end
+            end
 
-    if frame.isHarmful and spellCooldownMS <= 0 then
-        frame:SetAlpha(1.0)
+            if settingsTable.glowWhenAuraActive and frame.isGlowActive then
+                ActionButton_HideOverlayGlow(frame)
+                frame.isGlowActive = false
+            end
 
-        frame.frameBorder:SetBackdropBorderColor(1, 0, 0, 1)
-        frame.frameBorder:Show()
-        frame.textureIcon:SetDesaturated(true)
-        frame.textureIcon:SetVertexColor(1, 1, 1)
-
-        if settingsTable.glowWhenAuraActive and frame.isGlowActive then
-            ActionButton_HideOverlayGlow(frame)
-            frame.isGlowActive = false
+            return
         end
-
-        return
-    end
-
-    if settingsTable.showWhenAvailable and spellCooldownMS <= 0 then
-        frame:SetAlpha(0.0)
-
-        return
     end
 
     frame.frameBorder:Hide()
@@ -1093,12 +1116,7 @@ function addon:RefreshCategoryFrames()
         return
     end
 
-    local currentSpec = GetSpecialization()
-    if not currentSpec then
-        return
-    end
-
-    local playerSpecID = GetSpecializationInfo(currentSpec)
+    local playerSpecID = addon:GetPlayerSpecID()
     if not playerSpecID then
         return
     end

@@ -1,7 +1,6 @@
 local addonName, addon = ...
 
 local parentFrame
-local playerSpecID
 local scrollFrame
 local scrollFrameChild
 local yOffset = 0
@@ -36,6 +35,11 @@ local function CreateOptionLine(spellID)
     textSpellName:SetPoint("LEFT", textSpellID, "RIGHT", 10, 0)
 
     local deleteButton = addon:GetControlButton(false, "Delete", scrollFrameChild, 60, function(control)
+        local playerSpecID = addon:GetPlayerSpecID()
+        if not playerSpecID then
+            return
+        end
+
         local listsToCheck = { 0, playerSpecID }
         for _, specID in ipairs(listsToCheck) do
             local list = SettingsDB.forcedSpells[specID]
@@ -82,9 +86,15 @@ function addon:CreateSettingsForced(mainCategory)
         if not newSpellID or newSpellID <= 0 then
             return
         end
-        local allSpecs = everyoneCheckbox:GetChecked()
 
+        local allSpecs = everyoneCheckbox:GetChecked()
         local exists = false
+
+        local playerSpecID = addon:GetPlayerSpecID()
+        if not playerSpecID then
+            return
+        end
+
         for _, specID in ipairs({ 0, playerSpecID }) do
             if exists then
                 break
@@ -130,19 +140,6 @@ function addon:CreateSettingsForced(mainCategory)
         end)
     end)
     parentFrame:SetScript("OnShow", function(frame)
-        if not addon.isSettingsShown then
-            return
-        end
-
-        local currentSpec = GetSpecialization()
-        if currentSpec then
-            playerSpecID = GetSpecializationInfo(currentSpec)
-        end
-
-        if not playerSpecID then
-            playerSpecID = 0
-        end
-
         addon:GetDataForced()
     end)
 
@@ -187,21 +184,20 @@ function addon:GetDataForced()
 
     yOffset = -10
 
-    local forcedSpells = SettingsDB.forcedSpells[0]
-    if forcedSpells and next(forcedSpells) ~= nil then
-        table.sort(forcedSpells)
-
-        for i = 1, #forcedSpells do
-            CreateOptionLine(forcedSpells[i])
-        end
+    local playerSpecID = addon:GetPlayerSpecID()
+    if not playerSpecID then
+        return
     end
 
-    forcedSpells = SettingsDB.forcedSpells[playerSpecID]
-    if forcedSpells and next(forcedSpells) ~= nil then
-        table.sort(forcedSpells)
+    local listsToCheck = { 0, playerSpecID }
+    for _, specID in ipairs(listsToCheck) do
+        local list = SettingsDB.forcedSpells[specID]
+        if list then
+            table.sort(list)
 
-        for i = 1, #forcedSpells do
-            CreateOptionLine(forcedSpells[i])
+            for i = 1, #list do
+                CreateOptionLine(list[i])
+            end
         end
     end
 end

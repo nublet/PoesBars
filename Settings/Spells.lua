@@ -632,12 +632,9 @@ function addon:CreateSettingsSpells(mainCategory)
 						end
 					end
 
-					local currentSpec = GetSpecialization()
-					if currentSpec then
-						local playerSpecID = GetSpecializationInfo(currentSpec)
-						if playerSpecID then
-							LoadLayout(category, playerSpecID)
-						end
+					local playerSpecID = addon:GetPlayerSpecID()
+					if playerSpecID and playerSpecID > 0 then
+						LoadLayout(category, playerSpecID)
 					end
 				end
 			end
