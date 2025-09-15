@@ -791,6 +791,12 @@ local function updateIcon(isItem, frame, gcdCooldown, playerBuffs, playerTotems,
     if frame.itemIsUsable == false then
         frame.frameBorder:Hide()
         frame.textureIcon:SetDesaturated(true)
+        frame.textureIcon:SetVertexColor(1, 1, 1)
+
+        if settingsTable.glowWhenAuraActive and frame.isGlowActive then
+            ActionButton_HideOverlayGlow(frame)
+            frame.isGlowActive = false
+        end
 
         return
     end
