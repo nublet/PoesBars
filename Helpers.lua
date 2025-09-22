@@ -1,6 +1,7 @@
 local addonName, addon = ...
 
-local DebounceTimers = {}
+local debounceTimers = {}
+local seenSpells = {}
 
 local function AddIconDetail(isTrinket, itemID, playerSpecID, specID, spellID, tableIconDetails)
     isTrinket = isTrinket or false
@@ -10,6 +11,11 @@ local function AddIconDetail(isTrinket, itemID, playerSpecID, specID, spellID, t
     spellID = spellID or -1
 
     if itemID <= 0 and spellID <= 0 then
+        return nil
+    end
+
+    local key = "spec:" .. specID .. ",playerSpec:" .. playerSpecID .. ",item:" .. itemID .. ",spell:" .. spellID
+    if seenSpells[key] then
         return nil
     end
 
@@ -189,13 +195,13 @@ function addon:ClearRadios(radioGroup)
 end
 
 function addon:Debounce(key, delay, func)
-    if DebounceTimers[key] then
-        DebounceTimers[key]:Cancel()
+    if debounceTimers[key] then
+        debounceTimers[key]:Cancel()
     end
 
-    DebounceTimers[key] = C_Timer.NewTimer(delay, function()
+    debounceTimers[key] = C_Timer.NewTimer(delay, function()
         func()
-        DebounceTimers[key] = nil
+        debounceTimers[key] = nil
     end)
 end
 
