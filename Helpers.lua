@@ -96,7 +96,7 @@ local function ProcessSpell(playerSpecID, spellBank, specID, spellIndex, tableIc
 
     if itemInfo.itemType == Enum.SpellBookItemType.Flyout then
         local flyoutName, flyoutDescription, flyoutSlots, flyoutKnown = GetFlyoutInfo(itemInfo.actionID)
-        if flyoutKnown then
+        if flyoutKnown and flyoutName ~= "Hero's Path: The War Within Season 3" then
             for slot = 1, flyoutSlots do
                 local slotSpellID, slotOverrideSpellID, slotIsKnown, slotSpellName, slotSlotSpecID = GetFlyoutSlotInfo(
                     itemInfo.actionID, slot)

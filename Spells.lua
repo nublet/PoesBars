@@ -822,8 +822,6 @@ local function updateIcon(isItem, frame, gcdCooldown, playerBuffs, playerTotems,
         if spellCooldownMS <= 0 then
             if settingsTable.showWhenAvailable then
                 frame:SetAlpha(0.0)
-            elseif settingsTable.showOnCooldown then
-                frame:SetAlpha(0.0)
             else
                 frame:SetAlpha(1.0)
 
