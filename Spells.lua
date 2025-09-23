@@ -664,20 +664,10 @@ local function updateIconAuraBuff(currentSpellID, frame, playerBuffs, playerTote
         end
     end
 
-    if settingsTable.showOnCooldown then
-        if frame.auraRemaining > 5 then
-            if currentSpellID == 192081 then
-                if frame.auraStacks >= 3 then
-                    frame:SetAlpha(0.0)
+    if settingsTable.isHarmful and settingsTable.showOnCooldown and frame.auraRemaining > 5 then
+        frame:SetAlpha(0.0)
 
-                    return true
-                end
-            else
-                frame:SetAlpha(0.0)
-
-                return true
-            end
-        end
+        return true
     end
 
     frame:SetAlpha(1.0)
