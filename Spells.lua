@@ -664,12 +664,6 @@ local function updateIconAuraBuff(currentSpellID, frame, playerBuffs, playerTote
         end
     end
 
-    if settingsTable.isHarmful and settingsTable.showOnCooldown and frame.auraRemaining > 5 then
-        frame:SetAlpha(0.0)
-
-        return true
-    end
-
     frame:SetAlpha(1.0)
     frame.frameBorder:SetBackdropBorderColor(0, 1, 0, 1)
     frame.frameBorder:Show()
