@@ -4,7 +4,7 @@
 ## Notes: Organizes abilities and buffs
 ## Author: Poesboi
 ## Credits: 
-## Version: 25.0.6.212
+## Version: 25.0.6.213
 ## RequiredDeps: SharedMedia
 ## SavedVariables: CategoryOrderDB, SettingsDB, SpellsDB
 
@@ -12,9 +12,12 @@ Data.lua
 Helpers.lua
 Spells.lua
 
-Settings\Forced.lua
-Settings\Items.lua
-Settings\Spells.lua
-Settings\PoesBars.lua
+SettingsDialog\Tabs\Categories.lua
+SettingsDialog\Tabs\ForcedItems.lua
+SettingsDialog\Tabs\ForcedSpells.lua
+SettingsDialog\Tabs\General.lua
+
+SettingsDialog\Initialize.lua
+SettingsDialog\Main.lua
 
 PoesBars.lua

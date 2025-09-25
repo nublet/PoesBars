@@ -1,11 +1,9 @@
 local addonName, addon = ...
 
-local parentFrame
-local scrollFrame
-local scrollFrameChild
+local frameContainer
+local frameScroll
+local frameScrollChild
 local yOffset = 0
-
-local LSM = LibStub("LibSharedMedia-3.0")
 
 local function CreateOptionLine(itemID)
     itemID = itemID or -1
@@ -13,7 +11,7 @@ local function CreateOptionLine(itemID)
         return
     end
 
-    local frameIcon = CreateFrame("Frame", nil, scrollFrameChild)
+    local frameIcon = CreateFrame("Frame", nil, frameScrollChild)
     frameIcon:EnableMouse(true)
     frameIcon:SetPoint("TOPLEFT", 10, yOffset)
     frameIcon:SetSize(addon.settingsIconSize, addon.settingsIconSize)
@@ -36,14 +34,14 @@ local function CreateOptionLine(itemID)
     textRank:SetText("")
     textRank:SetTextColor(0, 1, 0, 1)
 
-    local textItemID = addon:GetControlLabel(false, scrollFrameChild, "", 100)
+    local textItemID = addon:GetControlLabel(false, frameScrollChild, "", 100)
     textItemID:SetPoint("LEFT", frameIcon, "RIGHT", 10, 0)
     textItemID:SetText(itemID)
 
-    local textItemName = addon:GetControlLabel(false, scrollFrameChild, "", 200)
+    local textItemName = addon:GetControlLabel(false, frameScrollChild, "", 200)
     textItemName:SetPoint("LEFT", textItemID, "RIGHT", 10, 0)
 
-    local deleteButton = addon:GetControlButton(false, "Delete", scrollFrameChild, 60, function(control)
+    local deleteButton = addon:GetControlButton(false, "Delete", frameScrollChild, 60, function(control)
         for i = 1, #SettingsDB.validItems do
             if SettingsDB.validItems[i] == itemID then
                 table.remove(SettingsDB.validItems, i)
@@ -51,7 +49,7 @@ local function CreateOptionLine(itemID)
             end
         end
 
-        addon:GetDataItems()
+        addon:GetForcedItemsData()
     end)
     deleteButton:SetPoint("LEFT", textItemName, "RIGHT", 10, 0)
 
@@ -82,18 +80,60 @@ local function CreateOptionLine(itemID)
     yOffset = yOffset - addon.settingsIconSize - 10
 end
 
-function addon:CreateSettingsItems(mainCategory)
-    parentFrame = CreateFrame("Frame", "ItemsSettingsFrame", UIParent)
-    parentFrame.name = "Items"
+function addon:GetForcedItemsData()
+    if frameScrollChild then
+        local children = frameScrollChild:GetChildren()
 
-    local newItemLabel = addon:GetControlLabel(false, parentFrame, "ItemID:", 100)
-    newItemLabel:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", 10, -10)
+        if children and next(children) ~= nil then
+            for i = 1, #children do
+                local child = children[i]
 
-    local newItemInput = addon:GetControlInput(false, parentFrame, 120)
+                child:ClearAllPoints()
+                child:Hide()
+                child:SetParent(nil)
+            end
+        end
+
+        frameScrollChild:ClearAllPoints()
+        frameScrollChild:Hide()
+        frameScrollChild:SetParent(nil)
+    end
+
+    if frameScroll then
+        frameScroll:ClearAllPoints()
+        frameScroll:Hide()
+        frameScroll:SetParent(nil)
+    end
+
+    frameScroll = CreateFrame("ScrollFrame", nil, frameContainer, "UIPanelScrollFrameTemplate")
+    frameScroll:SetPoint("BOTTOMRIGHT", frameContainer, "BOTTOMRIGHT", -30, 10)
+    frameScroll:SetPoint("TOPLEFT", frameContainer, "TOPLEFT", 0, -30)
+
+    frameScrollChild = CreateFrame("Frame", nil, frameScroll)
+    frameScrollChild:SetSize(1, 1)
+
+    frameScroll:SetScrollChild(frameScrollChild)
+
+    table.sort(SettingsDB.validItems)
+
+    yOffset = -10
+
+    for i = 1, #SettingsDB.validItems do
+        CreateOptionLine(SettingsDB.validItems[i])
+    end
+end
+
+function addon:GetForcedItemsSettings(parent)
+    frameContainer = CreateFrame("Frame", nil, parent)
+
+    local newItemLabel = addon:GetControlLabel(false, frameContainer, "ItemID:", 100)
+    newItemLabel:SetPoint("TOPLEFT", frameContainer, "TOPLEFT", 10, -10)
+
+    local newItemInput = addon:GetControlInput(false, frameContainer, 120)
     newItemInput:SetNumeric(true)
     newItemInput:SetPoint("LEFT", newItemLabel, "RIGHT", 10, 0)
 
-    local newItemButton = addon:GetControlButton(false, "Add", parentFrame, 60, function(control)
+    local newItemButton = addon:GetControlButton(false, "Add", frameContainer, 60, function(control)
         local itemID = newItemInput:GetNumber()
 
         if itemID and itemID > 0 then
@@ -110,71 +150,13 @@ function addon:CreateSettingsItems(mainCategory)
             end
         end
 
-        addon:GetDataItems()
+        addon:GetForcedItemsSettings()
     end)
     newItemButton:SetPoint("LEFT", newItemInput, "RIGHT", 10, 0)
 
-    parentFrame:SetScript("OnHide", function(frame)
-        if not addon.isSettingsShown then
-            return
-        end
-
-        addon.isLoaded = false
-        addon.isSettingsShown = false
-
-        addon:Debounce("CreateIcons", 1, function()
-            addon:CreateIcons()
-            addon.isLoaded = true
-        end)
-    end)
-    parentFrame:SetScript("OnShow", function(frame)
-        addon:GetDataItems()
+    frameContainer:SetScript("OnShow", function(frame)
+        addon:GetForcedItemsSettings()
     end)
 
-    local subCategory = Settings.RegisterCanvasLayoutSubcategory(mainCategory, parentFrame, parentFrame.name);
-    Settings.RegisterAddOnCategory(subCategory);
-    return subCategory:GetID()
-end
-
-function addon:GetDataItems()
-    if scrollFrameChild then
-        local children = scrollFrameChild:GetChildren()
-
-        if children and next(children) ~= nil then
-            for i = 1, #children do
-                local child = children[i]
-
-                child:ClearAllPoints()
-                child:Hide()
-                child:SetParent(nil)
-            end
-        end
-
-        scrollFrameChild:ClearAllPoints()
-        scrollFrameChild:Hide()
-        scrollFrameChild:SetParent(nil)
-    end
-
-    if scrollFrame then
-        scrollFrame:ClearAllPoints()
-        scrollFrame:Hide()
-        scrollFrame:SetParent(nil)
-    end
-
-    scrollFrame = CreateFrame("ScrollFrame", nil, parentFrame, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -10, 10)
-    scrollFrame:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", 0, -30)
-
-    scrollFrameChild = CreateFrame("Frame", nil, scrollFrame)
-    scrollFrameChild:SetSize(1, 1)
-
-    scrollFrame:SetScrollChild(scrollFrameChild)
-
-    table.sort(SettingsDB.validItems)
-
-    yOffset = -10
-
-    for i = 1, #SettingsDB.validItems do
-        CreateOptionLine(SettingsDB.validItems[i])
-    end
+    return frameContainer
 end

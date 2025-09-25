@@ -33,7 +33,18 @@
     "TooltipDataProcessor",
     "NUM_BAG_SLOTS",
     "ID",
-    "RAID"
+    "RAID",
+    "DynamicResizeButton_Resize",
+    "ButtonFrameTemplate_HidePortrait",
+    "ButtonFrameTemplate_HideButtonBar",
+    "PanelTemplates_SetNumTabs",
+    "UISpecialFrames",
+    "PanelTemplates_SelectTab",
+    "PanelTemplates_DeselectTab",
+    "FindValueInTableIf",
+    "PanelTemplates_SetTab",
+    "GENERAL",
+    "PanelTemplates_TabResize"
   ],
   "Lua.format.defaultConfig": {
     "break_all_list_when_line_exceed": "false",

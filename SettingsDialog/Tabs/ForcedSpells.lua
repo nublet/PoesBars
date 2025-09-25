@@ -1,8 +1,8 @@
 local addonName, addon = ...
 
-local parentFrame
-local scrollFrame
-local scrollFrameChild
+local frameContainer
+local frameScroll
+local frameScrollChild
 local yOffset = 0
 
 local function CreateOptionLine(spellID)
@@ -11,7 +11,7 @@ local function CreateOptionLine(spellID)
         return
     end
 
-    local frameSpell = CreateFrame("Frame", nil, scrollFrameChild)
+    local frameSpell = CreateFrame("Frame", nil, frameScroll)
     frameSpell:EnableMouse(true)
     frameSpell:SetPoint("TOPLEFT", 10, yOffset)
     frameSpell:SetSize(addon.settingsIconSize, addon.settingsIconSize)
@@ -27,14 +27,14 @@ local function CreateOptionLine(spellID)
     local textureSpell = frameSpell:CreateTexture(nil, "ARTWORK")
     textureSpell:SetAllPoints()
 
-    local textSpellID = addon:GetControlLabel(false, scrollFrameChild, "", 60)
+    local textSpellID = addon:GetControlLabel(false, frameScroll, "", 60)
     textSpellID:SetPoint("LEFT", frameSpell, "RIGHT", 10, 0)
     textSpellID:SetText(spellID)
 
-    local textSpellName = addon:GetControlLabel(false, scrollFrameChild, "", 150)
+    local textSpellName = addon:GetControlLabel(false, frameScroll, "", 150)
     textSpellName:SetPoint("LEFT", textSpellID, "RIGHT", 10, 0)
 
-    local deleteButton = addon:GetControlButton(false, "Delete", scrollFrameChild, 60, function(control)
+    local deleteButton = addon:GetControlButton(false, "Delete", frameScroll, 60, function(control)
         local playerSpecID = addon:GetPlayerSpecID()
         if not playerSpecID then
             return
@@ -53,7 +53,7 @@ local function CreateOptionLine(spellID)
             end
         end
 
-        addon:GetDataForced()
+        addon:GetForcedSpellsData()
     end)
     deleteButton:SetPoint("LEFT", textSpellName, "RIGHT", 10, 0)
 
@@ -66,22 +66,75 @@ local function CreateOptionLine(spellID)
     yOffset = yOffset - addon.settingsIconSize - 10
 end
 
-function addon:CreateSettingsForced(mainCategory)
-    parentFrame = CreateFrame("Frame", "ForcedSettingsFrame", UIParent)
-    parentFrame.name = "Forced Spells"
+function addon:GetForcedSpellsData()
+    if frameScrollChild then
+        local children = frameScrollChild:GetChildren()
 
-    local spellIDLabel = addon:GetControlLabel(false, parentFrame, "Spell:", 100)
-    spellIDLabel:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", 10, -10)
+        if children and next(children) ~= nil then
+            for i = 1, #children do
+                local child = children[i]
 
-    local spellIDInput = addon:GetControlInput(false, parentFrame, 120)
+                child:ClearAllPoints()
+                child:Hide()
+                child:SetParent(nil)
+            end
+        end
+
+        frameScrollChild:ClearAllPoints()
+        frameScrollChild:Hide()
+        frameScrollChild:SetParent(nil)
+    end
+
+    if frameScroll then
+        frameScroll:ClearAllPoints()
+        frameScroll:Hide()
+        frameScroll:SetParent(nil)
+    end
+
+    frameScroll = CreateFrame("ScrollFrame", nil, frameContainer, "UIPanelScrollFrameTemplate")
+    frameScroll:SetPoint("BOTTOMRIGHT", frameContainer, "BOTTOMRIGHT", -30, 10)
+    frameScroll:SetPoint("TOPLEFT", frameContainer, "TOPLEFT", 0, -30)
+
+    frameScrollChild = CreateFrame("Frame", nil, frameScroll)
+    frameScrollChild:SetSize(1, 1)
+
+    frameScroll:SetScrollChild(frameScrollChild)
+
+    yOffset = -10
+
+    local playerSpecID = addon:GetPlayerSpecID()
+    if not playerSpecID then
+        return
+    end
+
+    local listsToCheck = { 0, playerSpecID }
+    for _, specID in ipairs(listsToCheck) do
+        local list = SettingsDB.forcedSpells[specID]
+        if list then
+            table.sort(list)
+
+            for i = 1, #list do
+                CreateOptionLine(list[i])
+            end
+        end
+    end
+end
+
+function addon:GetForcedSpellsSettings(parent)
+    frameContainer = CreateFrame("Frame", nil, parent)
+
+    local spellIDLabel = addon:GetControlLabel(false, frameContainer, "Spell:", 100)
+    spellIDLabel:SetPoint("TOPLEFT", frameContainer, "TOPLEFT", 10, -10)
+
+    local spellIDInput = addon:GetControlInput(false, frameContainer, 120)
     spellIDInput:SetNumeric(true)
     spellIDInput:SetPoint("LEFT", spellIDLabel, "RIGHT", 10, 0)
 
-    local everyoneCheckbox = addon:GetControlCheckbox(false, "All Specs", parentFrame)
+    local everyoneCheckbox = addon:GetControlCheckbox(false, "All Specs", frameContainer)
     everyoneCheckbox:SetChecked(false)
     everyoneCheckbox:SetPoint("LEFT", spellIDInput, "RIGHT", 10, 0)
 
-    local newItemButton = addon:GetControlButton(false, "Add", parentFrame, 60, function(control)
+    local newItemButton = addon:GetControlButton(false, "Add", frameContainer, 60, function(control)
         local newSpellID = spellIDInput:GetNumber()
         if not newSpellID or newSpellID <= 0 then
             return
@@ -122,82 +175,13 @@ function addon:CreateSettingsForced(mainCategory)
             table.insert(SettingsDB.forcedSpells[specID], newSpellID)
         end
 
-        addon:GetDataForced()
+        addon:GetForcedSpellsData()
     end)
     newItemButton:SetPoint("LEFT", everyoneCheckbox, "RIGHT", 100, 0)
 
-    parentFrame:SetScript("OnHide", function(frame)
-        if not addon.isSettingsShown then
-            return
-        end
-
-        addon.isLoaded = false
-        addon.isSettingsShown = false
-
-        addon:Debounce("CreateIcons", 1, function()
-            addon:CreateIcons()
-            addon.isLoaded = true
-        end)
-    end)
-    parentFrame:SetScript("OnShow", function(frame)
-        addon:GetDataForced()
+    frameContainer:SetScript("OnShow", function(frame)
+        addon:GetForcedSpellsData()
     end)
 
-    local subCategory = Settings.RegisterCanvasLayoutSubcategory(mainCategory, parentFrame, parentFrame.name);
-    Settings.RegisterAddOnCategory(subCategory);
-    return subCategory:GetID()
-end
-
-function addon:GetDataForced()
-    if scrollFrameChild then
-        local children = scrollFrameChild:GetChildren()
-
-        if children and next(children) ~= nil then
-            for i = 1, #children do
-                local child = children[i]
-
-                child:ClearAllPoints()
-                child:Hide()
-                child:SetParent(nil)
-            end
-        end
-
-        scrollFrameChild:ClearAllPoints()
-        scrollFrameChild:Hide()
-        scrollFrameChild:SetParent(nil)
-    end
-
-    if scrollFrame then
-        scrollFrame:ClearAllPoints()
-        scrollFrame:Hide()
-        scrollFrame:SetParent(nil)
-    end
-
-    scrollFrame = CreateFrame("ScrollFrame", nil, parentFrame, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -10, 10)
-    scrollFrame:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", 0, -30)
-
-    scrollFrameChild = CreateFrame("Frame", nil, scrollFrame)
-    scrollFrameChild:SetSize(1, 1)
-
-    scrollFrame:SetScrollChild(scrollFrameChild)
-
-    yOffset = -10
-
-    local playerSpecID = addon:GetPlayerSpecID()
-    if not playerSpecID then
-        return
-    end
-
-    local listsToCheck = { 0, playerSpecID }
-    for _, specID in ipairs(listsToCheck) do
-        local list = SettingsDB.forcedSpells[specID]
-        if list then
-            table.sort(list)
-
-            for i = 1, #list do
-                CreateOptionLine(list[i])
-            end
-        end
-    end
+    return frameContainer
 end

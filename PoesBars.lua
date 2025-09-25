@@ -29,44 +29,26 @@ end
 function PoesBarsCommands(msg, editbox)
 	msg = msg:lower():trim()
 
-	if msg == "" or msg == "config" or msg == "c" then
-		Settings.OpenToCategory(addon.categoryPoesBarsID)
-		Settings.OpenToCategory(addon.categoryPoesBarsID)
-		Settings.OpenToCategory(addon.categoryPoesBarsID)
-
-		addon.isSettingsShown = true
-	elseif msg == "forced" or msg == "f" then
-		Settings.OpenToCategory(addon.categoryForcedID)
-		Settings.OpenToCategory(addon.categoryForcedID)
-		Settings.OpenToCategory(addon.categoryForcedID)
-
-		addon.isSettingsShown = true
-	elseif msg == "items" or msg == "i" then
-		Settings.OpenToCategory(addon.categoryItemsID)
-		Settings.OpenToCategory(addon.categoryItemsID)
-		Settings.OpenToCategory(addon.categoryItemsID)
-
-		addon.isSettingsShown = true
-	elseif msg == "lock" or msg == "l" then
+	if msg == "lock" or msg == "l" then
 		SettingsDB.isLocked = true
 
 		addon:CheckLockState()
 	elseif msg == "refresh" or msg == "r" then
 		addon.isLoaded = false
-		addon:CreateIcons()
-		addon.isLoaded = true
-	elseif msg == "spells" or msg == "s" then
-		Settings.OpenToCategory(addon.categorySpellsID)
-		Settings.OpenToCategory(addon.categorySpellsID)
-		Settings.OpenToCategory(addon.categorySpellsID)
+		addon.isSettingsShown = false
 
-		addon.isSettingsShown = true
+		addon:Debounce("CreateIcons", 1, function()
+			addon:CreateIcons()
+			addon.isLoaded = true
+		end)
 	elseif msg == "unlock" or msg == "u" then
 		SettingsDB.isLocked = false
 
 		addon:CheckLockState()
 	else
-		print("Unknown Command: ", msg)
+		addon.isSettingsShown = true
+
+		addon:ToggleSettingsDialog()
 	end
 end
 
@@ -190,12 +172,7 @@ local function OnEvent(self, event, ...)
 		end)
 
 		addon:Debounce("CreateSettings", 3, function()
-			local categoryPoesBars = addon:CreateSettingsGeneral()
-			addon.categoryPoesBarsID = categoryPoesBars:GetID()
-
-			addon.categoryForcedID = addon:CreateSettingsForced(categoryPoesBars)
-			addon.categoryItemsID = addon:CreateSettingsItems(categoryPoesBars);
-			addon.categorySpellsID = addon:CreateSettingsSpells(categoryPoesBars);
+			addon:InitializeSettingsDialog()
 		end)
 	end
 end
