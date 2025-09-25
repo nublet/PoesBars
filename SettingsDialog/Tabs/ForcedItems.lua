@@ -150,12 +150,12 @@ function addon:GetForcedItemsSettings(parent)
             end
         end
 
-        addon:GetForcedItemsSettings()
+        addon:GetForcedItemsData()
     end)
     newItemButton:SetPoint("LEFT", newItemInput, "RIGHT", 10, 0)
 
     frameContainer:SetScript("OnShow", function(frame)
-        addon:GetForcedItemsSettings()
+        addon:GetForcedItemsData()
     end)
 
     return frameContainer
