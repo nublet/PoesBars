@@ -1023,7 +1023,7 @@ end
 
 function addon:CheckLockState()
     if InCombatLockdown() then
-        addon:Debounce("CheckLockState", 1, function()
+        addon:DebouncePublic("CheckLockState", 1, function()
             addon:CheckLockState()
         end)
 

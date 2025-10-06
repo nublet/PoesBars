@@ -90,7 +90,7 @@ function addon:ToggleSettingsDialog()
         addon.isLoaded = false
         addon.isSettingsShown = false
 
-        addon:Debounce("CreateIcons", 1, function()
+        addon:DebouncePublic("CreateIcons", 1, function()
             addon:CreateIcons()
             addon.isLoaded = true
         end)

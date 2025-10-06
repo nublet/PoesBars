@@ -1,6 +1,8 @@
 local addonName, addon = ...
 
-local debounceTimers = {}
+local cooldownMaximum = 120 -- 2 Minutes
+local cooldownMinimum = 0.05
+local cooldownQueue = {}
 local seenSpells = {}
 
 local function AddIconDetail(isTrinket, itemID, playerSpecID, specID, spellID, tableIconDetails)
@@ -194,14 +196,35 @@ function addon:ClearRadios(radioGroup)
     end
 end
 
-function addon:Debounce(key, delay, func)
-    if debounceTimers[key] then
-        debounceTimers[key]:Cancel()
+function addon:DebouncePublic(key, delay, func)
+    if type(delay) ~= "number" or delay ~= delay then
+        delay = 3
+    elseif delay < cooldownMinimum then
+        delay = cooldownMinimum
+    elseif delay > cooldownMaximum then
+        delay = cooldownMaximum
     end
 
-    debounceTimers[key] = C_Timer.NewTimer(delay, function()
-        func()
-        debounceTimers[key] = nil
+    local entry = cooldownQueue[key]
+
+    if entry and entry.timer then
+        entry.timer.cancelled = true
+    end
+
+    entry = { cancelled = false }
+    cooldownQueue[key] = entry
+
+    C_Timer.After(delay, function()
+        if entry.cancelled then
+            return
+        end
+
+        cooldownQueue[key] = nil
+
+        local ok, err = pcall(func)
+        if not ok then
+            geterrorhandler()(err)
+        end
     end)
 end
 

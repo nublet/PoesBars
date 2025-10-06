@@ -37,7 +37,7 @@ function PoesBarsCommands(msg, editbox)
 		addon.isLoaded = false
 		addon.isSettingsShown = false
 
-		addon:Debounce("CreateIcons", 1, function()
+		addon:DebouncePublic("CreateIcons", 1, function()
 			addon:CreateIcons()
 			addon.isLoaded = true
 		end)
@@ -64,12 +64,12 @@ local function OnEvent(self, event, ...)
 	if event == "PLAYER_ENTERING_WORLD" then
 		addon.suppressTalentEvents = true
 
-		addon:Debounce("suppressTalentEvents", 5, function()
+		addon:DebouncePublic("suppressTalentEvents", 5, function()
 			addon.suppressTalentEvents = false
 		end)
 	elseif event == "PLAYER_EQUIPMENT_CHANGED" then
 		if addon.isLoaded then
-			addon:Debounce("CreateIcons", 5, function()
+			addon:DebouncePublic("CreateIcons", 5, function()
 				addon:CreateIcons()
 			end)
 		end
@@ -77,7 +77,7 @@ local function OnEvent(self, event, ...)
 		if addon.isLoaded and not addon.suppressTalentEvents then
 			addon.suppressTalentEvents = true
 
-			addon:Debounce("CreateIcons", 3, function()
+			addon:DebouncePublic("CreateIcons", 3, function()
 				local newActiveConfigID = C_ClassTalents.GetActiveConfigID()
 				local newImportString
 				local newSpecialization = GetSpecialization()
@@ -105,7 +105,7 @@ local function OnEvent(self, event, ...)
 					addon:CreateIcons()
 				end
 
-				addon:Debounce("suppressTalentEvents", 3, function()
+				addon:DebouncePublic("suppressTalentEvents", 3, function()
 					addon.suppressTalentEvents = false
 				end)
 			end)
@@ -139,7 +139,7 @@ local function OnEvent(self, event, ...)
 			end
 
 			if needsUpdate then
-				addon:Debounce("RefreshCategoryFrames", 3, function()
+				addon:DebouncePublic("RefreshCategoryFrames", 3, function()
 					addon:RefreshCategoryFrames()
 				end)
 			end
@@ -162,16 +162,16 @@ local function OnEvent(self, event, ...)
 			SettingsDB.validItems = { 211878, 211879, 211880, 5512, 224464, 212263, 212264, 212265 }
 		end
 
-		addon:Debounce("CacheBagItems", 1, function()
+		addon:DebouncePublic("CacheBagItems", 1, function()
 			CacheBagItems()
 		end)
 
-		addon:Debounce("CreateIcons", 1, function()
+		addon:DebouncePublic("CreateIcons", 1, function()
 			addon:CreateIcons()
 			addon.isLoaded = true
 		end)
 
-		addon:Debounce("CreateSettings", 3, function()
+		addon:DebouncePublic("CreateSettings", 3, function()
 			addon:InitializeSettingsDialog()
 		end)
 	end
