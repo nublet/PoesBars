@@ -1161,11 +1161,85 @@ function addon:UpdateIconBinds()
     local slotDetails = addon:GetSlotDetails()
 
     for settingName, iconFrame in pairs(iconFrames) do
-        local binding = addon:GetKeyBind(iconFrame, slotDetails)
+        local binding = addon:GetKeyBindForFrame(iconFrame, slotDetails)
         if binding then
             iconFrame.textBinding:SetText(addon:ReplaceBindings(binding))
         else
             iconFrame.textBinding:SetText("")
+        end
+    end
+
+    for _, icon in ipairs({ EssentialCooldownViewer:GetChildren() }) do
+        if not icon.textBinding then
+            icon.frameText = CreateFrame("Frame", nil, icon)
+            icon.frameText:SetAllPoints(icon)
+            icon.frameText:SetFrameLevel(icon:GetFrameLevel() + 1)
+
+            icon.textBinding = icon.frameText:CreateFontString(nil, "OVERLAY")
+            icon.textBinding:SetFont(font, SettingsDB.bindingFontSize or 12, SettingsDB.bindingFontFlags or "OUTLINE")
+            icon.textBinding:SetPoint("TOPRIGHT", icon.frameText, "TOPRIGHT", 0, 0)
+            icon.textBinding:SetText("AAA")
+            icon.textBinding:SetTextColor(1, 1, 1, 1)
+            if SettingsDB.bindingFontShadow then
+                icon.textBinding:SetShadowColor(0, 0, 0, 0.5)
+                icon.textBinding:SetShadowOffset(1, -1)
+            end
+        end
+
+        icon.textBinding:SetText("")
+
+        if icon.GetCooldownID then
+            local cooldownID = icon:GetCooldownID()
+            if cooldownID then
+                local cooldownInfo = C_CooldownViewer.GetCooldownViewerCooldownInfo(cooldownID)
+                local spellID = cooldownInfo and cooldownInfo.spellID
+                if spellID then
+                    local spellInfo = C_Spell.GetSpellInfo(spellID)
+                    if spellInfo then
+                        local binding = addon:GetKeyBind(-1, "", slotDetails, spellID, spellInfo.name)
+                        if binding then
+                            icon.textBinding:SetText(addon:ReplaceBindings(binding))
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    for _, icon in ipairs({ UtilityCooldownViewer:GetChildren() }) do
+        if not icon.textBinding then
+            icon.frameText = CreateFrame("Frame", nil, icon)
+            icon.frameText:SetAllPoints(icon)
+            icon.frameText:SetFrameLevel(icon:GetFrameLevel() + 1)
+
+            icon.textBinding = icon.frameText:CreateFontString(nil, "OVERLAY")
+            icon.textBinding:SetFont(font, SettingsDB.bindingFontSize - 2 or 10, SettingsDB.bindingFontFlags or "OUTLINE")
+            icon.textBinding:SetPoint("TOPRIGHT", icon.frameText, "TOPRIGHT", 0, 0)
+            icon.textBinding:SetText("AAA")
+            icon.textBinding:SetTextColor(1, 1, 1, 1)
+            if SettingsDB.bindingFontShadow then
+                icon.textBinding:SetShadowColor(0, 0, 0, 0.5)
+                icon.textBinding:SetShadowOffset(1, -1)
+            end
+        end
+
+        icon.textBinding:SetText("")
+
+        if icon.GetCooldownID then
+            local cooldownID = icon:GetCooldownID()
+            if cooldownID then
+                local cooldownInfo = C_CooldownViewer.GetCooldownViewerCooldownInfo(cooldownID)
+                local spellID = cooldownInfo and cooldownInfo.spellID
+                if spellID then
+                    local spellInfo = C_Spell.GetSpellInfo(spellID)
+                    if spellInfo then
+                        local binding = addon:GetKeyBind(-1, "", slotDetails, spellID, spellInfo.name)
+                        if binding then
+                            icon.textBinding:SetText(addon:ReplaceBindings(binding))
+                        end
+                    end
+                end
+            end
         end
     end
 end

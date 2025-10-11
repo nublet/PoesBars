@@ -44,7 +44,9 @@
     "FindValueInTableIf",
     "PanelTemplates_SetTab",
     "GENERAL",
-    "PanelTemplates_TabResize"
+    "PanelTemplates_TabResize",
+    "EssentialCooldownViewer",
+    "UtilityCooldownViewer"
   ],
   "Lua.format.defaultConfig": {
     "break_all_list_when_line_exceed": "false",

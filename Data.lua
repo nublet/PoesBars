@@ -16,6 +16,11 @@ addon.itemBuffs[219317]  = { "Volatile Energy" }                                
 addon.itemBuffs[232541]  = { "Explosive Adrenaline" }                                -- Improvised Seaforium Pacemaker
 addon.itemBuffs[242401]  = { "Infuriated" }                                          -- Brand of Ceaseless Ire
 addon.itemBuffs[242497]  = { "Mite-y Feast", "Azhiccaran Mite" }                     -- Azhiccaran Parapodia
+--Remix
+addon.itemBuffs[217605]  = { "Arcane Brilliance", "Arcane Intellect" }               -- Timeless Scroll of Intellect
+addon.itemBuffs[217606]  = { "Power Word: Fortitude" }                               -- Timeless Scroll of Fortitude
+addon.itemBuffs[217607]  = { "Mark of the Wild" }                                    -- Timeless Scroll of the Wild
+addon.itemBuffs[217608]  = { "Battle Shout" }                                        -- Timeless Scroll of Battle Shout
 
 addon.spellBuffs[53600]  = { "Shield of the Righteous" }                             -- Shield of the Righteous
 addon.spellBuffs[85673]  = { "Faith in the Light" }                                  -- Word of Glory

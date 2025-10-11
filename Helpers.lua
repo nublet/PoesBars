@@ -197,13 +197,16 @@ function addon:ClearRadios(radioGroup)
 end
 
 function addon:DebouncePublic(key, delay, func)
-    if type(delay) ~= "number" or delay ~= delay then
-        delay = 3
-    elseif delay < cooldownMinimum then
-        delay = cooldownMinimum
-    elseif delay > cooldownMaximum then
-        delay = cooldownMaximum
+    if InCombatLockdown() then
+        return
     end
+
+    if type(func) ~= "function" then
+        return
+    end
+
+    delay = tonumber(delay) or 3
+    delay = math.min(math.max(delay, cooldownMinimum), cooldownMaximum)
 
     local entry = cooldownQueue[key]
 
@@ -221,10 +224,7 @@ function addon:DebouncePublic(key, delay, func)
 
         cooldownQueue[key] = nil
 
-        local ok, err = pcall(func)
-        if not ok then
-            geterrorhandler()(err)
-        end
+        func()
     end)
 end
 
@@ -410,11 +410,11 @@ function addon:GetIconDetails()
     return tableIconDetails
 end
 
-function addon:GetKeyBind(frame, slotDetails)
-    local itemID = frame.itemID or -1
-    local itemName = frame.itemName or ""
-    local spellID = frame.spellID or -1
-    local spellName = frame.spellName or ""
+function addon:GetKeyBind(itemID, itemName, slotDetails, spellID, spellName)
+    itemID = itemID or -1
+    itemName = itemName or ""
+    spellID = spellID or -1
+    spellName = spellName or ""
 
     itemName = itemName:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
     spellName = spellName:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
@@ -531,6 +531,10 @@ function addon:GetKeyBind(frame, slotDetails)
     end
 
     return ""
+end
+
+function addon:GetKeyBindForFrame(frame, slotDetails)
+    return addon:GetKeyBind(frame.itemID, frame.itemName, slotDetails, frame.spellID, frame.spellName)
 end
 
 function addon:GetPlayerSpecID()
