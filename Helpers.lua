@@ -37,39 +37,34 @@ local function GetSlotInformation(actionText, itemID, macroBody, macroName, spel
     local result = {}
 
     result.actionText = actionText or ""
-    result.itemID = itemID or -1
-    result.macroBody = macroBody or ""
-    result.macroName = macroName or ""
-    result.spellID = spellID or -1
+    result.actionText = result.actionText:lower():gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\n", "")
 
-    result.actionText = result.actionText:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
-    result.macroBody = result.macroBody:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
-    result.macroName = result.macroName:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
+    result.macroBody = macroBody or ""
+    result.macroBody = result.macroBody:lower():gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\n", "")
+
+    result.macroName = macroName or ""
+    result.macroName = result.macroName:lower():gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\n", "")
+
+    result.itemID = itemID or -1
+    result.itemName = ""
+    result.spellID = spellID or -1
+    result.spellName = ""
 
     if result.itemID > 0 then
         local item = Item:CreateFromItemID(result.itemID)
         item:ContinueOnItemLoad(function()
-            result.name = item:GetItemName()
+            result.itemName = item:GetItemName() or ""
+            result.itemName = result.itemName:lower():gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\n", "")
         end)
-    elseif result.spellID > 0 then
-        local spellInfo = C_Spell.GetSpellInfo(result.spellID)
-        if spellInfo then
-            result.name = spellInfo.name
-        else
-            local overrideSpellID = C_Spell.GetOverrideSpell(result.spellID) or result.spellID
-            if overrideSpellID and overrideSpellID ~= result.spellID then
-                spellInfo = C_Spell.GetSpellInfo(overrideSpellID)
-                if spellInfo then
-                    result.overrideSpellID = overrideSpellID
-                    result.name = spellInfo.name
-                end
-            end
-        end
     end
 
-    result.name = result.name or ""
-    result.name = result.name:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
-    result.overrideSpellID = result.overrideSpellID or -1
+    if result.spellID > 0 then
+        local spellInfo = C_Spell.GetSpellInfo(result.spellID)
+        if spellInfo then
+            result.spellName = spellInfo.name or ""
+            result.spellName = result.spellName:lower():gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\n", "")
+        end
+    end
 
     return result
 end
@@ -174,6 +169,84 @@ local function SaveFramePosition(name, parentFrame)
     SettingsDB[name] = settingTable
 end
 
+local function SlotWasMatched(itemID, itemName, slotInfo, spellID, spellName)
+    if itemID > 0 then
+        if slotInfo.itemID == itemID then
+            return true
+        elseif string.find(slotInfo.macroBody, "/use item:" .. itemID) then
+            return true
+        elseif string.find(slotInfo.macroBody, "/cast item:" .. itemID) then
+            return true
+        end
+    end
+
+    if spellID > 0 then
+        if slotInfo.spellID == spellID then
+            return true
+        end
+    end
+
+    if itemName ~= "" then
+        if slotInfo.itemName ~= "" then
+            if slotInfo.itemName == itemName then
+                return true
+            end
+
+            if string.find(slotInfo.itemName, itemName) then
+                return true
+            end
+        end
+
+        if slotInfo.actionText ~= "" then
+            if string.find(slotInfo.actionText, itemName) then
+                return true
+            end
+        end
+
+        if slotInfo.macroBody ~= "" then
+            if string.find(slotInfo.macroBody, itemName) then
+                return true
+            end
+        end
+
+        if slotInfo.macroName ~= "" then
+            if string.find(slotInfo.macroName, itemName) then
+                return true
+            end
+        end
+    end
+
+    if spellName ~= "" then
+        if slotInfo.spellName ~= "" then
+            if slotInfo.spellName == spellName then
+                return true
+            end
+
+            if string.find(slotInfo.spellName, spellName) then
+                return true
+            end
+        end
+
+        if slotInfo.actionText ~= "" then
+            if string.find(slotInfo.actionText, spellName) then
+                return true
+            end
+        end
+
+        if slotInfo.macroBody ~= "" then
+            if string.find(slotInfo.macroBody, spellName) then
+                return true
+            end
+        end
+
+        if slotInfo.macroName ~= "" then
+            if string.find(slotInfo.macroName, spellName) then
+                return true
+            end
+        end
+    end
+end
+
 function addon:AddTooltipID(id, label, tooltip)
     if not id or id == 0 then
         return
@@ -181,7 +254,7 @@ function addon:AddTooltipID(id, label, tooltip)
 
     for i = 1, tooltip:NumLines() do
         local line = _G[tooltip:GetName() .. "TextLeft" .. i]
-        if line and line:GetText() and line:GetText():find(label) then
+        if line and line:GetText() and string.find(line:GetText(), label) then
             return
         end
     end
@@ -410,102 +483,20 @@ function addon:GetIconDetails()
     return tableIconDetails
 end
 
-function addon:GetKeyBind(itemID, itemName, slotDetails, spellID, spellName)
-    itemID = itemID or -1
-    itemName = itemName or ""
-    spellID = spellID or -1
-    spellName = spellName or ""
+function addon:GetKeyBind(frameItemID, frameItemName, frameSpellID, frameSpellName, slotDetails)
+    local itemID = frameItemID or -1
+    local itemName = frameItemName or ""
+    local spellID = frameSpellID or -1
+    local spellName = frameSpellName or ""
 
-    itemName = itemName:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
-    spellName = spellName:lower():gsub("\r\n", "\n"):gsub("\r", "\n")
+    itemName = itemName:lower():gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\n", "")
+    spellName = spellName:lower():gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\n", "")
 
     for slot, slotInfo in pairs(slotDetails) do
-        local wasMatched = false
-
-        if itemID > 0 then
-            if slotInfo.itemID == itemID then
-                wasMatched = true
-            elseif slotInfo.macroBody:find("/use item:" .. itemID, 1, true) then
-                wasMatched = true
-            elseif slotInfo.macroBody:find("/cast item:" .. itemID, 1, true) then
-                wasMatched = true
-            end
-        end
-
-        if spellID > 0 then
-            if slotInfo.spellID == spellID then
-                wasMatched = true
-            elseif slotInfo.overrideSpellID == spellID then
-                wasMatched = true
-            end
-        end
-
-        if itemName ~= "" then
-            if slotInfo.name ~= "" then
-                if slotInfo.name == itemName then
-                    wasMatched = true
-                end
-
-                if slotInfo.name:find(itemName, 1, true) then
-                    wasMatched = true
-                end
-            end
-
-            if slotInfo.actionText ~= "" then
-                if slotInfo.actionText:find(itemName, 1, true) then
-                    wasMatched = true
-                end
-            end
-
-            if slotInfo.macroBody ~= "" then
-                if slotInfo.macroBody:find(itemName, 1, true) then
-                    wasMatched = true
-                end
-            end
-
-            if slotInfo.macroName ~= "" then
-                if slotInfo.macroName:find(itemName, 1, true) then
-                    wasMatched = true
-                end
-            end
-        end
-
-        if spellName ~= "" then
-            if slotInfo.name ~= "" then
-                if slotInfo.name == spellName then
-                    wasMatched = true
-                end
-
-                if slotInfo.name:find(spellName, 1, true) then
-                    wasMatched = true
-                end
-            end
-
-            if slotInfo.actionText ~= "" then
-                if slotInfo.actionText:find(spellName, 1, true) then
-                    wasMatched = true
-                end
-            end
-
-            if slotInfo.macroBody ~= "" then
-                if slotInfo.macroBody:find(spellName, 1, true) then
-                    wasMatched = true
-                end
-            end
-
-            if slotInfo.macroName ~= "" then
-                if slotInfo.macroName:find(spellName, 1, true) then
-                    wasMatched = true
-                end
-            end
-        end
-
-        if wasMatched then
-            local binding
-
+        if SlotWasMatched(itemID, itemName, slotInfo, spellID, spellName) then
             local actionButtonName = addon.actionButtons[slot]
             if actionButtonName and actionButtonName ~= "" then
-                binding = GetBindingKey(actionButtonName)
+                local binding = GetBindingKey(actionButtonName)
                 if binding and binding ~= "" then
                     return binding
                 end
@@ -521,7 +512,7 @@ function addon:GetKeyBind(itemID, itemName, slotDetails, spellID, spellName)
                         actionButtonName = "CLICK " .. button:GetName() .. ":LeftButton"
                     end
 
-                    binding = GetBindingKey(actionButtonName)
+                    local binding = GetBindingKey(actionButtonName)
                     if binding and binding ~= "" then
                         return binding
                     end
@@ -534,7 +525,7 @@ function addon:GetKeyBind(itemID, itemName, slotDetails, spellID, spellName)
 end
 
 function addon:GetKeyBindForFrame(frame, slotDetails)
-    return addon:GetKeyBind(frame.itemID, frame.itemName, slotDetails, frame.spellID, frame.spellName)
+    return addon:GetKeyBind(frame.itemID, frame.itemName, frame.spellID, frame.spellName, slotDetails)
 end
 
 function addon:GetPlayerSpecID()
