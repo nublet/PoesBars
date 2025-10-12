@@ -2,6 +2,7 @@ local addonName, addon = ...
 
 local categories = {}
 local iconFrames = {}
+local cooldownManagerSpells = {}
 
 local LCG = LibStub("LibCustomGlow-1.0")
 
@@ -69,6 +70,11 @@ local function CheckTextBinding(fontSize, icon, slotDetails)
         return
     end
 
+    cooldownManagerSpells[cooldownInfo.spellID] = true
+    if cooldownInfo.overrideSpellID and cooldownInfo.overrideSpellID > 0 then
+        cooldownManagerSpells[cooldownInfo.overrideSpellID] = true
+    end
+
     if CheckTextBindingKeyBind(icon, slotDetails, cooldownInfo.spellID) == true then
         return
     end
@@ -79,8 +85,12 @@ local function CheckTextBinding(fontSize, icon, slotDetails)
 
     if cooldownInfo.linkedSpellIDs then
         for _, spellID in pairs(cooldownInfo.linkedSpellIDs) do
-            if CheckTextBindingKeyBind(icon, slotDetails, spellID) == true then
-                return
+            if spellID and spellID > 0 then
+                cooldownManagerSpells[spellID] = true
+
+                if CheckTextBindingKeyBind(icon, slotDetails, spellID) == true then
+                    return
+                end
             end
         end
     end
@@ -1140,7 +1150,7 @@ function addon:CreateIcons()
         return
     end
 
-    for settingName, iconFrame in pairs(iconFrames) do
+    for _, iconFrame in pairs(iconFrames) do
         UnregisterAttributeDriver(iconFrame, "state-visibility")
 
         iconFrame:ClearAllPoints()
@@ -1167,8 +1177,8 @@ function addon:CreateIcons()
         end
     end
 
-    addon:CheckLockState()
     addon:UpdateIconBinds()
+    addon:CheckLockState()
 end
 
 function addon:RefreshCategoryFrames()
@@ -1204,7 +1214,11 @@ function addon:RefreshCategoryFrames()
         local category = SpellsDB[iconFrame.specID][settingName]
 
         if not category or category == "" then
-            category = addon.categoryUnknown
+            if iconFrame.spellID > 0 and cooldownManagerSpells[iconFrame.spellID] and cooldownManagerSpells[iconFrame.spellID] == true then
+                category = addon.categoryIgnored
+            else
+                category = addon.categoryUnknown
+            end
         end
 
         if iconFrame.itemID > 0 then
@@ -1240,12 +1254,13 @@ function addon:UpdateIconBinds()
     local fontSizeUtility = fontSizeEssential - 4
     local slotDetails = addon:GetSlotDetails()
 
-    for settingName, iconFrame in pairs(iconFrames) do
-        local binding = addon:GetKeyBindForFrame(iconFrame, slotDetails)
-        if binding then
-            iconFrame.textBinding:SetText(addon:ReplaceBindings(binding))
-        else
-            iconFrame.textBinding:SetText("")
+    cooldownManagerSpells = {}
+
+    for _, iconFrame in pairs(iconFrames) do
+        local keyBind = addon:GetKeyBind(iconFrame.itemID, iconFrame.itemName, iconFrame.spellID, iconFrame.spellName, slotDetails)
+
+        if keyBind and keyBind ~= "" then
+            iconFrame.textBinding:SetText(addon:ReplaceBindings(keyBind))
         end
     end
 
