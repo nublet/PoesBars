@@ -9,7 +9,7 @@ local LCG = LibStub("LibCustomGlow-1.0")
 local LSM = LibStub("LibSharedMedia-3.0")
 local font = LSM:Fetch("font", "Naowh") or "Fonts\\FRIZQT__.TTF"
 
-local function CheckTextBindingKeyBind(icon, slotDetails, spellID)
+local function CheckTextBindingKeyBind(icon, knownSlots, spellID)
     if not spellID then
         return false
     end
@@ -20,14 +20,14 @@ local function CheckTextBindingKeyBind(icon, slotDetails, spellID)
 
     local spellInfo = C_Spell.GetSpellInfo(spellID)
     if spellInfo then
-        local keyBind = addon:GetKeyBind(-1, "", spellID, spellInfo.name, slotDetails)
+        local keyBind = KnownSlot:GetKeyBind(-1, "", spellID, spellInfo.name, knownSlots)
 
         if keyBind and keyBind ~= "" then
             icon.textBinding:SetText(addon:ReplaceBindings(keyBind))
             return true
         end
     else
-        local keyBind = addon:GetKeyBind(-1, "", spellID, "", slotDetails)
+        local keyBind = KnownSlot:GetKeyBind(-1, "", spellID, "", knownSlots)
 
         if keyBind and keyBind ~= "" then
             icon.textBinding:SetText(addon:ReplaceBindings(keyBind))
@@ -38,7 +38,7 @@ local function CheckTextBindingKeyBind(icon, slotDetails, spellID)
     return false
 end
 
-local function CheckTextBinding(fontSize, icon, slotDetails)
+local function CheckTextBinding(fontSize, icon, knownSlots)
     if not icon.textBinding then
         icon.frameText = CreateFrame("Frame", nil, icon)
         icon.frameText:SetAllPoints(icon)
@@ -75,11 +75,11 @@ local function CheckTextBinding(fontSize, icon, slotDetails)
         cooldownManagerSpells[cooldownInfo.overrideSpellID] = true
     end
 
-    if CheckTextBindingKeyBind(icon, slotDetails, cooldownInfo.spellID) == true then
+    if CheckTextBindingKeyBind(icon, knownSlots, cooldownInfo.spellID) == true then
         return
     end
 
-    if CheckTextBindingKeyBind(icon, slotDetails, cooldownInfo.overrideSpellID) == true then
+    if CheckTextBindingKeyBind(icon, knownSlots, cooldownInfo.overrideSpellID) == true then
         return
     end
 
@@ -88,7 +88,7 @@ local function CheckTextBinding(fontSize, icon, slotDetails)
             if spellID and spellID > 0 then
                 cooldownManagerSpells[spellID] = true
 
-                if CheckTextBindingKeyBind(icon, slotDetails, spellID) == true then
+                if CheckTextBindingKeyBind(icon, knownSlots, spellID) == true then
                     return
                 end
             end
@@ -96,12 +96,8 @@ local function CheckTextBinding(fontSize, icon, slotDetails)
     end
 end
 
-local function CreateIconFrame(iconDetail)
-    local itemID = iconDetail.itemID or -1
-    local specID = iconDetail.specID or -1
-    local spellID = iconDetail.spellID or -1
-
-    if itemID <= 0 and spellID <= 0 then
+local function CreateIconFrame(knownSpell)
+    if knownSpell.itemID <= 0 and knownSpell.spellID <= 0 then
         return nil
     end
 
@@ -115,20 +111,34 @@ local function CreateIconFrame(iconDetail)
     newFrame:SetPoint("CENTER", 0, 0)
     newFrame:SetPropagateKeyboardInput(true)
     newFrame:SetSize(40, 40)
-    if itemID > 0 then
+
+    newFrame.iconID = knownSpell.iconID
+    newFrame.isHarmful = knownSpell.isHarmful
+    newFrame.isTrinket = knownSpell.isTrinket
+    newFrame.isUsable = knownSpell.isUsable
+    newFrame.itemID = knownSpell.itemID
+    newFrame.itemName = knownSpell.itemName
+    newFrame.itemRank = knownSpell.itemRank
+    newFrame.playerSpecID = knownSpell.playerSpecID
+    newFrame.settingName = knownSpell.settingName
+    newFrame.specID = knownSpell.specID
+    newFrame.spellID = knownSpell.spellID
+    newFrame.spellName = knownSpell.spellName
+
+    if newFrame.itemID > 0 then
         newFrame:SetAttribute("type", "item")
-        newFrame:SetAttribute("item", "item:" .. itemID)
+        newFrame:SetAttribute("item", "item:" .. newFrame.itemID)
         newFrame:SetScript("OnEnter", function(control)
             GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
-            GameTooltip:SetItemByID(itemID)
+            GameTooltip:SetItemByID(newFrame.itemID)
             GameTooltip:Show()
         end)
     else
         newFrame:SetAttribute("type", "spell")
-        newFrame:SetAttribute("spell", spellID)
+        newFrame:SetAttribute("spell", newFrame.spellID)
         newFrame:SetScript("OnEnter", function(control)
             GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
-            GameTooltip:SetSpellByID(spellID)
+            GameTooltip:SetSpellByID(newFrame.spellID)
             GameTooltip:Show()
         end)
     end
@@ -136,222 +146,108 @@ local function CreateIconFrame(iconDetail)
         GameTooltip:Hide()
     end)
 
-    newFrame.isHarmful = false
-    newFrame.itemID = -1
-    newFrame.itemIsUsable = true
-    newFrame.itemName = ""
-    newFrame.spellID = -1
-    newFrame.spellName = ""
+    newFrame.frameBorder = CreateFrame("Frame", nil, newFrame, "BackdropTemplate")
+    newFrame.frameBorder:EnableKeyboard(false)
+    newFrame.frameBorder:EnableMouse(false)
+    newFrame.frameBorder:EnableMouseWheel(false)
+    newFrame.frameBorder:SetAllPoints(newFrame)
+    newFrame.frameBorder:SetBackdrop({ edgeFile = "Interface/Buttons/WHITE8x8", edgeSize = 1, })
+    newFrame.frameBorder:SetFrameLevel(newFrame:GetFrameLevel() + 1)
+    newFrame.frameBorder:SetPropagateKeyboardInput(true)
+    newFrame.frameBorder:SetToplevel(false)
 
-    local frameBorder = CreateFrame("Frame", nil, newFrame, "BackdropTemplate")
-    frameBorder:EnableKeyboard(false)
-    frameBorder:EnableMouse(false)
-    frameBorder:EnableMouseWheel(false)
-    frameBorder:SetAllPoints(newFrame)
-    frameBorder:SetBackdrop({ edgeFile = "Interface/Buttons/WHITE8x8", edgeSize = 1, })
-    frameBorder:SetFrameLevel(newFrame:GetFrameLevel() + 1)
-    frameBorder:SetPropagateKeyboardInput(true)
-    frameBorder:SetToplevel(false)
+    newFrame.frameCooldownGCD = CreateFrame("Cooldown", nil, newFrame, "CooldownFrameTemplate")
+    newFrame.frameCooldownGCD:EnableKeyboard(false)
+    newFrame.frameCooldownGCD:EnableMouse(false)
+    newFrame.frameCooldownGCD:EnableMouseWheel(false)
+    newFrame.frameCooldownGCD:SetAllPoints(newFrame)
+    newFrame.frameCooldownGCD:SetDrawEdge(false)
+    newFrame.frameCooldownGCD:SetFrameLevel(newFrame:GetFrameLevel() + 1)
+    newFrame.frameCooldownGCD:SetHideCountdownNumbers(true)
+    newFrame.frameCooldownGCD:SetPropagateKeyboardInput(true)
+    newFrame.frameCooldownGCD:SetSwipeTexture("Interface\\Cooldown\\ping4", 1, 1, 1, 1)
+    newFrame.frameCooldownGCD:SetToplevel(false)
+
+    newFrame.frameCooldownSpell = CreateFrame("Cooldown", nil, newFrame, "CooldownFrameTemplate")
+    newFrame.frameCooldownSpell:EnableKeyboard(false)
+    newFrame.frameCooldownSpell:EnableMouse(false)
+    newFrame.frameCooldownSpell:EnableMouseWheel(false)
+    newFrame.frameCooldownSpell:SetAllPoints(newFrame)
+    newFrame.frameCooldownSpell:SetDrawEdge(false)
+    newFrame.frameCooldownSpell:SetFrameLevel(newFrame:GetFrameLevel() + 1)
+    newFrame.frameCooldownSpell:SetHideCountdownNumbers(true)
+    newFrame.frameCooldownSpell:SetPropagateKeyboardInput(true)
+    newFrame.frameCooldownSpell:SetSwipeTexture("Interface\\Cooldown\\ping4", 1, 1, 1, 1)
+    newFrame.frameCooldownSpell:SetToplevel(false)
+
+    newFrame.frameText = CreateFrame("Frame", nil, newFrame)
+    newFrame.frameText:SetAllPoints(newFrame)
+    newFrame.frameText:SetFrameLevel(newFrame.frameCooldownSpell:GetFrameLevel() + 1)
+
+    newFrame.textBinding = newFrame.frameText:CreateFontString(nil, "OVERLAY")
+    newFrame.textBinding:SetFont(font, addon:GetNumberOrDefault(12, SettingsDB.bindingFontSize), SettingsDB.bindingFontFlags or "OUTLINE")
+    newFrame.textBinding:SetPoint("TOPRIGHT", newFrame.frameText, "TOPRIGHT", 0, 0)
+    newFrame.textBinding:SetText("")
+    newFrame.textBinding:SetTextColor(1, 1, 1, 1)
+    if SettingsDB.bindingFontShadow then
+        newFrame.textBinding:SetShadowColor(0, 0, 0, 0.5)
+        newFrame.textBinding:SetShadowOffset(1, -1)
+    end
+
+    newFrame.textCharges = newFrame.frameText:CreateFontString(nil, "OVERLAY")
+    newFrame.textCharges:SetFont(font, addon:GetNumberOrDefault(12, SettingsDB.chargesFontSize), SettingsDB.chargesFontFlags or "OUTLINE")
+    newFrame.textCharges:SetTextColor(1, 1, 1, 1)
+    newFrame.textCharges:SetShadowColor(0, 0, 0, 1)
+    newFrame.textCharges:SetShadowOffset(0, 0)
+    newFrame.textCharges:SetPoint("BOTTOMRIGHT", newFrame.frameText, "BOTTOMRIGHT", 0, 0)
+    newFrame.textCharges:SetText("")
+    if SettingsDB.chargesFontShadow then
+        newFrame.textCharges:SetShadowColor(0, 0, 0, 0.5)
+        newFrame.textCharges:SetShadowOffset(1, -1)
+    end
+
+    newFrame.textCooldown = newFrame.frameText:CreateFontString(nil, "OVERLAY")
+    newFrame.textCooldown:SetFont(font, addon:GetNumberOrDefault(16, SettingsDB.cooldownFontSize), SettingsDB.cooldownFontFlags or "OUTLINE")
+    newFrame.textCooldown:SetPoint("CENTER", newFrame.frameText, "CENTER", 0, 0)
+    newFrame.textCooldown:SetText("")
+    newFrame.textCooldown:SetTextColor(1, 1, 1, 1)
+    if SettingsDB.cooldownFontShadow then
+        newFrame.textCooldown:SetShadowColor(0, 0, 0, 0.5)
+        newFrame.textCooldown:SetShadowOffset(1, -1)
+    end
+
+    newFrame.textRank = newFrame.frameText:CreateFontString(nil, "OVERLAY")
+    newFrame.textRank:SetFont(font, addon:GetNumberOrDefault(12, SettingsDB.rankFontSize), SettingsDB.rankFontFlags or "OUTLINE")
+    newFrame.textRank:SetPoint("BOTTOMLEFT", newFrame.frameText, "BOTTOMLEFT", 0, 0)
+    newFrame.textRank:SetText(newFrame.itemRank)
+    newFrame.textRank:SetTextColor(0, 1, 0, 1)
+    if SettingsDB.rankFontShadow then
+        newFrame.textRank:SetShadowColor(0, 0, 0, 0.5)
+        newFrame.textRank:SetShadowOffset(1, -1)
+    end
+
+    newFrame.textID = newFrame.frameText:CreateFontString(nil, "OVERLAY")
+    newFrame.textID:SetFont(font, addon:GetNumberOrDefault(12, SettingsDB.bindingFontSize), SettingsDB.bindingFontFlags or "OUTLINE")
+    newFrame.textID:SetPoint("CENTER", newFrame.frameText, "CENTER", 0, 0)
+    newFrame.textID:SetTextColor(1, 1, 1, 1)
+    if newFrame.itemID > 0 then
+        newFrame.textID:SetText(tostring(newFrame.itemID))
+    else
+        newFrame.textID:SetText(tostring(newFrame.spellID))
+    end
+    if SettingsDB.cooldownFontShadow then
+        newFrame.textID:SetShadowColor(0, 0, 0, 0.5)
+        newFrame.textID:SetShadowOffset(1, -1)
+    end
+
+    newFrame.textureIcon = newFrame:CreateTexture(nil, "ARTWORK")
+    newFrame.textureIcon:SetAllPoints(newFrame)
+    newFrame.textureIcon:SetTexture(newFrame.iconID)
 
     for _, seasonSpellID in pairs(addon.currentSeason) do
-        if spellID == seasonSpellID then
+        if newFrame.spellID == seasonSpellID then
             LCG.PixelGlow_Start(newFrame, { 1, 1, 0, 1 }, 6, 0.2, 6, 2, 2, 0, 0)
         end
-    end
-
-    local frameCooldownGCD = CreateFrame("Cooldown", nil, newFrame, "CooldownFrameTemplate")
-    frameCooldownGCD:EnableKeyboard(false)
-    frameCooldownGCD:EnableMouse(false)
-    frameCooldownGCD:EnableMouseWheel(false)
-    frameCooldownGCD:SetAllPoints(newFrame)
-    frameCooldownGCD:SetDrawEdge(false)
-    frameCooldownGCD:SetFrameLevel(newFrame:GetFrameLevel() + 1)
-    frameCooldownGCD:SetHideCountdownNumbers(true)
-    frameCooldownGCD:SetPropagateKeyboardInput(true)
-    frameCooldownGCD:SetSwipeTexture("Interface\\Cooldown\\ping4", 1, 1, 1, 1)
-    frameCooldownGCD:SetToplevel(false)
-
-    local frameCooldownSpell = CreateFrame("Cooldown", nil, newFrame, "CooldownFrameTemplate")
-    frameCooldownSpell:EnableKeyboard(false)
-    frameCooldownSpell:EnableMouse(false)
-    frameCooldownSpell:EnableMouseWheel(false)
-    frameCooldownSpell:SetAllPoints(newFrame)
-    frameCooldownSpell:SetDrawEdge(false)
-    frameCooldownSpell:SetFrameLevel(newFrame:GetFrameLevel() + 1)
-    frameCooldownSpell:SetHideCountdownNumbers(true)
-    frameCooldownSpell:SetPropagateKeyboardInput(true)
-    frameCooldownSpell:SetSwipeTexture("Interface\\Cooldown\\ping4", 1, 1, 1, 1)
-    frameCooldownSpell:SetToplevel(false)
-
-    local frameText = CreateFrame("Frame", nil, newFrame)
-    frameText:SetAllPoints(newFrame)
-    frameText:SetFrameLevel(frameCooldownSpell:GetFrameLevel() + 1)
-
-    local textBinding = frameText:CreateFontString(nil, "OVERLAY")
-    textBinding:SetFont(font, SettingsDB.bindingFontSize or 12, SettingsDB.bindingFontFlags or "OUTLINE")
-    textBinding:SetPoint("TOPRIGHT", frameText, "TOPRIGHT", 0, 0)
-    textBinding:SetText("")
-    textBinding:SetTextColor(1, 1, 1, 1)
-    if SettingsDB.bindingFontShadow then
-        textBinding:SetShadowColor(0, 0, 0, 0.5)
-        textBinding:SetShadowOffset(1, -1)
-    end
-
-    local textCharges = frameText:CreateFontString(nil, "OVERLAY")
-    textCharges:SetFont(font, SettingsDB.chargesFontSize or 12, SettingsDB.chargesFontFlags or "OUTLINE")
-    textCharges:SetTextColor(1, 1, 1, 1)
-    textCharges:SetShadowColor(0, 0, 0, 1)
-    textCharges:SetShadowOffset(0, 0)
-    textCharges:SetPoint("BOTTOMRIGHT", frameText, "BOTTOMRIGHT", 0, 0)
-    textCharges:SetText("")
-    if SettingsDB.chargesFontShadow then
-        textCharges:SetShadowColor(0, 0, 0, 0.5)
-        textCharges:SetShadowOffset(1, -1)
-    end
-
-    local textCooldown = frameText:CreateFontString(nil, "OVERLAY")
-    textCooldown:SetFont(font, SettingsDB.cooldownFontSize or 16, SettingsDB.cooldownFontFlags or "OUTLINE")
-    textCooldown:SetPoint("CENTER", frameText, "CENTER", 0, 0)
-    textCooldown:SetText("")
-    textCooldown:SetTextColor(1, 1, 1, 1)
-    if SettingsDB.cooldownFontShadow then
-        textCooldown:SetShadowColor(0, 0, 0, 0.5)
-        textCooldown:SetShadowOffset(1, -1)
-    end
-
-    local textRank = frameText:CreateFontString(nil, "OVERLAY")
-    textRank:SetFont(font, SettingsDB.rankFontSize or 12, SettingsDB.rankFontFlags or "OUTLINE")
-    textRank:SetPoint("BOTTOMLEFT", frameText, "BOTTOMLEFT", 0, 0)
-    textRank:SetText("")
-    textRank:SetTextColor(0, 1, 0, 1)
-    if SettingsDB.rankFontShadow then
-        textRank:SetShadowColor(0, 0, 0, 0.5)
-        textRank:SetShadowOffset(1, -1)
-    end
-
-    local textID = frameText:CreateFontString(nil, "OVERLAY")
-    textID:SetFont(font, SettingsDB.bindingFontSize or 12, SettingsDB.bindingFontFlags or "OUTLINE")
-    textID:SetPoint("CENTER", frameText, "CENTER", 0, 0)
-    textID:SetText("")
-    textID:SetTextColor(1, 1, 1, 1)
-    if SettingsDB.cooldownFontShadow then
-        textID:SetShadowColor(0, 0, 0, 0.5)
-        textID:SetShadowOffset(1, -1)
-    end
-
-    local textureIcon = newFrame:CreateTexture(nil, "ARTWORK")
-    textureIcon:SetAllPoints(newFrame)
-
-    if itemID > 0 then
-        textID:SetText(tostring(itemID))
-
-        local usable, noMana = C_Item.IsUsableItem(itemID)
-
-        newFrame.itemID = itemID
-        newFrame.itemIsUsable = usable
-        newFrame.settingName = itemID .. "_-1"
-
-        if spellID > 0 then
-            newFrame.spellID = spellID
-        else
-            local _, itemSpellID = C_Item.GetItemSpell(itemID)
-            if itemSpellID and itemSpellID > 0 then
-                newFrame.spellID = itemSpellID
-            else
-                itemSpellID = C_Item.GetFirstTriggeredSpellForItem(itemID, 4)
-                if itemSpellID and itemSpellID > 0 then
-                    newFrame.spellID = itemSpellID
-                else
-                    itemSpellID = C_Item.GetFirstTriggeredSpellForItem(itemID, 3)
-                    if itemSpellID and itemSpellID > 0 then
-                        newFrame.spellID = itemSpellID
-                    else
-                        itemSpellID = C_Item.GetFirstTriggeredSpellForItem(itemID, 2)
-                        if itemSpellID and itemSpellID > 0 then
-                            newFrame.spellID = itemSpellID
-                        end
-                    end
-                end
-            end
-        end
-
-        local item = Item:CreateFromItemID(itemID)
-        item:ContinueOnItemLoad(function()
-            newFrame.iconID = item:GetItemIcon()
-            newFrame.itemName = item:GetItemName()
-
-            newFrame.itemName = newFrame.itemName or ""
-
-            textureIcon:SetTexture(newFrame.iconID)
-
-            local itemLink = item:GetItemLink()
-            if itemLink then
-                local qualityTier = itemLink:match("|A:Professions%-ChatIcon%-Quality%-Tier(%d+)")
-
-                if qualityTier then
-                    if qualityTier == "1" then
-                        textRank:SetText("R1")
-                    elseif qualityTier == "2" then
-                        textRank:SetText("R2")
-                    elseif qualityTier == "3" then
-                        textRank:SetText("R3")
-                    end
-                end
-            end
-        end)
-    else
-        textID:SetText(tostring(spellID))
-
-        newFrame.spellID = spellID
-        newFrame.settingName = "-1_" .. spellID
-
-        if C_Spell.IsSpellHarmful(spellID) then
-            newFrame.isHarmful = true
-        else
-            newFrame.isHarmful = false
-        end
-    end
-
-    newFrame.spellID = newFrame.spellID or -1
-
-    if newFrame.spellID > 0 then
-        local spellInfo = C_Spell.GetSpellInfo(spellID)
-        if spellInfo then
-            newFrame.iconID = spellInfo.iconID
-            newFrame.spellName = spellInfo.name
-            textureIcon:SetTexture(spellInfo.iconID)
-        else
-            local newSpellID = C_Spell.GetOverrideSpell(spellID) or spellID
-            if newSpellID and newSpellID ~= spellID then
-                spellInfo = C_Spell.GetSpellInfo(newSpellID)
-                if spellInfo then
-                    spellID = newSpellID
-                    newFrame.iconID = spellInfo.iconID
-                    newFrame.spellName = spellInfo.name
-                    textureIcon:SetTexture(spellInfo.iconID)
-                end
-            end
-        end
-    end
-
-    newFrame.spellName = newFrame.spellName or ""
-
-    newFrame.currentSpellID = newFrame.spellID
-    newFrame.frameBorder = frameBorder
-    newFrame.frameCooldownGCD = frameCooldownGCD
-    newFrame.frameCooldownSpell = frameCooldownSpell
-    newFrame.frameText = frameText
-    newFrame.isTrinket = iconDetail.isTrinket
-    newFrame.specID = specID
-    newFrame.textBinding = textBinding
-    newFrame.textCharges = textCharges
-    newFrame.textCooldown = textCooldown
-    newFrame.textRank = textRank
-    newFrame.textID = textID
-    newFrame.textureIcon = textureIcon
-
-    if not SpellsDB[specID] then
-        SpellsDB[specID] = {}
     end
 
     return newFrame
@@ -1111,7 +1007,7 @@ end
 
 function addon:CheckLockState()
     if InCombatLockdown() then
-        addon:DebouncePublic("CheckLockState", 1, function()
+        addon:Debounce("CheckLockState", 1, function()
             addon:CheckLockState()
         end)
 
@@ -1145,7 +1041,7 @@ function addon:CheckLockState()
     addon:RefreshCategoryFrames()
 end
 
-function addon:CreateIcons()
+function addon:InitializeIcons()
     if InCombatLockdown() then
         return
     end
@@ -1164,20 +1060,14 @@ function addon:CreateIcons()
 
     collectgarbage("collect")
 
-    local tableIconDetails = addon:GetIconDetails()
-
-    if tableIconDetails and next(tableIconDetails) ~= nil then
-        for i = 1, #tableIconDetails do
-            local iconDetail = tableIconDetails[i]
-
-            local frameIcon = CreateIconFrame(iconDetail)
-            if frameIcon then
-                iconFrames[frameIcon.settingName] = frameIcon
-            end
+    for key, knownSpell in pairs(addon:GetKnownSpells()) do
+        local newIcon = CreateIconFrame(knownSpell)
+        if newIcon then
+            iconFrames[newIcon.settingName] = newIcon
         end
     end
 
-    addon:UpdateIconBinds()
+    addon:UpdateButtonKeyBinds()
     addon:CheckLockState()
 end
 
@@ -1249,31 +1139,7 @@ function addon:RefreshCategoryFrames()
     end
 end
 
-function addon:UpdateIconBinds()
-    local fontSizeEssential = SettingsDB.bindingFontSize or 16
-    local fontSizeUtility = fontSizeEssential - 4
-    local slotDetails = addon:GetSlotDetails()
-
-    cooldownManagerSpells = {}
-
-    for _, iconFrame in pairs(iconFrames) do
-        local keyBind = addon:GetKeyBind(iconFrame.itemID, iconFrame.itemName, iconFrame.spellID, iconFrame.spellName, slotDetails)
-
-        if keyBind and keyBind ~= "" then
-            iconFrame.textBinding:SetText(addon:ReplaceBindings(keyBind))
-        end
-    end
-
-    for _, icon in ipairs({ EssentialCooldownViewer:GetChildren() }) do
-        CheckTextBinding(fontSizeEssential, icon, slotDetails)
-    end
-
-    for _, icon in ipairs({ UtilityCooldownViewer:GetChildren() }) do
-        CheckTextBinding(fontSizeUtility, icon, slotDetails)
-    end
-end
-
-function addon:UpdateIconState()
+function addon:UpdateButtonState()
     local validCategories = addon:GetValidCategories()
 
     if SettingsDB.isLocked then
@@ -1395,5 +1261,29 @@ function addon:UpdateIconState()
                 end
             end
         end
+    end
+end
+
+function addon:UpdateButtonKeyBinds()
+    local fontSizeEssential = SettingsDB.bindingFontSize or 16
+    local fontSizeUtility = fontSizeEssential - 4
+    local knownSlots = addon:GetKnownSlots()
+
+    cooldownManagerSpells = {}
+
+    for _, iconFrame in pairs(iconFrames) do
+        local keyBind = KnownSlot:GetKeyBind(iconFrame.itemID, iconFrame.itemName, iconFrame.spellID, iconFrame.spellName, knownSlots)
+
+        if keyBind and keyBind ~= "" then
+            iconFrame.textBinding:SetText(addon:ReplaceBindings(keyBind))
+        end
+    end
+
+    for _, icon in ipairs({ EssentialCooldownViewer:GetChildren() }) do
+        CheckTextBinding(fontSizeEssential, icon, knownSlots)
+    end
+
+    for _, icon in ipairs({ UtilityCooldownViewer:GetChildren() }) do
+        CheckTextBinding(fontSizeUtility, icon, knownSlots)
     end
 end

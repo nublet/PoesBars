@@ -8,11 +8,18 @@ local LSM                 = LibStub("LibSharedMedia-3.0")
 LSM:Register(LSM.MediaType.FONT, "Naowh", [[Interface\AddOns\PoesBars\FONTS\Naowh.ttf]], LSM.LOCALE_BIT_ruRU + LSM.LOCALE_BIT_western)
 
 local function CacheBagItems()
-	for bag = 0, NUM_BAG_SLOTS do
-		previousBagState[bag] = previousBagState[bag] or {}
-		for slot = 1, C_Container.GetContainerNumSlots(bag) do
-			local itemID = C_Container.GetContainerItemID(bag, slot)
-			previousBagState[bag][slot] = itemID or -1
+	for bagID = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
+		previousBagState[bagID] = previousBagState[bagID] or {}
+
+		for slotID = 1, C_Container.GetContainerNumSlots(bagID) do
+			local newItemID = -1
+
+			local itemInfo = C_Container.GetContainerItemInfo(bagID, slotID)
+			if itemInfo then
+				newItemID = addon:NormalizeNumber(itemInfo.itemID)
+			end
+
+			previousBagState[bagID][slotID] = newItemID
 		end
 	end
 end
@@ -37,8 +44,8 @@ function PoesBarsCommands(msg, editbox)
 		addon.isLoaded = false
 		addon.isSettingsShown = false
 
-		addon:DebouncePublic("CreateIcons", 1, function()
-			addon:CreateIcons()
+		addon:Debounce("InitializeIcons", 1, function()
+			addon:InitializeIcons()
 			addon.isLoaded = true
 		end)
 	elseif msg == "unlock" or msg == "u" then
@@ -61,23 +68,11 @@ local function OnEvent(self, event, ...)
 		return
 	end
 
-	if event == "PLAYER_ENTERING_WORLD" then
-		addon.suppressTalentEvents = true
-
-		addon:DebouncePublic("suppressTalentEvents", 5, function()
-			addon.suppressTalentEvents = false
-		end)
-	elseif event == "PLAYER_EQUIPMENT_CHANGED" then
-		if addon.isLoaded then
-			addon:DebouncePublic("CreateIcons", 5, function()
-				addon:CreateIcons()
-			end)
-		end
-	elseif event == "ACTIVE_TALENT_GROUP_CHANGED" or event == "PLAYER_SPECIALIZATION_CHANGED" or event == "PLAYER_TALENT_UPDATE" or event == "TRAIT_CONFIG_UPDATED" then
+	if event == "ACTIVE_TALENT_GROUP_CHANGED" or event == "PLAYER_SPECIALIZATION_CHANGED" or event == "PLAYER_TALENT_UPDATE" or event == "TRAIT_CONFIG_UPDATED" then
 		if addon.isLoaded and not addon.suppressTalentEvents then
 			addon.suppressTalentEvents = true
 
-			addon:DebouncePublic("CreateIcons", 3, function()
+			addon:Debounce("InitializeIcons", 3, function()
 				local newActiveConfigID = C_ClassTalents.GetActiveConfigID()
 				local newImportString
 				local newSpecialization = GetSpecialization()
@@ -102,10 +97,10 @@ local function OnEvent(self, event, ...)
 				lastSpecialization = newSpecialization
 
 				if wasChanged then
-					addon:CreateIcons()
+					addon:InitializeIcons()
 				end
 
-				addon:DebouncePublic("suppressTalentEvents", 3, function()
+				addon:Debounce("suppressTalentEvents", 3, function()
 					addon.suppressTalentEvents = false
 				end)
 			end)
@@ -114,12 +109,17 @@ local function OnEvent(self, event, ...)
 		if addon.isLoaded then
 			local needsUpdate = false
 
-			for bag = 0, NUM_BAG_SLOTS do
-				for slot = 1, C_Container.GetContainerNumSlots(bag) do
-					local newItemID = C_Container.GetContainerItemID(bag, slot) or -1
-					local oldItemID = previousBagState[bag][slot] or -1
+			for bagID = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
+				for slotID = 1, C_Container.GetContainerNumSlots(bagID) do
+					local newItemID = -1
+					local oldItemID = addon:NormalizeNumber(previousBagState[bagID][slotID])
 
-					previousBagState[bag][slot] = newItemID
+					local itemInfo = C_Container.GetContainerItemInfo(bagID, slotID)
+					if itemInfo then
+						newItemID = addon:NormalizeNumber(itemInfo.itemID)
+					end
+
+					previousBagState[bagID][slotID] = newItemID
 
 					if newItemID ~= oldItemID then
 						if newItemID > 0 and IsValidItem(newItemID) then
@@ -139,10 +139,28 @@ local function OnEvent(self, event, ...)
 			end
 
 			if needsUpdate then
-				addon:DebouncePublic("RefreshCategoryFrames", 3, function()
+				addon:Debounce("RefreshCategoryFrames", 3, function()
 					addon:RefreshCategoryFrames()
 				end)
 			end
+		end
+	elseif event == "EDIT_MODE_LAYOUTS_UPDATED" then
+		if addon.isLoaded then
+			addon:Debounce("UpdateButtonKeyBinds", 1, function()
+				addon:UpdateButtonKeyBinds()
+			end)
+		end
+	elseif event == "PLAYER_ENTERING_WORLD" then
+		addon.suppressTalentEvents = true
+
+		addon:Debounce("suppressTalentEvents", 5, function()
+			addon.suppressTalentEvents = false
+		end)
+	elseif event == "PLAYER_EQUIPMENT_CHANGED" then
+		if addon.isLoaded then
+			addon:Debounce("InitializeIcons", 5, function()
+				addon:InitializeIcons()
+			end)
 		end
 	elseif event == "VARIABLES_LOADED" then
 		addon.isLoaded = false
@@ -162,16 +180,16 @@ local function OnEvent(self, event, ...)
 			SettingsDB.validItems = { 211878, 211879, 211880, 5512, 224464, 212263, 212264, 212265 }
 		end
 
-		addon:DebouncePublic("CacheBagItems", 1, function()
+		addon:Debounce("CacheBagItems", 1, function()
 			CacheBagItems()
 		end)
 
-		addon:DebouncePublic("CreateIcons", 1, function()
-			addon:CreateIcons()
+		addon:Debounce("InitializeIcons", 1, function()
+			addon:InitializeIcons()
 			addon.isLoaded = true
 		end)
 
-		addon:DebouncePublic("CreateSettings", 3, function()
+		addon:Debounce("CreateSettings", 3, function()
 			addon:InitializeSettingsDialog()
 		end)
 	end
@@ -180,6 +198,7 @@ end
 local f = CreateFrame("Frame")
 f:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
 f:RegisterEvent("BAG_UPDATE_DELAYED")
+f:RegisterEvent("EDIT_MODE_LAYOUTS_UPDATED")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 f:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
@@ -194,7 +213,7 @@ f:SetScript("OnUpdate", function(frame, elapsed)
 		return
 	end
 
-	addon:UpdateIconState()
+	addon:UpdateButtonState()
 
 	timeSinceLastUpdate = 0
 end)

@@ -1,124 +1,15 @@
 local addonName, addon = ...
 
-local cooldownMaximum = 120 -- 2 Minutes
-local cooldownMinimum = 0.05
-local cooldownQueue = {}
-local seenSpells = {}
+local debounceMaximum = 120 -- 2 Minutes
+local debounceMinimum = 0.05
+local debounceQueue = {}
 
-local function AddIconDetail(isTrinket, itemID, playerSpecID, specID, spellID, tableIconDetails)
-    isTrinket = isTrinket or false
-    itemID = itemID or -1
-    playerSpecID = playerSpecID or -1
-    specID = specID or -1
-    spellID = spellID or -1
-
-    if itemID <= 0 and spellID <= 0 then
+local function SaveFramePosition(categoryName, parentFrame)
+    if categoryName == addon.categoryIgnored then
         return nil
     end
 
-    local key = "spec:" .. specID .. ",playerSpec:" .. playerSpecID .. ",item:" .. itemID .. ",spell:" .. spellID
-    if seenSpells[key] then
-        return nil
-    end
-
-    local iconDetail = {}
-    iconDetail.isTrinket = isTrinket
-    iconDetail.itemID = itemID
-    iconDetail.playerSpecID = playerSpecID
-    iconDetail.specID = specID
-    iconDetail.spellID = spellID
-
-    table.insert(tableIconDetails, iconDetail)
-
-    return nil
-end
-
-local function GetSlotInformation(actionText, itemID, macroBody, macroName, spellID)
-    local result = {}
-
-    result.actionText = actionText or ""
-    result.actionText = result.actionText:lower():gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\n", "")
-
-    result.macroBody = macroBody or ""
-    result.macroBody = result.macroBody:lower():gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\n", "")
-
-    result.macroName = macroName or ""
-    result.macroName = result.macroName:lower():gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\n", "")
-
-    result.itemID = itemID or -1
-    result.itemName = ""
-    result.spellID = spellID or -1
-    result.spellName = ""
-
-    if result.itemID > 0 then
-        local item = Item:CreateFromItemID(result.itemID)
-        item:ContinueOnItemLoad(function()
-            result.itemName = item:GetItemName() or ""
-            result.itemName = result.itemName:lower():gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\n", "")
-        end)
-    end
-
-    if result.spellID > 0 then
-        local spellInfo = C_Spell.GetSpellInfo(result.spellID)
-        if spellInfo then
-            result.spellName = spellInfo.name or ""
-            result.spellName = result.spellName:lower():gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\n", "")
-        end
-    end
-
-    return result
-end
-
-local function ProcessSpell(playerSpecID, spellBank, specID, spellIndex, tableIconDetails)
-    local itemInfo = C_SpellBook.GetSpellBookItemInfo(spellIndex, spellBank)
-    if not itemInfo then
-        return nil
-    end
-
-    if itemInfo.itemType == Enum.SpellBookItemType.Spell or itemInfo.itemType == Enum.SpellBookItemType.PetAction then
-        if itemInfo.isOffSpec then
-            return nil
-        end
-
-        if itemInfo.isPassive then
-            local baseChargeInfo = C_Spell.GetSpellCharges(itemInfo.spellID)
-            if baseChargeInfo then
-                return AddIconDetail(false, -1, playerSpecID, specID, itemInfo.spellID, tableIconDetails)
-            else
-                local cooldownMS, gcdMS = GetSpellBaseCooldown(itemInfo.spellID)
-                if cooldownMS and cooldownMS > 0 then
-                    return AddIconDetail(false, -1, playerSpecID, specID, itemInfo.spellID, tableIconDetails)
-                end
-            end
-
-            return nil
-        end
-
-        return AddIconDetail(false, -1, playerSpecID, specID, itemInfo.spellID, tableIconDetails)
-    end
-
-    if itemInfo.itemType == Enum.SpellBookItemType.Flyout then
-        local flyoutName, flyoutDescription, flyoutSlots, flyoutKnown = GetFlyoutInfo(itemInfo.actionID)
-        if flyoutKnown and flyoutName ~= "Hero's Path: The War Within Season 3" then
-            for slot = 1, flyoutSlots do
-                local slotSpellID, slotOverrideSpellID, slotIsKnown, slotSpellName, slotSlotSpecID = GetFlyoutSlotInfo(
-                    itemInfo.actionID, slot)
-                if slotIsKnown and not C_Spell.IsSpellPassive(slotSpellID) then
-                    AddIconDetail(false, -1, playerSpecID, specID, slotSpellID, tableIconDetails)
-                end
-            end
-        end
-    end
-
-    return nil
-end
-
-local function SaveFramePosition(name, parentFrame)
-    if name == addon.categoryIgnored then
-        return nil
-    end
-
-    if name == addon.categoryUnknown then
+    if categoryName == addon.categoryUnknown then
         return nil
     end
 
@@ -128,7 +19,7 @@ local function SaveFramePosition(name, parentFrame)
     local parentRight = parentFrame:GetRight()
     local parentTop = parentFrame:GetTop()
     local screenCenterX, screenCenterY = UIParent:GetCenter()
-    local settingTable = SettingsDB[name] or {}
+    local settingTable = SettingsDB[categoryName] or {}
 
     if not settingTable.anchor or settingTable.anchor == "" then
         settingTable.anchor = "CENTER"
@@ -166,85 +57,7 @@ local function SaveFramePosition(name, parentFrame)
     settingTable.x = settingTable.x - screenCenterX
     settingTable.y = settingTable.y - screenCenterY
 
-    SettingsDB[name] = settingTable
-end
-
-local function SlotWasMatched(itemID, itemName, slotInfo, spellID, spellName)
-    if itemID > 0 then
-        if slotInfo.itemID == itemID then
-            return true
-        elseif string.find(slotInfo.macroBody, "/use item:" .. itemID) then
-            return true
-        elseif string.find(slotInfo.macroBody, "/cast item:" .. itemID) then
-            return true
-        end
-    end
-
-    if spellID > 0 then
-        if slotInfo.spellID == spellID then
-            return true
-        end
-    end
-
-    if itemName ~= "" then
-        if slotInfo.itemName ~= "" then
-            if slotInfo.itemName == itemName then
-                return true
-            end
-
-            if string.find(slotInfo.itemName, itemName) then
-                return true
-            end
-        end
-
-        if slotInfo.actionText ~= "" then
-            if string.find(slotInfo.actionText, itemName) then
-                return true
-            end
-        end
-
-        if slotInfo.macroBody ~= "" then
-            if string.find(slotInfo.macroBody, itemName) then
-                return true
-            end
-        end
-
-        if slotInfo.macroName ~= "" then
-            if string.find(slotInfo.macroName, itemName) then
-                return true
-            end
-        end
-    end
-
-    if spellName ~= "" then
-        if slotInfo.spellName ~= "" then
-            if slotInfo.spellName == spellName then
-                return true
-            end
-
-            if string.find(slotInfo.spellName, spellName) then
-                return true
-            end
-        end
-
-        if slotInfo.actionText ~= "" then
-            if string.find(slotInfo.actionText, spellName) then
-                return true
-            end
-        end
-
-        if slotInfo.macroBody ~= "" then
-            if string.find(slotInfo.macroBody, spellName) then
-                return true
-            end
-        end
-
-        if slotInfo.macroName ~= "" then
-            if string.find(slotInfo.macroName, spellName) then
-                return true
-            end
-        end
-    end
+    SettingsDB[categoryName] = settingTable
 end
 
 function addon:AddTooltipID(id, label, tooltip)
@@ -269,36 +82,54 @@ function addon:ClearRadios(radioGroup)
     end
 end
 
-function addon:DebouncePublic(key, delay, func)
+function addon:Debounce(key, delay, func)
     if InCombatLockdown() then
         return
     end
 
-    if type(func) ~= "function" then
-        return
-    end
-
     delay = tonumber(delay) or 3
-    delay = math.min(math.max(delay, cooldownMinimum), cooldownMaximum)
+    delay = math.min(math.max(delay, debounceMinimum), debounceMaximum)
 
-    local entry = cooldownQueue[key]
+    local entry = debounceQueue[key]
 
     if entry and entry.timer then
         entry.timer.cancelled = true
     end
 
     entry = { cancelled = false }
-    cooldownQueue[key] = entry
+    debounceQueue[key] = entry
 
     C_Timer.After(delay, function()
-        if entry.cancelled then
+        if debounceQueue[key] == nil or entry.cancelled then
             return
         end
 
-        cooldownQueue[key] = nil
+        debounceQueue[key] = nil
 
         func()
     end)
+end
+
+function addon:FrameRestore(categoryName, parentFrame)
+    if categoryName == addon.categoryIgnored then
+        return
+    end
+
+    if categoryName == addon.categoryUnknown then
+        parentFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    else
+        local settingsTable = SettingsDB[categoryName] or {}
+        local anchor = settingsTable.anchor or "CENTER"
+        local x = settingsTable.x or 0
+        local y = settingsTable.y or 0
+
+        parentFrame:ClearAllPoints()
+        if anchor and anchor ~= "" then
+            parentFrame:SetPoint(anchor, UIParent, "CENTER", x, y)
+        else
+            parentFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+        end
+    end
 end
 
 function addon:GetControlButton(addToTable, label, parent, width, onClick)
@@ -382,13 +213,13 @@ function addon:GetControlRadioButton(addToTable, parent, radioGroup, text, onCli
     return result
 end
 
-function addon:GetFrame(name)
-    if name == addon.categoryIgnored then
+function addon:GetFrame(categoryName)
+    if categoryName == addon.categoryIgnored then
         return nil
     end
 
-    local newFrame = CreateFrame("Frame", name .. "Parent", UIParent)
-    if name ~= addon.categoryUnknown then
+    local newFrame = CreateFrame("Frame", categoryName .. "Parent", UIParent)
+    if categoryName ~= addon.categoryUnknown then
         newFrame:EnableKeyboard(false)
         newFrame:EnableMouse(true)
         newFrame:EnableMouseWheel(false)
@@ -412,7 +243,7 @@ function addon:GetFrame(name)
             frame:StopMovingOrSizing()
 
             C_Timer.After(1, function()
-                SaveFramePosition(name, frame)
+                SaveFramePosition(categoryName, frame)
             end)
         end)
     end
@@ -420,18 +251,88 @@ function addon:GetFrame(name)
     return newFrame
 end
 
-function addon:GetIconDetails()
+function addon:GetKnownSlots()
+    local knownSlots = {}
+    local numGeneral, numCharacter = GetNumMacros()
+
+    for slot = 1, 180 do
+        local actionType, actionID, actionSubType = GetActionInfo(slot)
+        local actionText = GetActionText(slot)
+
+        if actionType then
+            local newItem
+
+            if not actionSubType then
+                actionSubType = ""
+            end
+
+            if actionType == "companion" then
+                if actionSubType == "MOUNT" then
+                    newItem = KnownSlot:Get(actionText, -1, "", "", actionID)
+                end
+            elseif actionType == "item" then
+                if actionSubType == "" then
+                    newItem = KnownSlot:Get(actionText, actionID, "", "", -1)
+                end
+            elseif actionType == "macro" then
+                local macroName, macroIcon, macroBody = GetMacroInfo(actionText)
+
+                if actionSubType == "" then
+                    newItem = KnownSlot:Get(actionText, -1, macroBody, macroName, -1)
+                elseif actionSubType == "item" then
+                    newItem = KnownSlot:Get(actionText, -1, macroBody, macroName, -1)
+                elseif actionSubType == "MOUNT" then
+                    newItem = KnownSlot:Get(actionText, -1, macroBody, macroName, -1)
+                elseif actionSubType == "spell" then
+                    newItem = KnownSlot:Get(actionText, -1, macroBody, macroName, actionID)
+                else
+                    print("actionSubType:", actionSubType, ", actionID:", actionID, ", actionText:", actionText, ", macroName:", macroName, ", macroBody:", macroBody)
+                end
+            elseif actionType == "spell" then
+                if actionSubType == "assistedcombat" then
+                    newItem = KnownSlot:Get(actionText, -1, "", "", actionID)
+                elseif actionSubType == "pet" then
+                    newItem = KnownSlot:Get(actionText, -1, "", "", actionID)
+                elseif actionSubType == "spell" then
+                    newItem = KnownSlot:Get(actionText, -1, "", "", actionID)
+                end
+            elseif actionType == "summonmount" then
+                if actionSubType == "" then
+                    local mountID = tonumber(actionID) or -1
+                    if mountID > 0 then
+                        local _, spellID = C_MountJournal.GetMountInfoByID(mountID)
+
+                        newItem = KnownSlot:Get(actionText, -1, "", "", spellID)
+                    end
+                end
+            end
+
+            if newItem then
+                knownSlots[slot] = newItem
+            else
+                if actionType == "flyout" and actionSubType == "" then
+                else
+                    print("addon:GetKnownSlots. slot:", slot, ", actionType:", actionType, ", actionID:", actionID, ", actionSubType:", actionSubType, ", actionText:", actionText)
+                end
+            end
+        end
+    end
+
+    return knownSlots
+end
+
+function addon:GetKnownSpells()
     local playerSpecID = addon:GetPlayerSpecID()
     if not playerSpecID then
         return nil
     end
 
-    local numPetSpells, petNameToken = C_SpellBook.HasPetSpells()
-    local tableIconDetails = {}
+    local knownSpells = {}
 
+    local numPetSpells, petNameToken = C_SpellBook.HasPetSpells()
     if numPetSpells and numPetSpells > 0 then
         for i = 1, numPetSpells do
-            ProcessSpell(playerSpecID, Enum.SpellBookSpellBank.Pet, 0, i, tableIconDetails)
+            KnownSpell:Process(playerSpecID, Enum.SpellBookSpellBank.Pet, 0, i, knownSpells)
         end
     end
 
@@ -441,18 +342,18 @@ function addon:GetIconDetails()
         if lineInfo then
             if lineInfo.name == "General" then
                 for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
-                    ProcessSpell(playerSpecID, Enum.SpellBookSpellBank.Player, 0, j, tableIconDetails)
+                    KnownSpell:Process(playerSpecID, Enum.SpellBookSpellBank.Player, 0, j, knownSpells)
                 end
             else
                 if lineInfo.specID then
                     if lineInfo.specID == playerSpecID then
                         for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
-                            ProcessSpell(playerSpecID, Enum.SpellBookSpellBank.Player, playerSpecID, j, tableIconDetails)
+                            KnownSpell:Process(playerSpecID, Enum.SpellBookSpellBank.Player, playerSpecID, j, knownSpells)
                         end
                     end
                 else
                     for j = lineInfo.itemIndexOffset + 1, lineInfo.itemIndexOffset + lineInfo.numSpellBookItems do
-                        ProcessSpell(playerSpecID, Enum.SpellBookSpellBank.Player, playerSpecID, j, tableIconDetails)
+                        KnownSpell:Process(playerSpecID, Enum.SpellBookSpellBank.Player, playerSpecID, j, knownSpells)
                     end
                 end
             end
@@ -462,84 +363,49 @@ function addon:GetIconDetails()
     local forcedSpells = SettingsDB.forcedSpells[0]
     if forcedSpells and next(forcedSpells) ~= nil then
         for i = 1, #forcedSpells do
-            AddIconDetail(false, -1, playerSpecID, 0, forcedSpells[i], tableIconDetails)
+            KnownSpell:Add(false, -1, playerSpecID, 0, forcedSpells[i], knownSpells)
         end
     end
 
     forcedSpells = SettingsDB.forcedSpells[playerSpecID]
     if forcedSpells and next(forcedSpells) ~= nil then
         for i = 1, #forcedSpells do
-            AddIconDetail(false, -1, playerSpecID, 0, forcedSpells[i], tableIconDetails)
+            KnownSpell:Add(false, -1, playerSpecID, 0, forcedSpells[i], knownSpells)
         end
     end
 
     for i = 1, #SettingsDB.validItems do
-        AddIconDetail(false, SettingsDB.validItems[i], playerSpecID, 0, -1, tableIconDetails)
+        KnownSpell:Add(false, SettingsDB.validItems[i], playerSpecID, 0, -1, knownSpells)
     end
 
-    AddIconDetail(true, GetInventoryItemID("player", 13), playerSpecID, 0, -1, tableIconDetails)
-    AddIconDetail(true, GetInventoryItemID("player", 14), playerSpecID, 0, -1, tableIconDetails)
+    KnownSpell:Add(true, GetInventoryItemID("player", 13), playerSpecID, 0, -1, knownSpells)
+    KnownSpell:Add(true, GetInventoryItemID("player", 14), playerSpecID, 0, -1, knownSpells)
 
-    return tableIconDetails
+    return knownSpells
 end
 
-function addon:GetKeyBind(frameItemID, frameItemName, frameSpellID, frameSpellName, slotDetails)
-    local itemID = frameItemID or -1
-    local itemName = frameItemName or ""
-    local spellID = frameSpellID or -1
-    local spellName = frameSpellName or ""
+function addon:GetNumberOrDefault(defaultValue, number)
+    local valueNumber = addon:NormalizeNumber(number)
 
-    itemName = itemName:lower():gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\n", "")
-    spellName = spellName:lower():gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\n", "")
-
-    for slot, slotInfo in pairs(slotDetails) do
-        if SlotWasMatched(itemID, itemName, slotInfo, spellID, spellName) then
-            local actionButtonName = addon.actionButtons[slot]
-            if actionButtonName and actionButtonName ~= "" then
-                local binding = GetBindingKey(actionButtonName)
-                if binding and binding ~= "" then
-                    return binding
-                end
-            end
-
-            if _G["ElvUI"] and _G["ElvUI_Bar1Button1"] then
-                local barIndex = math.floor((slot - 1) / 12) + 1
-                local buttonIndex = ((slot - 1) % 12) + 1
-                local button = _G["ElvUI_Bar" .. barIndex .. "Button" .. buttonIndex]
-                if button then
-                    actionButtonName = button.bindstring or button.keyBoundTarget
-                    if not actionButtonName then
-                        actionButtonName = "CLICK " .. button:GetName() .. ":LeftButton"
-                    end
-
-                    local binding = GetBindingKey(actionButtonName)
-                    if binding and binding ~= "" then
-                        return binding
-                    end
-                end
-            end
-        end
+    if valueNumber < 0 then
+        return defaultValue
     end
 
-    return ""
-end
-
-function addon:GetKeyBindForFrame(frame, slotDetails)
-    return addon:GetKeyBind(frame.itemID, frame.itemName, frame.spellID, frame.spellName, slotDetails)
+    return number
 end
 
 function addon:GetPlayerSpecID()
-    local currentSpec = GetSpecialization()
-    if not currentSpec then
+    local specializationIndex = C_SpecializationInfo.GetSpecialization()
+    if not specializationIndex then
         return -1
     end
 
-    local playerSpecID = GetSpecializationInfo(currentSpec)
-    if not playerSpecID then
+    local specID, name, description, icon, role, primaryStat, pointsSpent, background, previewPointsSpent, isUnlocked = C_SpecializationInfo.GetSpecializationInfo(specializationIndex)
+    if not specID then
         return -1
     end
 
-    return playerSpecID
+    return specID
 end
 
 function addon:GetSettingsTable(category)
@@ -566,199 +432,66 @@ function addon:GetSettingsTable(category)
     return settingsTable
 end
 
-function addon:GetSlotDetails()
-    local numGeneral, numCharacter = GetNumMacros()
-    local results = {}
-
-    for slot = 1, 180 do
-        local actionType, actionID, actionSubType = GetActionInfo(slot)
-        local actionText = GetActionText(slot)
-
-        if actionType then
-            local wasHandled = false
-            local slotInfo
-
-            if not actionSubType then
-                actionSubType = ""
-            end
-
-            if actionType == "companion" then
-                if actionSubType == "MOUNT" then
-                    slotInfo = GetSlotInformation(actionText, -1, "", "", actionID)
-                    wasHandled = true
-                end
-            elseif actionType == "flyout" then
-                if actionSubType == "" then
-                    wasHandled = true
-                end
-            elseif actionType == "item" then
-                if actionSubType == "" then
-                    slotInfo = GetSlotInformation(actionText, actionID, "", "", -1)
-                    wasHandled = true
-                end
-            elseif actionType == "macro" then
-                local macroName, macroIcon, macroBody = GetMacroInfo(actionText)
-
-                if actionSubType == "" then
-                    slotInfo = GetSlotInformation(actionText, -1, macroBody, macroName, -1)
-                    wasHandled = true
-                elseif actionSubType == "item" then
-                    slotInfo = GetSlotInformation(actionText, -1, macroBody, macroName, -1)
-                    wasHandled = true
-                elseif actionSubType == "MOUNT" then
-                    slotInfo = GetSlotInformation(actionText, -1, macroBody, macroName, -1)
-                    wasHandled = true
-                elseif actionSubType == "spell" then
-                    slotInfo = GetSlotInformation(actionText, -1, macroBody, macroName, actionID)
-                    wasHandled = true
-                else
-                    print("actionSubType:", actionSubType, ", actionID:", actionID, ", actionText:", actionText, ", macroName:", macroName, ", macroBody:", macroBody)
-                end
-            elseif actionType == "spell" then
-                if actionSubType == "assistedcombat" then
-                    slotInfo = GetSlotInformation(actionText, -1, "", "", actionID)
-                    wasHandled = true
-                elseif actionSubType == "pet" then
-                    slotInfo = GetSlotInformation(actionText, -1, "", "", actionID)
-                    wasHandled = true
-                elseif actionSubType == "spell" then
-                    slotInfo = GetSlotInformation(actionText, -1, "", "", actionID)
-                    wasHandled = true
-                end
-            elseif actionType == "summonmount" then
-                if actionSubType == "" then
-                    local mountID = tonumber(actionID) or -1
-                    if mountID > 0 then
-                        local _, spellID = C_MountJournal.GetMountInfoByID(mountID)
-
-                        slotInfo = GetSlotInformation(actionText, -1, "", "", spellID)
-                        wasHandled = true
-                    end
-                end
-            end
-
-            if wasHandled then
-                if slotInfo then
-                    local actionButtonName = addon.actionButtons[slot]
-                    if actionButtonName and actionButtonName ~= "" then
-                        local binding = GetBindingKey(actionButtonName)
-                        if binding and binding ~= "" then
-                            slotInfo.binding = binding
-                        end
-                    end
-
-                    if not slotInfo.binding or slotInfo.binding == "" then
-                        if _G["ElvUI"] and _G["ElvUI_Bar1Button1"] then
-                            local barIndex = math.floor((slot - 1) / 12) + 1
-                            local buttonIndex = ((slot - 1) % 12) + 1
-                            local button = _G["ElvUI_Bar" .. barIndex .. "Button" .. buttonIndex]
-                            if button then
-                                actionButtonName = button.bindstring or button.keyBoundTarget
-                                if not actionButtonName then
-                                    actionButtonName = "CLICK " .. button:GetName() .. ":LeftButton"
-                                end
-
-                                local binding = GetBindingKey(actionButtonName)
-                                if binding and binding ~= "" then
-                                    slotInfo.binding = binding
-                                end
-                            end
-                        end
-                    end
-
-                    if not slotInfo.binding or slotInfo.binding == "" then
-                        if _G["Bartender4"] then
-                            actionButtonName = "CLICK BT4Button" .. slot .. ":Keybind"
-                            local binding = GetBindingKey(actionButtonName)
-                            if binding and binding ~= "" then
-                                slotInfo.binding = binding
-                            end
-                        end
-                    end
-
-                    results[slot] = slotInfo
-                end
-            else
-                print("GetSlotDetails. slot:", slot, ", actionType:", actionType, ", actionSubType:", actionSubType, ", actionID:", actionID)
-            end
-        end
-    end
-
-    return results
-end
-
 function addon:GetValidCategories()
     local foundIgnored = false
     local foundTrinket = false
     local foundUnknown = false
-    local results = {}
+    local validCategories = {}
 
-    for i = 1, #SettingsDB.validCategories do
-        local name = SettingsDB.validCategories[i]
-        if name == addon.categoryIgnored then
+    for _, categoryName in ipairs(SettingsDB.validCategories) do
+        if categoryName == addon.categoryIgnored then
             foundIgnored = true
-        elseif name == addon.categoryTrinket then
+        elseif categoryName == addon.categoryTrinket then
             foundTrinket = true
-        elseif name == addon.categoryUnknown then
+        elseif categoryName == addon.categoryUnknown then
             foundUnknown = true
         end
 
-        table.insert(results, name)
+        table.insert(validCategories, categoryName)
     end
 
     if not foundIgnored then
-        table.insert(results, addon.categoryIgnored)
+        table.insert(validCategories, addon.categoryIgnored)
     end
     if not foundTrinket then
         SettingsDB[addon.categoryTrinket] = addon:GetSettingsTable(addon.categoryTrinket)
-        table.insert(results, addon.categoryTrinket)
+        table.insert(validCategories, addon.categoryTrinket)
     end
     if not foundUnknown then
-        table.insert(results, addon.categoryUnknown)
+        table.insert(validCategories, addon.categoryUnknown)
     end
 
-    return results
+    return validCategories
 end
 
-function addon:GetValueNumber(value)
-    value = strtrim(value)
-    if value == "" then
-        return 0
-    else
-        return tonumber(value)
+function addon:NormalizeNumber(number)
+    local valueString = ""
+
+    if number then
+        valueString = strtrim(number)
     end
+
+    if valueString == "" then
+        return -1
+    end
+
+    local valueNumber = tonumber(number) or -1
+
+    if valueNumber < 0 then
+        return -1
+    end
+
+    return valueNumber
 end
 
-function addon:FrameRestore(name, parentFrame)
-    if name == addon.categoryIgnored then
-        return
+function addon:NormalizeText(text)
+    if not text then
+        return ""
     end
 
-    if name == addon.categoryUnknown then
-        parentFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-    else
-        local settingsTable = SettingsDB[name] or {}
-        local anchor = settingsTable.anchor or "CENTER"
-        local x = settingsTable.x or 0
-        local y = settingsTable.y or 0
-
-        parentFrame:ClearAllPoints()
-        if anchor and anchor ~= "" then
-            parentFrame:SetPoint(anchor, UIParent, "CENTER", x, y)
-        else
-            parentFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-        end
+    if text == "" then
+        return ""
     end
-end
 
-function addon:ReplaceBindings(binding)
-    binding = binding:gsub("ALT%-", "A")
-    binding = binding:gsub("%BUTTON", "M")
-    binding = binding:gsub("%MOUSEWHEELDOWN", "WD")
-    binding = binding:gsub("%MOUSEWHEELUP", "WU")
-    binding = binding:gsub("CTRL%-", "C")
-    binding = binding:gsub("NUMPAD", "N")
-    binding = binding:gsub("SHIFT%-", "S")
-
-    return binding
+    return text:lower():gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\n", "")
 end

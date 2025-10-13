@@ -10,6 +10,8 @@
 
 Data.lua
 Helpers.lua
+KnownSlot.lua
+KnownSpell.lua
 Spells.lua
 
 SettingsDialog\Tabs\Categories.lua
