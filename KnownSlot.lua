@@ -5,6 +5,62 @@ KnownSlot.__index = KnownSlot
 
 -- Private
 
+local function ReplaceBindings(binding)
+    if not binding then
+        return ""
+    end
+    if binding == "" then
+        return ""
+    end
+
+    binding = binding:gsub("ALT%-", "A")
+    binding = binding:gsub("%BUTTON", "M")
+    binding = binding:gsub("%MOUSEWHEELDOWN", "WD")
+    binding = binding:gsub("%MOUSEWHEELUP", "WU")
+    binding = binding:gsub("CTRL%-", "C")
+    binding = binding:gsub("NUMPAD", "N")
+    binding = binding:gsub("SHIFT%-", "S")
+
+    return binding
+end
+
+local function GetSlotKeyBind(slot)
+    local actionButtonName = addon.actionButtons[slot]
+    if actionButtonName and actionButtonName ~= "" then
+        local binding = GetBindingKey(actionButtonName)
+        if binding and binding ~= "" then
+            return binding
+        end
+    end
+
+    if _G["ElvUI"] and _G["ElvUI_Bar1Button1"] then
+        local barIndex = math.floor((slot - 1) / 12) + 1
+        local buttonIndex = ((slot - 1) % 12) + 1
+        local button = _G["ElvUI_Bar" .. barIndex .. "Button" .. buttonIndex]
+        if button then
+            actionButtonName = button.bindstring or button.keyBoundTarget
+            if not actionButtonName then
+                actionButtonName = "CLICK " .. button:GetName() .. ":LeftButton"
+            end
+
+            local binding = GetBindingKey(actionButtonName)
+            if binding and binding ~= "" then
+                return binding
+            end
+        end
+    end
+
+    if _G["Bartender4"] then
+        actionButtonName = "CLICK BT4Button" .. slot .. ":Keybind"
+        local binding = GetBindingKey(actionButtonName)
+        if binding and binding ~= "" then
+            return binding
+        end
+    end
+
+    return ""
+end
+
 function KnownSlot:IsMatch(itemID, itemName, spellID, spellName)
     if itemID > 0 then
         if self.itemID == itemID then
@@ -83,47 +139,6 @@ function KnownSlot:IsMatch(itemID, itemName, spellID, spellName)
     end
 end
 
-function KnownSlot:UpdateKeyBind()
-    self.keyBind = ""
-
-    local actionButtonName = addon.actionButtons[self.slot]
-    if actionButtonName and actionButtonName ~= "" then
-        local binding = GetBindingKey(actionButtonName)
-        if binding and binding ~= "" then
-            self.keyBind = binding
-        end
-    end
-
-    if self.keyBind == "" then
-        if _G["ElvUI"] and _G["ElvUI_Bar1Button1"] then
-            local barIndex = math.floor((self.slot - 1) / 12) + 1
-            local buttonIndex = ((self.slot - 1) % 12) + 1
-            local button = _G["ElvUI_Bar" .. barIndex .. "Button" .. buttonIndex]
-            if button then
-                actionButtonName = button.bindstring or button.keyBoundTarget
-                if not actionButtonName then
-                    actionButtonName = "CLICK " .. button:GetName() .. ":LeftButton"
-                end
-
-                local binding = GetBindingKey(actionButtonName)
-                if binding and binding ~= "" then
-                    self.keyBind = binding
-                end
-            end
-        end
-    end
-
-    if self.keyBind == "" then
-        if _G["Bartender4"] then
-            actionButtonName = "CLICK BT4Button" .. self.slot .. ":Keybind"
-            local binding = GetBindingKey(actionButtonName)
-            if binding and binding ~= "" then
-                self.keyBind = binding
-            end
-        end
-    end
-end
-
 -- Shared
 
 function KnownSlot:Get(actionText, itemID, macroBody, macroName, spellID, slot)
@@ -131,12 +146,13 @@ function KnownSlot:Get(actionText, itemID, macroBody, macroName, spellID, slot)
     newItem.actionText = addon:NormalizeText(actionText)
     newItem.itemID = addon:NormalizeNumber(itemID)
     newItem.itemName = ""
-    newItem.keyBind = ""
     newItem.macroBody = addon:NormalizeText(macroBody)
     newItem.macroName = addon:NormalizeText(macroName)
     newItem.slot = addon:NormalizeNumber(slot)
     newItem.spellID = addon:NormalizeNumber(spellID)
     newItem.spellName = ""
+
+    newItem.keyBind = ReplaceBindings(GetSlotKeyBind(newItem.slot))
 
     if newItem.spellID > 0 then
         local spellInfo = C_Spell.GetSpellInfo(newItem.spellID)
@@ -149,19 +165,16 @@ function KnownSlot:Get(actionText, itemID, macroBody, macroName, spellID, slot)
         local item = Item:CreateFromItemID(newItem.itemID)
         item:ContinueOnItemLoad(function()
             newItem.itemName = addon:NormalizeText(item:GetItemName())
-            newItem:UpdateKeyBind()
         end)
-    else
-        newItem:UpdateKeyBind()
     end
 
     return newItem
 end
 
-function KnownSlot:GetKeyBind(itemID, itemName, spellID, spellName, knownButtons)
-    for slot, knownButton in pairs(knownButtons) do
-        if knownButton:IsMatch(itemID, itemName, spellID, spellName) then
-            return knownButton.keyBind
+function KnownSlot:GetKeyBind(itemID, itemName, spellID, spellName)
+    for slot, knownSlot in pairs(addon.knownSlots) do
+        if knownSlot:IsMatch(itemID, itemName, spellID, spellName) then
+            return knownSlot.keyBind
         end
     end
 

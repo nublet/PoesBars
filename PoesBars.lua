@@ -43,6 +43,7 @@ function PoesBarsCommands(msg, editbox)
 	elseif msg == "refresh" or msg == "r" then
 		addon.isLoaded = false
 		addon.isSettingsShown = false
+		addon.knownSlots = addon:GetKnownSlots()
 
 		addon:Debounce("InitializeIcons", 1, function()
 			addon:InitializeIcons()
@@ -164,6 +165,7 @@ local function OnEvent(self, event, ...)
 		end
 	elseif event == "VARIABLES_LOADED" then
 		addon.isLoaded = false
+		addon.knownSlots = addon:GetKnownSlots()
 
 		CategoryOrderDB = CategoryOrderDB or {}
 		SettingsDB = SettingsDB or {}
