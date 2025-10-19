@@ -9,7 +9,7 @@ local LCG = LibStub("LibCustomGlow-1.0")
 local LSM = LibStub("LibSharedMedia-3.0")
 local font = LSM:Fetch("font", "Naowh") or "Fonts\\FRIZQT__.TTF"
 
-local function CheckTextBindingKeyBind(icon, spellID)
+local function CheckTextBindingKeyBind(icon, spellID, knownSlots)
     if not spellID then
         return false
     end
@@ -20,14 +20,14 @@ local function CheckTextBindingKeyBind(icon, spellID)
 
     local spellInfo = C_Spell.GetSpellInfo(spellID)
     if spellInfo then
-        local keyBind = KnownSlot:GetKeyBind(-1, "", spellID, addon:NormalizeText(spellInfo.name))
+        local keyBind = KnownSlot:GetKeyBind(-1, "", spellID, addon:NormalizeText(spellInfo.name), knownSlots)
 
         if keyBind and keyBind ~= "" then
             icon.textBinding:SetText(keyBind)
             return true
         end
     else
-        local keyBind = KnownSlot:GetKeyBind(-1, "", spellID, "")
+        local keyBind = KnownSlot:GetKeyBind(-1, "", spellID, "", knownSlots)
 
         if keyBind and keyBind ~= "" then
             icon.textBinding:SetText(keyBind)
@@ -38,7 +38,7 @@ local function CheckTextBindingKeyBind(icon, spellID)
     return false
 end
 
-local function CheckTextBinding(fontSize, icon)
+local function CheckTextBinding(fontSize, icon, knownSlots)
     if not icon.textBinding then
         icon.frameText = CreateFrame("Frame", nil, icon)
         icon.frameText:SetAllPoints(icon)
@@ -75,11 +75,11 @@ local function CheckTextBinding(fontSize, icon)
         cooldownManagerSpells[cooldownInfo.overrideSpellID] = true
     end
 
-    if CheckTextBindingKeyBind(icon, cooldownInfo.spellID) == true then
+    if CheckTextBindingKeyBind(icon, cooldownInfo.spellID, knownSlots) == true then
         return
     end
 
-    if CheckTextBindingKeyBind(icon, cooldownInfo.overrideSpellID) == true then
+    if CheckTextBindingKeyBind(icon, cooldownInfo.overrideSpellID, knownSlots) == true then
         return
     end
 
@@ -88,7 +88,7 @@ local function CheckTextBinding(fontSize, icon)
             if spellID and spellID > 0 then
                 cooldownManagerSpells[spellID] = true
 
-                if CheckTextBindingKeyBind(icon, spellID) == true then
+                if CheckTextBindingKeyBind(icon, spellID, knownSlots) == true then
                     return
                 end
             end
@@ -1106,6 +1106,7 @@ function addon:RefreshCategoryFrames()
         if not category or category == "" then
             if iconFrame.spellID > 0 and cooldownManagerSpells[iconFrame.spellID] and cooldownManagerSpells[iconFrame.spellID] == true then
                 category = addon.categoryIgnored
+                SpellsDB[iconFrame.specID][settingName] = addon.categoryIgnored
             else
                 category = addon.categoryUnknown
             end
@@ -1267,11 +1268,12 @@ end
 function addon:UpdateButtonKeyBinds()
     local fontSizeEssential = SettingsDB.bindingFontSize or 16
     local fontSizeUtility = fontSizeEssential - 4
+    local knownSlots = addon:GetKnownSlots()
 
     cooldownManagerSpells = {}
 
     for _, iconFrame in pairs(iconFrames) do
-        local keyBind = KnownSlot:GetKeyBind(iconFrame.itemID, iconFrame.itemName, iconFrame.spellID, iconFrame.spellName)
+        local keyBind = KnownSlot:GetKeyBind(iconFrame.itemID, iconFrame.itemName, iconFrame.spellID, iconFrame.spellName, knownSlots)
 
         if keyBind and keyBind ~= "" then
             iconFrame.textBinding:SetText(keyBind)
@@ -1279,10 +1281,10 @@ function addon:UpdateButtonKeyBinds()
     end
 
     for _, icon in ipairs({ EssentialCooldownViewer:GetChildren() }) do
-        CheckTextBinding(fontSizeEssential, icon)
+        CheckTextBinding(fontSizeEssential, icon, knownSlots)
     end
 
     for _, icon in ipairs({ UtilityCooldownViewer:GetChildren() }) do
-        CheckTextBinding(fontSizeUtility, icon)
+        CheckTextBinding(fontSizeUtility, icon, knownSlots)
     end
 end

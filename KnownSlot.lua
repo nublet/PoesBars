@@ -171,8 +171,8 @@ function KnownSlot:Get(actionText, itemID, macroBody, macroName, spellID, slot)
     return newItem
 end
 
-function KnownSlot:GetKeyBind(itemID, itemName, spellID, spellName)
-    for slot, knownSlot in pairs(addon.knownSlots) do
+function KnownSlot:GetKeyBind(itemID, itemName, spellID, spellName, knownSlots)
+    for slot, knownSlot in pairs(knownSlots) do
         if knownSlot:IsMatch(itemID, itemName, spellID, spellName) then
             return knownSlot.keyBind
         end

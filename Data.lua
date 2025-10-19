@@ -6,7 +6,6 @@ addon.categoryUnknown    = "Unknown"
 addon.currentSeason      = { 445417, 445415, 445414, 445444, 1216786, 1237215, 354465, 367416 }
 addon.isLoaded           = false
 addon.itemBuffs          = {}
-addon.knownSlots         = {}
 addon.settingsControls   = {}
 addon.settingsIconSize   = 36
 addon.spellBuffs         = {}

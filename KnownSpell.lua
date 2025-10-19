@@ -33,8 +33,8 @@ function KnownSpell:Add(isTrinket, itemID, playerSpecID, specID, spellID, knownS
         return nil
     end
 
-    if not SpellsDB[specID] then
-        SpellsDB[specID] = {}
+    if not SpellsDB[newItem.specID] then
+        SpellsDB[newItem.specID] = {}
     end
 
     if newItem.spellID > 0 then
@@ -63,25 +63,28 @@ function KnownSpell:Add(isTrinket, itemID, playerSpecID, specID, spellID, knownS
     end
 
     if newItem.itemID > 0 then
-        local usable, noMana = C_Item.IsUsableItem(itemID)
+        local item = Item:CreateFromItemID(newItem.itemID)
+        local usable, noMana = C_Item.IsUsableItem(newItem.itemID)
 
+        newItem.iconID = item:GetItemIcon()
         newItem.isUsable = usable
+        newItem.itemName = addon:NormalizeText(item:GetItemName())
         newItem.settingName = newItem.itemID .. "_-1"
 
         if newItem.spellID <= 0 then
-            local _, itemSpellID = C_Item.GetItemSpell(itemID)
+            local _, itemSpellID = C_Item.GetItemSpell(newItem.itemID)
             if itemSpellID and itemSpellID > 0 then
                 newItem.spellID = itemSpellID
             else
-                itemSpellID = C_Item.GetFirstTriggeredSpellForItem(itemID, 4)
+                itemSpellID = C_Item.GetFirstTriggeredSpellForItem(newItem.itemID, 4)
                 if itemSpellID and itemSpellID > 0 then
                     newItem.spellID = itemSpellID
                 else
-                    itemSpellID = C_Item.GetFirstTriggeredSpellForItem(itemID, 3)
+                    itemSpellID = C_Item.GetFirstTriggeredSpellForItem(newItem.itemID, 3)
                     if itemSpellID and itemSpellID > 0 then
                         newItem.spellID = itemSpellID
                     else
-                        itemSpellID = C_Item.GetFirstTriggeredSpellForItem(itemID, 2)
+                        itemSpellID = C_Item.GetFirstTriggeredSpellForItem(newItem.itemID, 2)
                         if itemSpellID and itemSpellID > 0 then
                             newItem.spellID = itemSpellID
                         end
@@ -99,7 +102,6 @@ function KnownSpell:Add(isTrinket, itemID, playerSpecID, specID, spellID, knownS
             end
         end
 
-        local item = Item:CreateFromItemID(newItem.itemID)
         item:ContinueOnItemLoad(function()
             newItem.iconID = item:GetItemIcon()
             newItem.itemName = addon:NormalizeText(item:GetItemName())

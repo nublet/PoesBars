@@ -43,7 +43,6 @@ function PoesBarsCommands(msg, editbox)
 	elseif msg == "refresh" or msg == "r" then
 		addon.isLoaded = false
 		addon.isSettingsShown = false
-		addon.knownSlots = addon:GetKnownSlots()
 
 		addon:Debounce("InitializeIcons", 1, function()
 			addon:InitializeIcons()
@@ -159,17 +158,22 @@ local function OnEvent(self, event, ...)
 		end)
 	elseif event == "PLAYER_EQUIPMENT_CHANGED" then
 		if addon.isLoaded then
-			addon:Debounce("InitializeIcons", 5, function()
-				addon:InitializeIcons()
-			end)
+			local equipmentSlot = ...
+
+			if equipmentSlot == 13 or equipmentSlot == 14 then
+				addon:Debounce("InitializeIcons", 5, function()
+					addon:InitializeIcons()
+				end)
+			end
 		end
 	elseif event == "VARIABLES_LOADED" then
 		addon.isLoaded = false
-		addon.knownSlots = addon:GetKnownSlots()
 
 		CategoryOrderDB = CategoryOrderDB or {}
 		SettingsDB = SettingsDB or {}
 		SpellsDB = SpellsDB or {}
+
+		local knownSlots = addon:GetKnownSlots()
 
 		if type(SettingsDB.forcedSpells) ~= "table" then
 			SettingsDB.forcedSpells = {}

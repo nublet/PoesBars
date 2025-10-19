@@ -108,24 +108,16 @@ local function MoveSetting(category, playerSpecID, settingName, direction)
     end
 end
 
-local function CreateOptionLine(category, iconDetail)
-    local itemID = iconDetail.itemID or -1
-    local playerSpecID = iconDetail.playerSpecID or -1
-    local specID = iconDetail.specID or -1
-    local spellID = iconDetail.spellID or -1
-
-    if itemID <= 0 and spellID <= 0 then
+local function CreateOptionLine(category, knownSpell)
+    if knownSpell.itemID <= 0 and knownSpell.spellID <= 0 then
         return nil
     end
 
-    local font = LSM:Fetch("font", SettingsDB.fontName) or "Fonts\\FRIZQT__.TTF"
-    local settingName = itemID .. "_" .. spellID
-
-    if not SpellsDB[specID] then
-        SpellsDB[specID] = {}
+    if not SpellsDB[knownSpell.specID] then
+        SpellsDB[knownSpell.specID] = {}
     end
 
-    local categoryValue = SpellsDB[specID][settingName]
+    local categoryValue = SpellsDB[knownSpell.specID][knownSpell.settingName]
     if not categoryValue or categoryValue == "" then
         categoryValue = addon.categoryUnknown
     end
@@ -137,10 +129,10 @@ local function CreateOptionLine(category, iconDetail)
     frameLine:SetPoint("TOPLEFT", 0, 0)
     frameLine:SetSize(1, 1)
     frameLine.category = category
-    frameLine.itemID = itemID
-    frameLine.settingName = settingName
-    frameLine.specID = specID
-    frameLine.spellID = spellID
+    frameLine.itemID = knownSpell.itemID
+    frameLine.settingName = knownSpell.settingName
+    frameLine.specID = knownSpell.specID
+    frameLine.spellID = knownSpell.spellID
 
     local frameIcon = CreateFrame("Frame", nil, frameLine)
     frameIcon:EnableMouse(true)
@@ -163,16 +155,18 @@ local function CreateOptionLine(category, iconDetail)
     dropdownCategory:SetPoint("LEFT", textName, "RIGHT", 10, 0)
 
     local buttonMoveDown = addon:GetControlButton(true, "Down", frameLine, 60, function(control)
-        MoveSetting(category, playerSpecID, settingName, 1)
+        MoveSetting(category, knownSpell.playerSpecID, knownSpell.settingName, 1)
     end)
     buttonMoveDown:SetPoint("TOPLEFT", dropdownCategory, "RIGHT", 5, 0)
 
     local buttonMoveUp = addon:GetControlButton(true, "Up", frameLine, 60, function(control)
-        MoveSetting(category, playerSpecID, settingName, -1)
+        MoveSetting(category, knownSpell.playerSpecID, knownSpell.settingName, -1)
     end)
     buttonMoveUp:SetPoint("BOTTOMLEFT", dropdownCategory, "RIGHT", 5, 0)
 
-    if itemID > 0 then
+    if knownSpell.itemID > 0 then
+        local font = LSM:Fetch("font", SettingsDB.fontName) or "Fonts\\FRIZQT__.TTF"
+
         local textRank = frameIcon:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         textRank:SetFont(font, 10, "OUTLINE")
         textRank:SetPoint("BOTTOMLEFT", frameIcon, "BOTTOMLEFT", 0, 0)
@@ -181,13 +175,13 @@ local function CreateOptionLine(category, iconDetail)
         textRank:SetText("")
         textRank:SetTextColor(0, 1, 0, 1)
 
-        local item = Item:CreateFromItemID(itemID)
+        local item = Item:CreateFromItemID(knownSpell.itemID)
         item:ContinueOnItemLoad(function()
             local itemName = item:GetItemName()
             local itemLink = item:GetItemLink()
             local itemTexture = item:GetItemIcon()
 
-            textID:SetText(itemID)
+            textID:SetText(knownSpell.itemID)
             textName:SetText(itemName)
             textureIcon:SetTexture(itemTexture)
 
@@ -208,19 +202,19 @@ local function CreateOptionLine(category, iconDetail)
 
         frameIcon:SetScript("OnEnter", function(control)
             GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
-            GameTooltip:SetItemByID(itemID)
+            GameTooltip:SetItemByID(knownSpell.itemID)
             GameTooltip:Show()
         end)
-    elseif spellID > 0 then
-        local spellInfo = C_Spell.GetSpellInfo(spellID)
+    elseif knownSpell.spellID > 0 then
+        local spellInfo = C_Spell.GetSpellInfo(knownSpell.spellID)
 
-        textID:SetText(spellID)
+        textID:SetText(knownSpell.spellID)
         textName:SetText(spellInfo.name)
         textureIcon:SetTexture(spellInfo.iconID)
 
         frameIcon:SetScript("OnEnter", function(control)
             GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
-            GameTooltip:SetSpellByID(spellID)
+            GameTooltip:SetSpellByID(knownSpell.spellID)
             GameTooltip:Show()
         end)
     end
@@ -230,7 +224,7 @@ local function CreateOptionLine(category, iconDetail)
             local info = UIDropDownMenu_CreateInfo()
             info.text = text
             info.func = function()
-                SpellsDB[specID][settingName] = text
+                SpellsDB[knownSpell.specID][knownSpell.settingName] = text
                 UIDropDownMenu_SetSelectedName(dropdownCategory, text)
             end
             UIDropDownMenu_AddButton(info)
@@ -616,17 +610,11 @@ function addon:GetCategoriesSettings(parent)
                     end
                     frameScroll:SetPoint("BOTTOMRIGHT", frameContainer, "BOTTOMRIGHT", -30, 0)
 
-                    local tableIconDetails = addon:GetIconDetails()
-
-                    if tableIconDetails and next(tableIconDetails) ~= nil then
-                        for i = 1, #tableIconDetails do
-                            local iconDetail = tableIconDetails[i]
-
-                            if iconDetail.isTrinket == false then
-                                local frameLine = CreateOptionLine(category, iconDetail)
-                                if frameLine then
-                                    optionLines[frameLine.settingName] = frameLine
-                                end
+                    for key, knownSpell in pairs(addon:GetKnownSpells()) do
+                        if knownSpell.isTrinket == false then
+                            local frameLine = CreateOptionLine(category, knownSpell)
+                            if frameLine then
+                                optionLines[frameLine.settingName] = frameLine
                             end
                         end
                     end

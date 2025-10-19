@@ -4,6 +4,19 @@ local debounceMaximum = 120 -- 2 Minutes
 local debounceMinimum = 0.05
 local debounceQueue = {}
 
+local function SafeCall(func, ...)
+    if InCombatLockdown() then
+        return false, "InCombatLockdown"
+    end
+    local ok, err = pcall(func, ...)
+    if not ok then
+        if err and not err:match("ADDON_ACTION_BLOCKED") then
+            geterrorhandler()(err)
+        end
+    end
+    return ok, err
+end
+
 local function SaveFramePosition(categoryName, parentFrame)
     if categoryName == addon.categoryIgnored then
         return nil
@@ -83,31 +96,53 @@ function addon:ClearRadios(radioGroup)
 end
 
 function addon:Debounce(key, delay, func)
-    if InCombatLockdown() then
+    local entry      = debounceQueue[key]
+    local queueCalls = entry and entry.queueCalls + 1 or 1
+
+    if entry then
+        entry.isCancelled = true
+        if entry.timer then
+            entry.timer:Cancel()
+        end
+    end
+
+    if queueCalls > 5 then
+        debounceQueue[key] = nil
+
+        if InCombatLockdown() then
+            return
+        end
+
+        SafeCall(func)
+
         return
     end
 
     delay = tonumber(delay) or 3
     delay = math.min(math.max(delay, debounceMinimum), debounceMaximum)
 
-    local entry = debounceQueue[key]
+    entry = {
+        isCancelled = false,
+        queueCalls = queueCalls
+    }
 
-    if entry and entry.timer then
-        entry.timer.cancelled = true
-    end
-
-    entry = { cancelled = false }
-    debounceQueue[key] = entry
-
-    C_Timer.After(delay, function()
-        if debounceQueue[key] == nil or entry.cancelled then
-            return
-        end
+    entry.timer = C_Timer.NewTimer(delay, function()
+        local existing = debounceQueue[key]
 
         debounceQueue[key] = nil
 
-        func()
+        if existing == nil or entry.isCancelled then
+            return
+        end
+
+        if InCombatLockdown() then
+            return
+        end
+
+        SafeCall(func)
     end)
+
+    debounceQueue[key] = entry
 end
 
 function addon:FrameRestore(categoryName, parentFrame)
@@ -253,7 +288,6 @@ end
 
 function addon:GetKnownSlots()
     local knownSlots = {}
-    local numGeneral, numCharacter = GetNumMacros()
 
     for slot = 1, 180 do
         local actionType, actionID, actionSubType = GetActionInfo(slot)
