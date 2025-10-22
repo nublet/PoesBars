@@ -62,7 +62,7 @@ local function GetSlotKeyBind(slot)
 end
 
 function KnownSlot:IsMatch(itemID, itemName, spellID, spellName)
-    if itemID > 0 then
+    if itemID and itemID > 0 then
         if self.itemID == itemID then
             return true
         elseif string.find(self.macroBody, "/use item:" .. itemID) then
@@ -72,7 +72,7 @@ function KnownSlot:IsMatch(itemID, itemName, spellID, spellName)
         end
     end
 
-    if spellID > 0 then
+    if spellID and spellID > 0 then
         if self.spellID == spellID then
             return true
         end

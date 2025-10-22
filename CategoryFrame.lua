@@ -417,6 +417,11 @@ function CategoryFrame:CheckSpells()
         icon:SetParent(categoryIgnored.frame)
     end
 
+    categoryUnknown.icons = {}
+    for categoryName, parentTable in pairs(categoryTables) do
+        parentTable.icons = {}
+    end
+
     for iconKey, knownSpell in pairs(knownSpells) do
         local icon = existingIcons[iconKey]
         if icon == nil then

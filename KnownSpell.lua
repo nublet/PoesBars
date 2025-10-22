@@ -17,11 +17,11 @@ local function GetAura(auraList, currentSpellID, frame)
     local itemBuffs = nil
     local spellBuffs = nil
 
-    if frame.itemID > 0 then
+    if frame.itemID and frame.itemID > 0 then
         itemBuffs = addon.itemBuffs[frame.itemID]
     end
 
-    if frame.spellID > 0 then
+    if frame.spellID and frame.spellID > 0 then
         spellBuffs = addon.spellBuffs[frame.spellID]
     end
 
@@ -78,7 +78,7 @@ local function GetTotem(auraList, currentSpellID, frame)
 
     local totemBuffs = nil
 
-    if frame.spellID > 0 then
+    if frame.spellID and frame.spellID > 0 then
         totemBuffs = addon.totemBuffs[frame.spellID]
     end
 
@@ -358,11 +358,11 @@ function KnownSpell:CreateIcon()
     end
 
     function newFrame:RefreshIcon()
-        if self.slotID > 0 then
+        if self.slotID and self.slotID > 0 then
             self.itemID = GetInventoryItemID("player", self.slotID)
         end
 
-        if self.spellID > 0 then
+        if self.spellID and self.spellID > 0 then
             if C_Spell.IsSpellHarmful(self.spellID) then
                 self.isHarmful = true
             else
@@ -387,7 +387,7 @@ function KnownSpell:CreateIcon()
             newFrame.textureIcon:SetTexture(newFrame.iconID)
         end
 
-        if self.itemID > 0 then
+        if self.itemID and self.itemID > 0 then
             local item = Item:CreateFromItemID(self.itemID)
             local usable, noMana = C_Item.IsUsableItem(self.itemID)
 
@@ -567,7 +567,7 @@ function KnownSpell:CreateIcon()
         local spellCharges = nil
         local spellCooldownMS = 0
 
-        if self.itemID > 0 then
+        if self.itemID and self.itemID > 0 then
             currentSpellID = self.spellID
         else
             if self.spellID ~= overrideSpell then
@@ -601,8 +601,8 @@ function KnownSpell:CreateIcon()
             return
         end
 
-        if self.itemID > 0 then
-            if self.slotID and self.itemIsUsable == false then
+        if self.slotID and self.slotID > 0 then
+            if self.isUsable == false then
                 self.frameBorder:Hide()
                 self.textureIcon:SetDesaturated(true)
                 self.textureIcon:SetVertexColor(1, 1, 1)
@@ -614,7 +614,8 @@ function KnownSpell:CreateIcon()
 
                 return
             end
-        else
+        elseif self.itemID and self.itemID > 0 then
+        elseif self.spellID and self.spellID > 0 then
             if spellCooldownMS <= 0 then
                 if settingsTable.showWhenAvailable then
                     self:SetAlpha(0.0)

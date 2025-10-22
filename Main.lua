@@ -4,6 +4,9 @@ local lastActiveConfigID
 local lastImportString
 local lastSpecialization
 
+local LSM = LibStub("LibSharedMedia-3.0")
+LSM:Register("font", "Naowh", [[Interface\AddOns\PoesBars\FONTS\Naowh.ttf]])
+
 function PoesBarsCommands(msg, editbox)
 	msg = addon:NormalizeText(msg)
 
