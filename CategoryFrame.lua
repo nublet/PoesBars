@@ -184,14 +184,35 @@ local function RefreshFrame(parentTable)
             if validSettingNames[settingName] and validIcons[settingName] then
                 seenSettingNames[settingName] = true
 
-                table.insert(frameIcons, validIcons[settingName])
+                local icon = validIcons[settingName]
+                if icon then
+                    if icon.slotID and icon.slotID > 0 then
+                        table.insert(frameIcons, icon)
+                    elseif icon.itemID and icon.itemID > 0 then
+                        local count = C_Item.GetItemCount(icon.itemID, false, true, false, false)
+                        if count and count > 0 then
+                            table.insert(frameIcons, icon)
+                        end
+                    elseif icon.spellID and icon.spellID > 0 then
+                        table.insert(frameIcons, icon)
+                    end
+                end
             end
         end
     end
 
     for _, icon in pairs(parentTable.icons) do
         if not seenSettingNames[icon.settingName] then
-            table.insert(frameIcons, icon)
+            if icon.slotID and icon.slotID > 0 then
+                table.insert(frameIcons, icon)
+            elseif icon.itemID and icon.itemID > 0 then
+                local count = C_Item.GetItemCount(icon.itemID, false, true, false, false)
+                if count and count > 0 then
+                    table.insert(frameIcons, icon)
+                end
+            elseif icon.spellID and icon.spellID > 0 then
+                table.insert(frameIcons, icon)
+            end
         end
     end
 
