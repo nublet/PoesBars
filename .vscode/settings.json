@@ -47,7 +47,8 @@
     "PanelTemplates_TabResize",
     "EssentialCooldownViewer",
     "UtilityCooldownViewer",
-    "BACKPACK_CONTAINER"
+    "BACKPACK_CONTAINER",
+    "EditModeManagerFrame"
   ],
   "Lua.format.defaultConfig": {
     "break_all_list_when_line_exceed": "false",

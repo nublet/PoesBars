@@ -171,6 +171,75 @@ function KnownSlot:Get(actionText, itemID, macroBody, macroName, spellID, slot)
     return newItem
 end
 
+function KnownSlot:GetAll()
+    local knownSlots = {}
+
+    for slot = 1, 180 do
+        local actionType, actionID, actionSubType = GetActionInfo(slot)
+        local actionText = GetActionText(slot)
+
+        if actionType then
+            local newItem
+
+            if not actionSubType then
+                actionSubType = ""
+            end
+
+            if actionType == "companion" then
+                if actionSubType == "MOUNT" then
+                    newItem = KnownSlot:Get(actionText, -1, "", "", actionID, slot)
+                end
+            elseif actionType == "item" then
+                if actionSubType == "" then
+                    newItem = KnownSlot:Get(actionText, actionID, "", "", -1, slot)
+                end
+            elseif actionType == "macro" then
+                local macroName, macroIcon, macroBody = GetMacroInfo(actionText)
+
+                if actionSubType == "" then
+                    newItem = KnownSlot:Get(actionText, -1, macroBody, macroName, -1, slot)
+                elseif actionSubType == "item" then
+                    newItem = KnownSlot:Get(actionText, -1, macroBody, macroName, -1, slot)
+                elseif actionSubType == "MOUNT" then
+                    newItem = KnownSlot:Get(actionText, -1, macroBody, macroName, -1, slot)
+                elseif actionSubType == "spell" then
+                    newItem = KnownSlot:Get(actionText, -1, macroBody, macroName, actionID, slot)
+                else
+                    print("actionSubType:", actionSubType, ", actionID:", actionID, ", actionText:", actionText, ", macroName:", macroName, ", macroBody:", macroBody)
+                end
+            elseif actionType == "spell" then
+                if actionSubType == "assistedcombat" then
+                    newItem = KnownSlot:Get(actionText, -1, "", "", actionID, slot)
+                elseif actionSubType == "pet" then
+                    newItem = KnownSlot:Get(actionText, -1, "", "", actionID, slot)
+                elseif actionSubType == "spell" then
+                    newItem = KnownSlot:Get(actionText, -1, "", "", actionID, slot)
+                end
+            elseif actionType == "summonmount" then
+                if actionSubType == "" then
+                    local mountID = tonumber(actionID) or -1
+                    if mountID > 0 then
+                        local _, spellID = C_MountJournal.GetMountInfoByID(mountID)
+
+                        newItem = KnownSlot:Get(actionText, -1, "", "", spellID, slot)
+                    end
+                end
+            end
+
+            if newItem then
+                knownSlots[slot] = newItem
+            else
+                if actionType == "flyout" and actionSubType == "" then
+                else
+                    print("addon:GetKnownSlots. slot:", slot, ", actionType:", actionType, ", actionID:", actionID, ", actionSubType:", actionSubType, ", actionText:", actionText)
+                end
+            end
+        end
+    end
+
+    return knownSlots
+end
+
 function KnownSlot:GetKeyBind(itemID, itemName, spellID, spellName, knownSlots)
     for slot, knownSlot in pairs(knownSlots) do
         if knownSlot:IsMatch(itemID, itemName, spellID, spellName) then

@@ -10,9 +10,11 @@
 
 Data.lua
 Helpers.lua
+
+BagItems.lua
+CategoryFrame.lua
 KnownSlot.lua
 KnownSpell.lua
-Spells.lua
 
 SettingsDialog\Tabs\Categories.lua
 SettingsDialog\Tabs\ForcedItems.lua
@@ -22,4 +24,4 @@ SettingsDialog\Tabs\General.lua
 SettingsDialog\Initialize.lua
 SettingsDialog\Main.lua
 
-PoesBars.lua
+Main.lua

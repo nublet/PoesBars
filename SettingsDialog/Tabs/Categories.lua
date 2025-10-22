@@ -55,19 +55,19 @@ local function ClearScrollFrame()
     end
 end
 
-local function LoadLayout(category, playerSpecID)
+local function LoadLayout(categoryName)
     if InCombatLockdown() then
         return
     end
 
-    if not CategoryOrderDB[category] then
-        CategoryOrderDB[category] = {}
+    if not CategoryOrderDB[categoryName] then
+        CategoryOrderDB[categoryName] = {}
     end
 
     local yOffset = 0
     local seenSettingNames = {}
 
-    for _, settingName in ipairs(CategoryOrderDB[category]) do
+    for _, settingName in ipairs(CategoryOrderDB[categoryName]) do
         if optionLines[settingName] then
             seenSettingNames[settingName] = true
 
@@ -81,15 +81,15 @@ local function LoadLayout(category, playerSpecID)
         if not seenSettingNames[settingName] then
             frameLine:SetPoint("TOPLEFT", 0, yOffset)
 
-            table.insert(CategoryOrderDB[category], settingName)
+            table.insert(CategoryOrderDB[categoryName], settingName)
 
             yOffset = yOffset - addon.settingsIconSize - 10
         end
     end
 end
 
-local function MoveSetting(category, playerSpecID, settingName, direction)
-    local orderTable = CategoryOrderDB[category]
+local function MoveSetting(categoryName, settingName, direction)
+    local orderTable = CategoryOrderDB[categoryName]
     if not orderTable then
         return
     end
@@ -100,7 +100,7 @@ local function MoveSetting(category, playerSpecID, settingName, direction)
             if targetIndex >= 1 and targetIndex <= #orderTable then
                 orderTable[i], orderTable[targetIndex] = orderTable[targetIndex], orderTable[i]
 
-                LoadLayout(category, playerSpecID)
+                LoadLayout(categoryName)
             end
 
             break
@@ -108,8 +108,8 @@ local function MoveSetting(category, playerSpecID, settingName, direction)
     end
 end
 
-local function CreateOptionLine(category, knownSpell)
-    if knownSpell.itemID <= 0 and knownSpell.spellID <= 0 then
+function GetOptionLine(categoryName, knownSpell)
+    if knownSpell.itemID <= 0 and knownSpell.slotID <= 0 and knownSpell.spellID <= 0 then
         return nil
     end
 
@@ -121,23 +121,50 @@ local function CreateOptionLine(category, knownSpell)
     if not categoryValue or categoryValue == "" then
         categoryValue = addon.categoryUnknown
     end
-    if category ~= categoryValue then
+    if categoryName ~= categoryValue then
         return nil
     end
 
     local frameLine = CreateFrame("Frame", nil, frameScrollChild)
     frameLine:SetPoint("TOPLEFT", 0, 0)
     frameLine:SetSize(1, 1)
-    frameLine.category = category
-    frameLine.itemID = knownSpell.itemID
-    frameLine.settingName = knownSpell.settingName
-    frameLine.specID = knownSpell.specID
-    frameLine.spellID = knownSpell.spellID
+
+    frameLine.categoryName = categoryName
+    knownSpell:CopyTo(frameLine)
 
     local frameIcon = CreateFrame("Frame", nil, frameLine)
     frameIcon:EnableMouse(true)
     frameIcon:SetPoint("TOPLEFT", 0, 0)
     frameIcon:SetSize(addon.settingsIconSize, addon.settingsIconSize)
+    frameIcon:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+
+    if frameLine.slotID > 0 then
+        frameIcon:SetAttribute("type", "item")
+        frameIcon:SetAttribute("item", "slot:" .. frameLine.slotID)
+        frameIcon:SetScript("OnEnter", function(control)
+            GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
+            GameTooltip:SetInventoryItem("player", frameLine.slotID)
+            GameTooltip:Show()
+        end)
+    elseif frameLine.itemID > 0 then
+        frameIcon:SetAttribute("type", "item")
+        frameIcon:SetAttribute("item", "item:" .. frameLine.itemID)
+        frameIcon:SetScript("OnEnter", function(control)
+            GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
+            GameTooltip:SetItemByID(frameLine.itemID)
+            GameTooltip:Show()
+        end)
+    else
+        frameIcon:SetAttribute("type", "spell")
+        frameIcon:SetAttribute("spell", frameLine.spellID)
+        frameIcon:SetScript("OnEnter", function(control)
+            GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
+            GameTooltip:SetSpellByID(frameLine.spellID)
+            GameTooltip:Show()
+        end)
+    end
     frameIcon:SetScript("OnLeave", function()
         GameTooltip:Hide()
     end)
@@ -155,16 +182,29 @@ local function CreateOptionLine(category, knownSpell)
     dropdownCategory:SetPoint("LEFT", textName, "RIGHT", 10, 0)
 
     local buttonMoveDown = addon:GetControlButton(true, "Down", frameLine, 60, function(control)
-        MoveSetting(category, knownSpell.playerSpecID, knownSpell.settingName, 1)
+        MoveSetting(categoryName, frameLine.settingName, 1)
     end)
     buttonMoveDown:SetPoint("TOPLEFT", dropdownCategory, "RIGHT", 5, 0)
 
     local buttonMoveUp = addon:GetControlButton(true, "Up", frameLine, 60, function(control)
-        MoveSetting(category, knownSpell.playerSpecID, knownSpell.settingName, -1)
+        MoveSetting(categoryName, frameLine.settingName, -1)
     end)
     buttonMoveUp:SetPoint("BOTTOMLEFT", dropdownCategory, "RIGHT", 5, 0)
 
-    if knownSpell.itemID > 0 then
+    if frameLine.slotID > 0 then
+        textID:SetText(frameLine.slotID)
+
+        local item = Item:CreateFromItemID(GetInventoryItemID("player", frameLine.slotID))
+        item:ContinueOnItemLoad(function()
+            local itemName = item:GetItemName()
+            local itemTexture = item:GetItemIcon()
+
+            textName:SetText(itemName)
+            textureIcon:SetTexture(itemTexture)
+        end)
+    elseif frameLine.itemID > 0 then
+        textID:SetText(frameLine.itemID)
+
         local font = LSM:Fetch("font", SettingsDB.fontName) or "Fonts\\FRIZQT__.TTF"
 
         local textRank = frameIcon:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -175,13 +215,12 @@ local function CreateOptionLine(category, knownSpell)
         textRank:SetText("")
         textRank:SetTextColor(0, 1, 0, 1)
 
-        local item = Item:CreateFromItemID(knownSpell.itemID)
+        local item = Item:CreateFromItemID(frameLine.itemID)
         item:ContinueOnItemLoad(function()
             local itemName = item:GetItemName()
             local itemLink = item:GetItemLink()
             local itemTexture = item:GetItemIcon()
 
-            textID:SetText(knownSpell.itemID)
             textName:SetText(itemName)
             textureIcon:SetTexture(itemTexture)
 
@@ -202,21 +241,15 @@ local function CreateOptionLine(category, knownSpell)
 
         frameIcon:SetScript("OnEnter", function(control)
             GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
-            GameTooltip:SetItemByID(knownSpell.itemID)
+            GameTooltip:SetItemByID(frameLine.itemID)
             GameTooltip:Show()
         end)
-    elseif knownSpell.spellID > 0 then
-        local spellInfo = C_Spell.GetSpellInfo(knownSpell.spellID)
+    elseif frameLine.spellID > 0 then
+        local spellInfo = C_Spell.GetSpellInfo(frameLine.spellID)
 
-        textID:SetText(knownSpell.spellID)
+        textID:SetText(frameLine.spellID)
         textName:SetText(spellInfo.name)
         textureIcon:SetTexture(spellInfo.iconID)
-
-        frameIcon:SetScript("OnEnter", function(control)
-            GameTooltip:SetOwner(control, "ANCHOR_RIGHT")
-            GameTooltip:SetSpellByID(knownSpell.spellID)
-            GameTooltip:Show()
-        end)
     end
 
     dropdownCategory.initializeFunc = function(control, level, menuList)
@@ -224,7 +257,7 @@ local function CreateOptionLine(category, knownSpell)
             local info = UIDropDownMenu_CreateInfo()
             info.text = text
             info.func = function()
-                SpellsDB[knownSpell.specID][knownSpell.settingName] = text
+                SpellsDB[frameLine.specID][frameLine.settingName] = text
                 UIDropDownMenu_SetSelectedName(dropdownCategory, text)
             end
             UIDropDownMenu_AddButton(info)
@@ -296,26 +329,26 @@ function addon:GetCategoriesSettings(parent)
 
                     frameScroll:SetScrollChild(frameScrollChild)
 
-                    local category = text
-                    if not category or category == "" then
-                        category = addon.categoryUnknown
+                    local categoryName = text
+                    if not categoryName or categoryName == "" then
+                        categoryName = addon.categoryUnknown
                     end
 
-                    UIDropDownMenu_SetSelectedName(categoryDropdown, category)
+                    UIDropDownMenu_SetSelectedName(categoryDropdown, categoryName)
 
-                    if category == addon.categoryIgnored or category == addon.categoryUnknown then
+                    if categoryName == addon.categoryIgnored or categoryName == addon.categoryUnknown then
                         frameScroll:SetPoint("TOPLEFT", categoryLabel, "BOTTOMLEFT", 0, 0)
                     else
-                        local settingsTable = addon:GetSettingsTable(category)
+                        local settingsTable = addon:GetSettingsTable(categoryName)
 
                         local categoryDelete = addon:GetControlButton(true, "Delete", frameContainer, 60, function(control)
-                            if category == "" or category == addon.categoryIgnored or category == "Add New..." or category == addon.categoryUnknown then
+                            if categoryName == "" or categoryName == addon.categoryIgnored or categoryName == "Add New..." or categoryName == addon.categoryUnknown then
                                 return
                             end
 
                             for _, innerTable in pairs(SpellsDB) do
                                 for key, value in pairs(innerTable) do
-                                    if value == category then
+                                    if value == categoryName then
                                         innerTable[key] = ""
                                     end
                                 end
@@ -610,19 +643,14 @@ function addon:GetCategoriesSettings(parent)
                     end
                     frameScroll:SetPoint("BOTTOMRIGHT", frameContainer, "BOTTOMRIGHT", -30, 0)
 
-                    for key, knownSpell in pairs(addon:GetKnownSpells()) do
-                        if knownSpell.isTrinket == false then
-                            local frameLine = CreateOptionLine(category, knownSpell)
-                            if frameLine then
-                                optionLines[frameLine.settingName] = frameLine
-                            end
+                    for iconKey, knownSpell in pairs(KnownSpell:GetAll()) do
+                        local frameLine = GetOptionLine(categoryName, knownSpell)
+                        if frameLine then
+                            optionLines[frameLine.settingName] = frameLine
                         end
                     end
 
-                    local playerSpecID = addon:GetPlayerSpecID()
-                    if playerSpecID and playerSpecID > 0 then
-                        LoadLayout(category, playerSpecID)
-                    end
+                    LoadLayout(categoryName)
                 end
             end
             UIDropDownMenu_AddButton(info)
