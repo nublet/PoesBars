@@ -90,10 +90,7 @@ function addon:ToggleSettingsDialog()
         addon.isLoaded = false
         addon.isSettingsShown = false
 
-        addon:Debounce("InitializeIcons", 1, function()
-            addon:InitializeIcons()
-            addon.isLoaded = true
-        end)
+        CategoryFrame:Create()
     end)
     frame:SetScript("OnShow", function()
         local shownContainer = FindValueInTableIf(tabContainers, function(c) return c:IsShown() end)
