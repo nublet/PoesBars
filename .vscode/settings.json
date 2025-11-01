@@ -48,7 +48,8 @@
     "EssentialCooldownViewer",
     "UtilityCooldownViewer",
     "BACKPACK_CONTAINER",
-    "EditModeManagerFrame"
+    "EditModeManagerFrame",
+    "ChatFrame_AddMessageEventFilter"
   ],
   "Lua.format.defaultConfig": {
     "break_all_list_when_line_exceed": "false",

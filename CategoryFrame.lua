@@ -448,14 +448,14 @@ function CategoryFrame:CheckSpells()
         if icon == nil then
             icon = knownSpell:CreateIcon()
             if icon then
-                icon:RefreshIcon()
-                icon:RefreshKeyBind(knownSlots)
-
                 existingIcons[iconKey] = icon
             end
         end
 
         if icon then
+            icon:RefreshIcon()
+            icon:RefreshKeyBind(knownSlots)
+
             icon:ClearAllPoints()
             icon:Hide()
             icon:SetParent(categoryIgnored.frame)

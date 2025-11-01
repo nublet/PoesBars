@@ -169,6 +169,8 @@ local function OnEvent(self, event, ...)
 				end
 			end)
 		end
+
+		addon:InitializeSpinner()
 	end
 end
 

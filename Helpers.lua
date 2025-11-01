@@ -289,11 +289,11 @@ end
 function addon:GetNumberOrDefault(defaultValue, number)
     local valueNumber = addon:NormalizeNumber(number)
 
-    if valueNumber < 0 then
-        return defaultValue
+    if valueNumber then
+        return valueNumber
     end
 
-    return number
+    return defaultValue
 end
 
 function addon:GetPlayerSpecID()

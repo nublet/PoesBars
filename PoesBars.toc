@@ -1,12 +1,12 @@
-## Interface: 110200
+## Interface: 110205
 ## Title: PoesBars
 ## Description: Organizes abilities and buffs
 ## Notes: Organizes abilities and buffs
 ## Author: Poesboi
 ## Credits: 
-## Version: 25.0.6.221
+## Version: 25.0.6.222
 ## RequiredDeps: SharedMedia
-## SavedVariables: CategoryOrderDB, SettingsDB, SpellsDB
+## SavedVariables: CategoryOrderDB, SettingsDB, SpellsDB, SpinMeBabyDB
 
 Data.lua
 Helpers.lua
@@ -23,5 +23,7 @@ SettingsDialog\Tabs\General.lua
 
 SettingsDialog\Initialize.lua
 SettingsDialog\Main.lua
+
+SpinMeBaby.lua
 
 Main.lua
