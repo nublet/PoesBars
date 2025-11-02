@@ -221,6 +221,10 @@ local function RefreshFrame(parentTable)
             local icon = frameIcons[i]
 
             if parentTable.categoryName == addon.categoryUnknown then
+                iconSize = 64
+                iconSpacing = 2
+                wrapAfter = 0
+
                 icon.textID:Show()
 
                 icon:EnableMouse(false)

@@ -49,7 +49,8 @@
     "UtilityCooldownViewer",
     "BACKPACK_CONTAINER",
     "EditModeManagerFrame",
-    "ChatFrame_AddMessageEventFilter"
+    "ChatFrame_AddMessageEventFilter",
+    "KnownSpell"
   ],
   "Lua.format.defaultConfig": {
     "break_all_list_when_line_exceed": "false",

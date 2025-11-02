@@ -186,6 +186,10 @@ local function CreateFirework()
 end
 
 local function PoesWhisperFilter(self, event, text, playerName, languageName, channelName, playerName2, specialFlags, zoneChannelID, channelIndex, channelBaseName, languageID, lineID, guid, bnSenderID, isMobile, isSubtitle, hideSenderInLetterbox, suppressRaidIcons)
+	if InCombatLockdown() then
+		return
+	end
+
 	if not text then
 		return
 	end
@@ -256,6 +260,10 @@ function addon:InitializeSpinner()
 	frameSpinner:SetSize(900, 900)
 
 	frameSpinner:SetScript("OnClick", function()
+		if InCombatLockdown() then
+			return
+		end
+
 		frameSpinner:Hide()
 		SaveView(1)
 		MoveViewRightStart(8)
