@@ -287,13 +287,15 @@ function addon:GetFrame(categoryName)
 end
 
 function addon:GetNumberOrDefault(defaultValue, number)
-    local valueNumber = addon:NormalizeNumber(number)
-
-    if valueNumber and valueNumber > 0 then
-        return valueNumber
+    if number == nil then
+        return defaultValue
     end
 
-    return defaultValue
+    if number < 0 then
+        return defaultValue
+    end
+
+    return number
 end
 
 function addon:GetPlayerSpecID()
@@ -364,26 +366,6 @@ function addon:GetValidCategories()
     end
 
     return validCategories
-end
-
-function addon:NormalizeNumber(number)
-    local valueString = ""
-
-    if number then
-        valueString = strtrim(number)
-    end
-
-    if valueString == "" then
-        return -1
-    end
-
-    local valueNumber = tonumber(number) or -1
-
-    if valueNumber and valueNumber > 0 then
-        return valueNumber
-    end
-
-    return -1
 end
 
 function addon:NormalizeText(text)

@@ -144,12 +144,12 @@ end
 function KnownSlot:Get(actionText, itemID, macroBody, macroName, spellID, slot)
     local newItem = setmetatable({}, KnownSlot)
     newItem.actionText = addon:NormalizeText(actionText)
-    newItem.itemID = addon:NormalizeNumber(itemID)
+    newItem.itemID = addon:GetNumberOrDefault(-1, itemID)
     newItem.itemName = ""
     newItem.macroBody = addon:NormalizeText(macroBody)
     newItem.macroName = addon:NormalizeText(macroName)
-    newItem.slot = addon:NormalizeNumber(slot)
-    newItem.spellID = addon:NormalizeNumber(spellID)
+    newItem.slot = addon:GetNumberOrDefault(-1, slot)
+    newItem.spellID = addon:GetNumberOrDefault(-1, spellID)
     newItem.spellName = ""
 
     newItem.keyBind = ReplaceBindings(GetSlotKeyBind(newItem.slot))

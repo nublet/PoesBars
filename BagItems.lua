@@ -28,7 +28,7 @@ function BagItems:Cache()
 
             local itemInfo = C_Container.GetContainerItemInfo(bagID, slotID)
             if itemInfo then
-                newItemID = addon:NormalizeNumber(itemInfo.itemID)
+                newItemID = addon:GetNumberOrDefault(-1, itemInfo.itemID)
             end
 
             previousBagState[bagID][slotID] = newItemID
@@ -42,11 +42,11 @@ function BagItems:Check()
     for bagID = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
         for slotID = 1, C_Container.GetContainerNumSlots(bagID) do
             local newItemID = -1
-            local oldItemID = addon:NormalizeNumber(previousBagState[bagID][slotID])
+            local oldItemID = addon:GetNumberOrDefault(-1, previousBagState[bagID][slotID])
 
             local itemInfo = C_Container.GetContainerItemInfo(bagID, slotID)
             if itemInfo then
-                newItemID = addon:NormalizeNumber(itemInfo.itemID)
+                newItemID = addon:GetNumberOrDefault(-1, itemInfo.itemID)
             end
 
             previousBagState[bagID][slotID] = newItemID

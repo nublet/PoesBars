@@ -416,7 +416,7 @@ function KnownSpell:CreateIcon()
                     end
                 end
 
-                self.spellID = addon:NormalizeNumber(self.spellID)
+                self.spellID = addon:GetNumberOrDefault(-1, self.spellID)
 
                 if self.spellID > 0 then
                     local spellInfo = C_Spell.GetSpellInfo(self.spellID)
@@ -844,13 +844,13 @@ function KnownSpell:Add(itemID, playerSpecID, slotID, specID, spellID, knownSpel
     newItem.iconID = -1
     newItem.isHarmful = false
     newItem.isUsable = false
-    newItem.itemID = addon:NormalizeNumber(itemID)
+    newItem.itemID = addon:GetNumberOrDefault(-1, itemID)
     newItem.itemName = ""
     newItem.itemRank = ""
-    newItem.playerSpecID = addon:NormalizeNumber(playerSpecID)
-    newItem.slotID = addon:NormalizeNumber(slotID)
-    newItem.specID = addon:NormalizeNumber(specID)
-    newItem.spellID = addon:NormalizeNumber(spellID)
+    newItem.playerSpecID = addon:GetNumberOrDefault(-1, playerSpecID)
+    newItem.slotID = addon:GetNumberOrDefault(-1, slotID)
+    newItem.specID = addon:GetNumberOrDefault(-1, specID)
+    newItem.spellID = addon:GetNumberOrDefault(-1, spellID)
     newItem.spellName = ""
 
     if newItem.slotID > 0 then
