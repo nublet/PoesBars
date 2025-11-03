@@ -47,6 +47,8 @@ end
 
 local function CheckTextBinding(fontSize, icon, knownSlots)
     if not icon.textBinding then
+        fontSize = addon:GetNumberOrDefault(12, fontSize)
+
         icon.frameText = CreateFrame("Frame", nil, icon)
         icon.frameText:SetAllPoints(icon)
         icon.frameText:SetFrameLevel(icon:GetFrameLevel() + 1)

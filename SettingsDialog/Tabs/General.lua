@@ -41,7 +41,7 @@ local function CreateTestIcon()
     frameCooldown:SetToplevel(false)
 
     local textBinding = frameSample:CreateFontString(nil, "OVERLAY")
-    textBinding:SetFont(font, SettingsDB.bindingFontSize or 12, SettingsDB.bindingFontFlags or "OUTLINE")
+    textBinding:SetFont(font, addon:GetNumberOrDefault(12, SettingsDB.bindingFontSize), SettingsDB.bindingFontFlags or "OUTLINE")
     textBinding:SetPoint("TOPRIGHT", frameSample, "TOPRIGHT", 0, 0)
     textBinding:SetText("")
     textBinding:SetTextColor(1, 1, 1, 1)
@@ -51,7 +51,7 @@ local function CreateTestIcon()
     end
 
     local textCharges = frameSample:CreateFontString(nil, "OVERLAY")
-    textCharges:SetFont(font, SettingsDB.chargesFontSize or 12, SettingsDB.chargesFontFlags or "OUTLINE")
+    textCharges:SetFont(font, addon:GetNumberOrDefault(12, SettingsDB.chargesFontSize), SettingsDB.chargesFontFlags or "OUTLINE")
     textCharges:SetTextColor(1, 1, 1, 1)
     textCharges:SetPoint("BOTTOMRIGHT", frameSample, "BOTTOMRIGHT", 0, 0)
     textCharges:SetText("42")
@@ -61,7 +61,7 @@ local function CreateTestIcon()
     end
 
     local textCooldown = frameSample:CreateFontString(nil, "OVERLAY")
-    textCooldown:SetFont(font, SettingsDB.cooldownFontSize or 16, SettingsDB.cooldownFontFlags or "OUTLINE")
+    textCooldown:SetFont(font, addon:GetNumberOrDefault(16, SettingsDB.cooldownFontSize), SettingsDB.cooldownFontFlags or "OUTLINE")
     textCooldown:SetPoint("CENTER", frameSample, "CENTER", 0, 0)
     textCooldown:SetText("42")
     textCooldown:SetTextColor(1, 0, 0, 1)
@@ -71,7 +71,7 @@ local function CreateTestIcon()
     end
 
     local textRank = frameSample:CreateFontString(nil, "OVERLAY")
-    textRank:SetFont(font, SettingsDB.rankFontSize or 12, SettingsDB.rankFontFlags or "OUTLINE")
+    textRank:SetFont(font, addon:GetNumberOrDefault(12, SettingsDB.rankFontSize), SettingsDB.rankFontFlags or "OUTLINE")
     textRank:SetPoint("BOTTOMLEFT", frameSample, "BOTTOMLEFT", 0, 0)
     textRank:SetText("")
     textRank:SetTextColor(0, 1, 0, 1)

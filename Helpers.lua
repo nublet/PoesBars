@@ -289,7 +289,7 @@ end
 function addon:GetNumberOrDefault(defaultValue, number)
     local valueNumber = addon:NormalizeNumber(number)
 
-    if valueNumber then
+    if valueNumber and valueNumber > 0 then
         return valueNumber
     end
 
@@ -379,11 +379,11 @@ function addon:NormalizeNumber(number)
 
     local valueNumber = tonumber(number) or -1
 
-    if valueNumber < 0 then
-        return -1
+    if valueNumber and valueNumber > 0 then
+        return valueNumber
     end
 
-    return valueNumber
+    return -1
 end
 
 function addon:NormalizeText(text)
