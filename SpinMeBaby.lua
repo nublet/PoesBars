@@ -196,14 +196,14 @@ local function PoesWhisperFilter(self, event, text, playerName, languageName, ch
 
 	text = addon:NormalizeText(text)
 
-	rollValue = addon:GetNumberOrDefault(-1, string.match(text, "^add back (%d+)$"))
+	rollValue = addon:GetNumberOrDefault(-1, tonumber(string.match(text, "^add back (%d+)$")))
 	if rollValue and rollValue > 0 then
 		SpinMeBabyDB[rollValue] = false
 
 		return true
 	end
 
-	rollValue = addon:GetNumberOrDefault(-1, string.match(text, "^force (%d+)$"))
+	rollValue = addon:GetNumberOrDefault(-1, tonumber(string.match(text, "^force (%d+)$")))
 	if rollValue and rollValue > 0 then
 		SpinMeBabyDB[rollValue] = false
 		frameSpinner:Show()
