@@ -354,6 +354,15 @@ function addon:GetCategoriesSettings(parent)
                                 end
                             end
 
+                            CategoryOrderDB[categoryName] = nil
+                            SettingsDB[categoryName] = nil
+
+                            for index, valueName in ipairs(SettingsDB.validCategories) do
+                                if categoryName == valueName then
+                                    table.remove(SettingsDB.validCategories, index)
+                                end
+                            end
+
                             UIDropDownMenu_SetText(categoryDropdown, "<Select>")
                         end)
                         categoryDelete:SetPoint("LEFT", categoryInput, "RIGHT", 10, 0)
