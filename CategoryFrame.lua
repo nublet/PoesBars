@@ -234,7 +234,12 @@ local function RefreshFrame(parentTable)
                 icon:SetToplevel(false)
 
                 UnregisterAttributeDriver(icon, "state-visibility")
-                icon:Show()
+
+                if SettingsDB.hideUnknownCategory then
+                    icon:Hide()
+                else
+                    icon:Show()
+                end
             else
                 icon.textID:Hide()
 
@@ -339,6 +344,12 @@ function LoadFramePosition(categoryName, parentFrame)
 
     if categoryName == addon.categoryUnknown then
         parentFrame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+
+        if SettingsDB.hideUnknownCategory then
+            parentFrame:Hide()
+        else
+            parentFrame:Show()
+        end
     else
         local settingsTable = SettingsDB[categoryName] or {}
         local anchor = settingsTable.anchor or "CENTER"

@@ -124,12 +124,22 @@ function addon:GetGeneralSettings(parent)
         showGlobalSweep:SetChecked(false)
     end
 
+    local hideUnknownCategory = addon:GetControlCheckbox(false, "Hide Unknown Category", frameContainer, function(control)
+        SettingsDB.hideUnknownCategory = control:GetChecked()
+    end)
+    hideUnknownCategory:SetPoint("TOPLEFT", showGlobalSweep, "BOTTOMLEFT", 0, -10)
+    if SettingsDB.hideUnknownCategory then
+        hideUnknownCategory:SetChecked(true)
+    else
+        hideUnknownCategory:SetChecked(false)
+    end
+
     local isLocked = addon:GetControlCheckbox(false, "Lock Groups", frameContainer, function(control)
         SettingsDB.isLocked = control:GetChecked()
 
         addon:CheckLockState()
     end)
-    isLocked:SetPoint("TOPLEFT", showGlobalSweep, "BOTTOMLEFT", 0, -10)
+    isLocked:SetPoint("TOPLEFT", hideUnknownCategory, "BOTTOMLEFT", 0, -10)
     if SettingsDB.isLocked then
         isLocked:SetChecked(true)
     else
