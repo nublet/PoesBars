@@ -854,6 +854,11 @@ function KnownSpell:Add(itemID, playerSpecID, slotID, specID, spellID, knownSpel
     newItem.spellName = ""
 
     if newItem.slotID > 0 then
+        local slotItemID = addon:GetNumberOrDefault(-1, GetInventoryItemID("player", newItem.slotID))
+        if slotItemID <= 0 then
+            return nil
+        end
+
         newItem.settingName = newItem.slotID .. "_-1_-1"
     elseif newItem.itemID > 0 then
         newItem.settingName = newItem.itemID .. "_-1"
