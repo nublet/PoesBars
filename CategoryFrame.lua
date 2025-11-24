@@ -477,19 +477,19 @@ function CategoryFrame:CheckSpells()
             icon:Hide()
             icon:SetParent(categoryIgnored.frame)
 
-            if knownSpell.spellID > 0 and cooldownManagerSpells[knownSpell.spellID] and cooldownManagerSpells[knownSpell.spellID] == true then
-                SpellsDB[knownSpell.specID][knownSpell.settingName] = addon.categoryIgnored
-            else
-                local categoryName = SpellsDB[knownSpell.specID][knownSpell.settingName]
-                if not categoryName or categoryName == "" then
-                    categoryName = addon.categoryUnknown
-                end
-
-                local parentTable = categoryTables[categoryName]
-                if parentTable ~= nil then
-                    parentTable.icons[iconKey] = icon
-                end
+            --if knownSpell.spellID > 0 and cooldownManagerSpells[knownSpell.spellID] and cooldownManagerSpells[knownSpell.spellID] == true then
+            --SpellsDB[knownSpell.specID][knownSpell.settingName] = addon.categoryIgnored
+            --else
+            local categoryName = SpellsDB[knownSpell.specID][knownSpell.settingName]
+            if not categoryName or categoryName == "" then
+                categoryName = addon.categoryUnknown
             end
+
+            local parentTable = categoryTables[categoryName]
+            if parentTable ~= nil then
+                parentTable.icons[iconKey] = icon
+            end
+            --end
         end
     end
 

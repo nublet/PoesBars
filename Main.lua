@@ -38,22 +38,25 @@ local function OnEvent(self, event, ...)
 		addon.suppressTalentEvents = true
 
 		addon:Debounce("Main:TalentsChanged", 3, function()
-			local newActiveConfigID = C_ClassTalents.GetActiveConfigID()
-			local newImportString
-			local newSpecialization = GetSpecialization()
-			local wasChanged
+			local newActiveConfigID = addon:GetNumberOrDefault(-1, C_ClassTalents.GetActiveConfigID())
+			local newImportString = ""
+			local newSpecialization = addon:GetNumberOrDefault(-1, GetSpecialization())
 
-			if newActiveConfigID then
+			if newActiveConfigID and newActiveConfigID > 0 then
 				newImportString = C_Traits.GenerateImportString(newActiveConfigID)
-			else
-				newImportString = ""
 			end
+
+			local wasChanged
 
 			if lastActiveConfigID ~= newActiveConfigID then
 				wasChanged = true
-			elseif lastImportString ~= newImportString then
+			end
+
+			if lastImportString ~= newImportString then
 				wasChanged = true
-			elseif lastSpecialization ~= newSpecialization then
+			end
+
+			if lastSpecialization ~= newSpecialization then
 				wasChanged = true
 			end
 
