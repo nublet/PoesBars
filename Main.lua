@@ -193,6 +193,7 @@ eventFrame:SetSize(1, 1)
 eventFrame:SetScript("OnEvent", OnEvent)
 
 eventFrame:SetScript("OnUpdate", function()
+	CategoryFrame:UpdateAssistedCombatIcon()
 	CategoryFrame:UpdateIconState()
 end)
 

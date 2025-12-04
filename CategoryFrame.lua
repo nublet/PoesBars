@@ -8,6 +8,9 @@ local categoryTables = {}
 local categoryUnknown
 local cooldownManagerSpells = {}
 local existingIcons = {}
+local knownSlots = {}
+local updateAssistedCombatIconInterval = 0.1
+local updateAssistedCombatIconLast = 0
 local updateIconStateInterval = 0.25
 local updateIconStateLast = 0
 
@@ -16,7 +19,7 @@ local font = LSM:Fetch("font", "Naowh") or "Fonts\\FRIZQT__.TTF"
 
 -- Private
 
-local function CheckTextBindingKeyBind(icon, spellID, knownSlots)
+local function CheckTextBindingKeyBind(icon, spellID)
     if not spellID then
         return false
     end
@@ -45,7 +48,7 @@ local function CheckTextBindingKeyBind(icon, spellID, knownSlots)
     return false
 end
 
-local function CheckTextBinding(fontSize, icon, knownSlots)
+local function CheckTextBinding(fontSize, icon)
     if not icon.textBinding then
         fontSize = addon:GetNumberOrDefault(12, fontSize)
 
@@ -84,11 +87,11 @@ local function CheckTextBinding(fontSize, icon, knownSlots)
         cooldownManagerSpells[cooldownInfo.overrideSpellID] = true
     end
 
-    if CheckTextBindingKeyBind(icon, cooldownInfo.spellID, knownSlots) == true then
+    if CheckTextBindingKeyBind(icon, cooldownInfo.spellID) == true then
         return
     end
 
-    if CheckTextBindingKeyBind(icon, cooldownInfo.overrideSpellID, knownSlots) == true then
+    if CheckTextBindingKeyBind(icon, cooldownInfo.overrideSpellID) == true then
         return
     end
 
@@ -97,12 +100,161 @@ local function CheckTextBinding(fontSize, icon, knownSlots)
             if spellID and spellID > 0 then
                 cooldownManagerSpells[spellID] = true
 
-                if CheckTextBindingKeyBind(icon, spellID, knownSlots) == true then
+                if CheckTextBindingKeyBind(icon, spellID) == true then
                     return
                 end
             end
         end
     end
+end
+
+local function CreateAssistedCombatIcon()
+    if SettingsDB.rotationHelperShow == nil or SettingsDB.rotationHelperShow == false then
+        return
+    end
+
+    local newIcon = CreateFrame("Button", nil, UIParent, "SecureActionButtonTemplate")
+    newIcon:EnableKeyboard(false)
+    newIcon:EnableMouse(true)
+    newIcon:EnableMouseWheel(false)
+    newIcon:RegisterForDrag("LeftButton")
+    newIcon:SetClampedToScreen(true)
+    newIcon:SetDontSavePosition(true)
+    newIcon:SetFrameStrata("LOW")
+    newIcon:SetHitRectInsets(0, 0, 0, 0)
+    newIcon:SetMovable(true)
+    newIcon:SetPropagateKeyboardInput(true)
+    newIcon:SetToplevel(false)
+
+    newIcon:SetScript("OnDragStart", function(frame)
+        if IsControlKeyDown() then
+            frame:StartMoving()
+        end
+    end)
+
+    newIcon:SetScript("OnDragStop", function(frame)
+        frame:StopMovingOrSizing()
+
+        C_Timer.After(1, function()
+            local parentBottom = frame:GetBottom()
+            local parentCenterX, parentCenterY = frame:GetCenter()
+            local parentLeft = frame:GetLeft()
+            local parentRight = frame:GetRight()
+            local parentTop = frame:GetTop()
+            local screenCenterX, screenCenterY = UIParent:GetCenter()
+
+            if not SettingsDB.rotationHelperAnchor or SettingsDB.rotationHelperAnchor == "" then
+                SettingsDB.rotationHelperAnchor = "CENTER"
+            end
+
+            if SettingsDB.rotationHelperAnchor == "TOPLEFT" then
+                SettingsDB.rotationHelperLeft = parentLeft
+                SettingsDB.rotationHelperTop = parentTop
+            elseif SettingsDB.rotationHelperAnchor == "TOPRIGHT" then
+                SettingsDB.rotationHelperLeft = parentRight
+                SettingsDB.rotationHelperTop = parentTop
+            elseif SettingsDB.rotationHelperAnchor == "TOP" then
+                SettingsDB.rotationHelperLeft = parentCenterX
+                SettingsDB.rotationHelperTop = parentTop
+            elseif SettingsDB.rotationHelperAnchor == "BOTTOMLEFT" then
+                SettingsDB.rotationHelperLeft = parentLeft
+                SettingsDB.rotationHelperTop = parentBottom
+            elseif SettingsDB.rotationHelperAnchor == "BOTTOMRIGHT" then
+                SettingsDB.rotationHelperLeft = parentRight
+                SettingsDB.rotationHelperTop = parentBottom
+            elseif SettingsDB.rotationHelperAnchor == "BOTTOM" then
+                SettingsDB.rotationHelperLeft = parentCenterX
+                SettingsDB.rotationHelperTop = parentBottom
+            elseif SettingsDB.rotationHelperAnchor == "LEFT" then
+                SettingsDB.rotationHelperLeft = parentLeft
+                SettingsDB.rotationHelperTop = parentCenterY
+            elseif SettingsDB.rotationHelperAnchor == "RIGHT" then
+                SettingsDB.rotationHelperLeft = parentRight
+                SettingsDB.rotationHelperTop = parentCenterY
+            else
+                SettingsDB.rotationHelperLeft = parentCenterX
+                SettingsDB.rotationHelperTop = parentCenterY
+            end
+
+            SettingsDB.rotationHelperLeft = SettingsDB.rotationHelperLeft - screenCenterX
+            SettingsDB.rotationHelperTop = SettingsDB.rotationHelperTop - screenCenterY
+
+            addon.assistedCombatIcon:RefreshPosition()
+        end)
+    end)
+
+    newIcon.frameText = CreateFrame("Frame", nil, newIcon)
+    newIcon.frameText:SetAllPoints(newIcon)
+    newIcon.frameText:SetFrameLevel(newIcon:GetFrameLevel() + 1)
+
+    newIcon.textBinding = newIcon.frameText:CreateFontString(nil, "OVERLAY")
+    newIcon.textBinding:SetFont(font, addon:GetNumberOrDefault(12, SettingsDB.bindingFontSize), SettingsDB.bindingFontFlags or "OUTLINE")
+    newIcon.textBinding:SetPoint("TOPRIGHT", newIcon.frameText, "TOPRIGHT", 0, 0)
+    newIcon.textBinding:SetText("")
+    newIcon.textBinding:SetTextColor(1, 1, 1, 1)
+    newIcon.textBinding:SetShadowColor(0, 0, 0, 0.5)
+    newIcon.textBinding:SetShadowOffset(1, -1)
+
+    newIcon.textureIcon = newIcon:CreateTexture(nil, "ARTWORK")
+    newIcon.textureIcon:SetAllPoints(newIcon)
+
+    newIcon.iconID = -1
+    newIcon.spellID = -1
+    newIcon.spellName = ""
+
+    function newIcon:RefreshIcon()
+        if addon.assistedCombatSlot <= 0 then
+            return
+        end
+
+        local actionType, actionID, actionSubType = GetActionInfo(addon.assistedCombatSlot)
+        if actionID == nil then
+            return
+        end
+        if actionID <= 0 then
+            return
+        end
+        if actionID == self.spellID then
+            return
+        end
+
+        self.spellID = actionID
+        self.spellName = ""
+
+        local spellInfo = C_Spell.GetSpellInfo(self.spellID)
+        if spellInfo then
+            self.iconID = spellInfo.iconID
+            self.spellName = addon:NormalizeText(spellInfo.name)
+        end
+
+        self.textureIcon:SetTexture(self.iconID)
+
+        local keyBind = KnownSlot:GetKeyBind(-1, -1, self.spellID, self.spellName, knownSlots)
+
+        if keyBind and keyBind ~= "" then
+            self.textBinding:SetText(keyBind)
+        else
+            self.textBinding:SetText("")
+        end
+    end
+
+    function newIcon:RefreshPosition()
+        if not SettingsDB.rotationHelperAnchor or SettingsDB.rotationHelperAnchor == "" then
+            SettingsDB.rotationHelperAnchor = "CENTER"
+        end
+
+        local Height = addon:GetNumberOrDefault(64, SettingsDB.rotationHelperHeight)
+        local Left = addon:GetNumberOrDefault(0, SettingsDB.rotationHelperLeft)
+        local Top = addon:GetNumberOrDefault(0, SettingsDB.rotationHelperTop)
+        local Width = addon:GetNumberOrDefault(64, SettingsDB.rotationHelperWidth)
+
+        self:SetPoint(SettingsDB.rotationHelperAnchor, Left, Top)
+        self:SetSize(Width, Height)
+    end
+
+    newIcon:RefreshPosition()
+
+    addon.assistedCombatIcon = newIcon
 end
 
 local function GetFrame(categoryName)
@@ -434,19 +586,18 @@ function CategoryFrame:CheckSpells()
 
     local fontSizeEssential = addon:GetNumberOrDefault(16, SettingsDB.bindingFontSize)
     local fontSizeUtility = fontSizeEssential - 4
-    local knownSlots = KnownSlot:GetAll()
     local knownSpells = KnownSpell:GetAll()
 
     cooldownManagerSpells = {}
-
     categoryUnknown.icons = {}
+    knownSlots = KnownSlot:GetAll()
 
     for _, icon in ipairs({ EssentialCooldownViewer:GetChildren() }) do
-        CheckTextBinding(fontSizeEssential, icon, knownSlots)
+        CheckTextBinding(fontSizeEssential, icon)
     end
 
     for _, icon in ipairs({ UtilityCooldownViewer:GetChildren() }) do
-        CheckTextBinding(fontSizeUtility, icon, knownSlots)
+        CheckTextBinding(fontSizeUtility, icon)
     end
 
     for _, icon in pairs(existingIcons) do
@@ -505,8 +656,6 @@ function CategoryFrame:Create()
         return
     end
 
-    SettingsDB.isLocked = true
-
     categoryIgnored = {}
     categoryIgnored.categoryName = addon.categoryUnknown
     categoryIgnored.frame = GetFrame(addon.categoryUnknown)
@@ -532,6 +681,12 @@ function CategoryFrame:Create()
     end
 
     CategoryFrame:CheckSpells()
+
+    if addon.assistedCombatIcon == nil then
+        CreateAssistedCombatIcon()
+    end
+
+    CategoryFrame:Lock()
 
     addon.isLoaded = true
 end
@@ -564,6 +719,14 @@ function CategoryFrame:Lock()
 
             RefreshFrame(parentTable)
         end
+    end
+
+    if addon.assistedCombatIcon then
+        addon.assistedCombatIcon:EnableKeyboard(false)
+        addon.assistedCombatIcon:EnableMouse(false)
+        addon.assistedCombatIcon:EnableMouseWheel(false)
+        addon.assistedCombatIcon:RegisterForDrag()
+        addon.assistedCombatIcon:SetMovable(false)
     end
 end
 
@@ -619,6 +782,29 @@ function CategoryFrame:Unlock()
 
         RefreshFrame(parentTable)
     end
+
+    if addon.assistedCombatIcon then
+        addon.assistedCombatIcon:EnableMouse(true)
+        addon.assistedCombatIcon:RegisterForDrag("LeftButton")
+        addon.assistedCombatIcon:SetMovable(true)
+    end
+end
+
+function CategoryFrame:UpdateAssistedCombatIcon()
+    if SettingsDB.rotationHelperShow == nil or SettingsDB.rotationHelperShow == false then
+        return
+    end
+
+    local currentTime = GetTime()
+    if currentTime - updateAssistedCombatIconLast < updateAssistedCombatIconInterval then
+        return
+    end
+
+    if addon.assistedCombatIcon ~= nil then
+        addon.assistedCombatIcon:RefreshIcon()
+    end
+
+    updateAssistedCombatIconLast = GetTime()
 end
 
 function CategoryFrame:UpdateIconState()

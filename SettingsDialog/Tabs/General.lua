@@ -137,7 +137,11 @@ function addon:GetGeneralSettings(parent)
     local isLocked = addon:GetControlCheckbox(false, "Lock Groups", frameContainer, function(control)
         SettingsDB.isLocked = control:GetChecked()
 
-        addon:CheckLockState()
+        if SettingsDB.isLocked then
+            CategoryFrame:Lock()
+        else
+            CategoryFrame:Unlock()
+        end
     end)
     isLocked:SetPoint("TOPLEFT", hideUnknownCategory, "BOTTOMLEFT", 0, -10)
     if SettingsDB.isLocked then
@@ -181,7 +185,7 @@ function addon:GetGeneralSettings(parent)
     textBindingFontSize:SetPoint("LEFT", textBindingLabel, "RIGHT", 10, 0)
 
     local inputBinding = addon:GetControlInput(false, frameContainer, 30, function(control)
-        SettingsDB.bindingFontSize = addon:GetValueNumber(control:GetText())
+        SettingsDB.bindingFontSize = addon:GetNumberOrDefault(12, control:GetText())
         CreateTestIcon()
     end)
     inputBinding:SetNumeric(true)
@@ -231,7 +235,7 @@ function addon:GetGeneralSettings(parent)
     textChargesFontSize:SetPoint("LEFT", textChargesLabel, "RIGHT", 10, 0)
 
     local inputCharges = addon:GetControlInput(false, frameContainer, 30, function(control)
-        SettingsDB.chargesFontSize = addon:GetValueNumber(control:GetText())
+        SettingsDB.chargesFontSize = addon:GetNumberOrDefault(12, control:GetText())
         CreateTestIcon()
     end)
     inputCharges:SetNumeric(true)
@@ -281,7 +285,7 @@ function addon:GetGeneralSettings(parent)
     textCooldownFontSize:SetPoint("LEFT", textCooldownLabel, "RIGHT", 10, 0)
 
     local inputCooldown = addon:GetControlInput(false, frameContainer, 30, function(control)
-        SettingsDB.cooldownFontSize = addon:GetValueNumber(control:GetText())
+        SettingsDB.cooldownFontSize = addon:GetNumberOrDefault(12, control:GetText())
         CreateTestIcon()
     end)
     inputCooldown:SetNumeric(true)
@@ -331,7 +335,7 @@ function addon:GetGeneralSettings(parent)
     textRankFontSize:SetPoint("LEFT", textRankLabel, "RIGHT", 10, 0)
 
     local inputRank = addon:GetControlInput(false, frameContainer, 30, function(control)
-        SettingsDB.rankFontSize = addon:GetValueNumber(control:GetText())
+        SettingsDB.rankFontSize = addon:GetNumberOrDefault(12, control:GetText())
         CreateTestIcon()
     end)
     inputRank:SetNumeric(true)

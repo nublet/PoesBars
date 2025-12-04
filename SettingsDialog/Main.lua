@@ -2,10 +2,11 @@ local addonName, addon = ...
 
 local frameDialog
 local frameTabs = {
-    { name = "General",       callback = function(parent) return addon:GetGeneralSettings(parent) end },
-    { name = "Categories",    callback = function(parent) return addon:GetCategoriesSettings(parent) end },
-    { name = "Forced Items",  callback = function(parent) return addon:GetForcedItemsSettings(parent) end },
-    { name = "Forced Spells", callback = function(parent) return addon:GetForcedSpellsSettings(parent) end },
+    { name = "General",         callback = function(parent) return addon:GetGeneralSettings(parent) end },
+    { name = "Categories",      callback = function(parent) return addon:GetCategoriesSettings(parent) end },
+    { name = "Forced Items",    callback = function(parent) return addon:GetForcedItemsSettings(parent) end },
+    { name = "Forced Spells",   callback = function(parent) return addon:GetForcedSpellsSettings(parent) end },
+    { name = "Rotation Helper", callback = function(parent) return addon:GetRotationHelperSettings(parent) end },
 }
 
 function addon:ToggleSettingsDialog()

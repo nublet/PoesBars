@@ -178,12 +178,19 @@ function KnownSlot:GetAll()
         local actionType, actionID, actionSubType = GetActionInfo(slot)
         local actionText = GetActionText(slot)
 
-        if actionType then
-            local newItem
+        if not actionType then
+            actionType = ""
+        end
 
-            if not actionSubType then
-                actionSubType = ""
-            end
+        if not actionSubType then
+            actionSubType = ""
+        end
+
+        if actionSubType == "assistedcombat" then
+            addon.assistedCombatSlot = slot
+            addon.assistedCombatKeyBind = ReplaceBindings(GetSlotKeyBind(slot))
+        elseif actionType ~= "" then
+            local newItem
 
             if actionType == "companion" then
                 if actionSubType == "MOUNT" then

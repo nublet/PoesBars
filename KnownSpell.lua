@@ -342,6 +342,17 @@ function KnownSpell:CreateIcon()
         newFrame.textID:SetText(tostring(newFrame.itemID))
     else
         newFrame.textID:SetText(tostring(newFrame.spellID))
+
+        local portalName = addon.portalNames[newFrame.spellID]
+        if portalName and portalName ~= "" then
+            newFrame.portalName = newFrame.frameText:CreateFontString(nil, "OVERLAY")
+            newFrame.portalName:SetFont(font, 10, "OUTLINE")
+            newFrame.portalName:SetPoint("BOTTOM", newFrame.frameText, "BOTTOM", 0, 2)
+            newFrame.portalName:SetShadowColor(0, 0, 0, 0.5)
+            newFrame.portalName:SetShadowOffset(1, -1)
+            newFrame.portalName:SetTextColor(1, 1, 1, 1)
+            newFrame.portalName:SetText(portalName)
+        end
     end
     if SettingsDB.cooldownFontShadow then
         newFrame.textID:SetShadowColor(0, 0, 0, 0.5)
@@ -384,7 +395,7 @@ function KnownSpell:CreateIcon()
                 end
             end
 
-            newFrame.textureIcon:SetTexture(newFrame.iconID)
+            self.textureIcon:SetTexture(self.iconID)
         end
 
         if self.itemID and self.itemID > 0 then
@@ -430,7 +441,7 @@ function KnownSpell:CreateIcon()
                 self.iconID = item:GetItemIcon()
                 self.itemName = addon:NormalizeText(item:GetItemName())
 
-                newFrame.textureIcon:SetTexture(newFrame.iconID)
+                self.textureIcon:SetTexture(self.iconID)
 
                 local itemLink = item:GetItemLink()
                 if itemLink then

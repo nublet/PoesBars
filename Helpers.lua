@@ -286,12 +286,14 @@ function addon:GetFrame(categoryName)
     return newFrame
 end
 
-function addon:GetNumberOrDefault(defaultValue, number)
-    if number == nil then
+function addon:GetNumberOrDefault(defaultValue, value)
+    if value == nil then
         return defaultValue
     end
 
-    if number < 0 then
+    local number = tonumber(value)
+
+    if number == nil then
         return defaultValue
     end
 
