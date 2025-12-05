@@ -6,9 +6,9 @@ CategoryFrame.__index = KnownSlot
 local categoryIgnored
 local categoryTables = {}
 local categoryUnknown
-local cooldownManagerSpells = {}
 local existingIcons = {}
 local knownSlots = {}
+local linkedSpells = {}
 local updateAssistedCombatIconInterval = 0.1
 local updateAssistedCombatIconLast = 0
 local updateIconStateInterval = 0.25
@@ -82,27 +82,30 @@ local function CheckTextBinding(fontSize, icon)
         return
     end
 
-    cooldownManagerSpells[cooldownInfo.spellID] = true
+    local cooldownSpells = {}
+
+    table.insert(cooldownSpells, cooldownInfo.spellID)
+
     if cooldownInfo.overrideSpellID and cooldownInfo.overrideSpellID > 0 then
-        cooldownManagerSpells[cooldownInfo.overrideSpellID] = true
-    end
-
-    if CheckTextBindingKeyBind(icon, cooldownInfo.spellID) == true then
-        return
-    end
-
-    if CheckTextBindingKeyBind(icon, cooldownInfo.overrideSpellID) == true then
-        return
+        table.insert(cooldownSpells, cooldownInfo.overrideSpellID)
     end
 
     if cooldownInfo.linkedSpellIDs then
         for _, spellID in pairs(cooldownInfo.linkedSpellIDs) do
             if spellID and spellID > 0 then
-                cooldownManagerSpells[spellID] = true
+                table.insert(cooldownSpells, spellID)
+            end
+        end
+    end
 
-                if CheckTextBindingKeyBind(icon, spellID) == true then
-                    return
-                end
+    local bindingFound = false
+
+    for _, spellID in pairs(cooldownSpells) do
+        linkedSpells[spellID] = cooldownInfo.spellID
+
+        if not bindingFound then
+            if CheckTextBindingKeyBind(icon, spellID) == true then
+                bindingFound = true
             end
         end
     end
@@ -233,9 +236,59 @@ local function CreateAssistedCombatIcon()
 
         if keyBind and keyBind ~= "" then
             self.textBinding:SetText(keyBind)
-        else
-            self.textBinding:SetText("")
+
+            return
         end
+
+        local linkedSpellID = addon:GetNumberOrDefault(-1, linkedSpells[self.spellID])
+        if linkedSpellID > 0 then
+            local linkedSpellInfo = C_Spell.GetSpellInfo(linkedSpellID)
+            if linkedSpellInfo then
+                local spellName = addon:NormalizeText(linkedSpellInfo.name)
+
+                keyBind = KnownSlot:GetKeyBind(-1, -1, linkedSpellID, spellName, knownSlots)
+
+                if keyBind and keyBind ~= "" then
+                    self.textBinding:SetText(keyBind)
+
+                    return
+                end
+            end
+        end
+
+        local baseSpellID = addon:GetNumberOrDefault(-1, C_Spell.GetBaseSpell(self.spellID))
+        if baseSpellID > 0 then
+            local baseSpellInfo = C_Spell.GetSpellInfo(baseSpellID)
+            if baseSpellInfo then
+                local spellName = addon:NormalizeText(baseSpellInfo.name)
+
+                keyBind = KnownSlot:GetKeyBind(-1, -1, baseSpellID, spellName, knownSlots)
+
+                if keyBind and keyBind ~= "" then
+                    self.textBinding:SetText(keyBind)
+
+                    return
+                end
+            end
+        end
+
+        local overrideSpellID = addon:GetNumberOrDefault(-1, C_Spell.GetOverrideSpell(self.spellID))
+        if overrideSpellID > 0 then
+            local overrideSpellInfo = C_Spell.GetSpellInfo(overrideSpellID)
+            if overrideSpellInfo then
+                local spellName = addon:NormalizeText(overrideSpellInfo.name)
+
+                keyBind = KnownSlot:GetKeyBind(-1, -1, overrideSpellID, spellName, knownSlots)
+
+                if keyBind and keyBind ~= "" then
+                    self.textBinding:SetText(keyBind)
+
+                    return
+                end
+            end
+        end
+
+        self.textBinding:SetText("")
     end
 
     function newIcon:RefreshPosition()
@@ -588,9 +641,9 @@ function CategoryFrame:CheckSpells()
     local fontSizeUtility = fontSizeEssential - 4
     local knownSpells = KnownSpell:GetAll()
 
-    cooldownManagerSpells = {}
     categoryUnknown.icons = {}
     knownSlots = KnownSlot:GetAll()
+    linkedSpells = {}
 
     for _, icon in ipairs({ EssentialCooldownViewer:GetChildren() }) do
         CheckTextBinding(fontSizeEssential, icon)
@@ -628,9 +681,6 @@ function CategoryFrame:CheckSpells()
             icon:Hide()
             icon:SetParent(categoryIgnored.frame)
 
-            --if knownSpell.spellID > 0 and cooldownManagerSpells[knownSpell.spellID] and cooldownManagerSpells[knownSpell.spellID] == true then
-            --SpellsDB[knownSpell.specID][knownSpell.settingName] = addon.categoryIgnored
-            --else
             local categoryName = SpellsDB[knownSpell.specID][knownSpell.settingName]
             if not categoryName or categoryName == "" then
                 categoryName = addon.categoryUnknown
@@ -640,7 +690,6 @@ function CategoryFrame:CheckSpells()
             if parentTable ~= nil then
                 parentTable.icons[iconKey] = icon
             end
-            --end
         end
     end
 
