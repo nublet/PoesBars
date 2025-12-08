@@ -186,9 +186,21 @@ local function CreateAssistedCombatIcon()
         end)
     end)
 
+    newIcon.frameCooldownGCD = CreateFrame("Cooldown", nil, newIcon, "CooldownFrameTemplate")
+    newIcon.frameCooldownGCD:EnableKeyboard(false)
+    newIcon.frameCooldownGCD:EnableMouse(false)
+    newIcon.frameCooldownGCD:EnableMouseWheel(false)
+    newIcon.frameCooldownGCD:SetAllPoints(newIcon)
+    newIcon.frameCooldownGCD:SetDrawEdge(false)
+    newIcon.frameCooldownGCD:SetFrameLevel(newIcon:GetFrameLevel() + 1)
+    newIcon.frameCooldownGCD:SetHideCountdownNumbers(true)
+    newIcon.frameCooldownGCD:SetPropagateKeyboardInput(true)
+    newIcon.frameCooldownGCD:SetSwipeTexture("Interface\\Cooldown\\ping4", 1, 1, 1, 1)
+    newIcon.frameCooldownGCD:SetToplevel(false)
+
     newIcon.frameText = CreateFrame("Frame", nil, newIcon)
     newIcon.frameText:SetAllPoints(newIcon)
-    newIcon.frameText:SetFrameLevel(newIcon:GetFrameLevel() + 1)
+    newIcon.frameText:SetFrameLevel(newIcon:GetFrameLevel() + 10)
 
     newIcon.textBinding = newIcon.frameText:CreateFontString(nil, "OVERLAY")
     newIcon.textBinding:SetFont(font, addon:GetNumberOrDefault(12, SettingsDB.bindingFontSize), SettingsDB.bindingFontFlags or "OUTLINE")
@@ -867,6 +879,14 @@ function CategoryFrame:UpdateIconState()
     local playerBuffs = {}
     local playerTotems = {}
     local targetDebuffs = {}
+
+    if addon.assistedCombatIcon ~= nil then
+        if gcdCooldown.isEnabled and gcdCooldown.duration > 0 then
+            addon.assistedCombatIcon.frameCooldownGCD:SetCooldown(gcdCooldown.startTime, gcdCooldown.duration)
+        else
+            addon.assistedCombatIcon.frameCooldownGCD:Clear()
+        end
+    end
 
     while true do
         local aura = C_UnitAuras.GetDebuffDataByIndex("target", auraIndex, "HARMFUL")
