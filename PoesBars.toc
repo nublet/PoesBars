@@ -4,8 +4,8 @@
 ## Notes: Organizes abilities and buffs
 ## Author: Poesboi
 ## Credits: 
-## Version: 26.0.0.207
-## RequiredDeps: SharedMedia
+## Version: 26.0.1.201
+## RequiredDeps: LibSharedMedia-3.0
 ## SavedVariables: CategoryOrderDB, SettingsDB, SpellsDB, SpinMeBabyDB
 
 Data.lua

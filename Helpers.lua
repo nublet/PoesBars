@@ -320,7 +320,6 @@ function addon:GetSettingsTable(category)
     settingsTable.anchor = settingsTable.anchor or "CENTER"
     settingsTable.colorBasedOnState = settingsTable.colorBasedOnState or false
     settingsTable.displayWhen = settingsTable.displayWhen or "Always"
-    settingsTable.glowWhenAuraActive = settingsTable.glowWhenAuraActive or false
     settingsTable.glowWhenOverridden = settingsTable.glowWhenOverridden or false
     settingsTable.iconSize = settingsTable.iconSize or 64
     settingsTable.iconSpacing = settingsTable.iconSpacing or 2

@@ -9,187 +9,6 @@ local font = LSM:Fetch("font", "Naowh") or "Fonts\\FRIZQT__.TTF"
 
 -- Private
 
-local function GetAura(auraList, currentSpellID, frame)
-    if not auraList then
-        return nil
-    end
-
-    local itemBuffs = nil
-    local spellBuffs = nil
-
-    if frame.itemID and frame.itemID > 0 then
-        itemBuffs = addon.itemBuffs[frame.itemID]
-    end
-
-    if frame.spellID and frame.spellID > 0 then
-        spellBuffs = addon.spellBuffs[frame.spellID]
-    end
-
-    if itemBuffs then
-        for j = 1, #itemBuffs do
-            local auraName = itemBuffs[j]
-
-            for i = 1, #auraList do
-                local aura = auraList[i]
-
-                if aura.name == auraName then
-                    return aura
-                end
-            end
-        end
-    end
-
-    if spellBuffs then
-        for j = 1, #spellBuffs do
-            local auraName = spellBuffs[j]
-
-            for i = 1, #auraList do
-                local aura = auraList[i]
-
-                if aura.name == auraName then
-                    return aura
-                end
-            end
-        end
-    end
-
-    for i = 1, #auraList do
-        local aura = auraList[i]
-
-        if aura.spellId == currentSpellID or aura.spellId == frame.spellID or aura.name == frame.itemName or aura.name == frame.spellName then
-            if aura.name == "Ascendance" then
-                if aura.spellId == 457594 or aura.spellId == 458502 or aura.spellId == 458573 or aura.spellId == 463003 or aura.spellId == 463095 then
-                else
-                    return aura
-                end
-            else
-                return aura
-            end
-        end
-    end
-
-    return nil
-end
-
-local function GetTotem(auraList, currentSpellID, frame)
-    if not auraList then
-        return nil
-    end
-
-    local totemBuffs = nil
-
-    if frame.spellID and frame.spellID > 0 then
-        totemBuffs = addon.totemBuffs[frame.spellID]
-    end
-
-    if totemBuffs then
-        for j = 1, #totemBuffs do
-            local auraName = totemBuffs[j]
-
-            for i = 1, #auraList do
-                local aura = auraList[i]
-
-                if aura.name == auraName then
-                    return aura
-                end
-            end
-        end
-    end
-
-    for i = 1, #auraList do
-        local aura = auraList[i]
-
-        if aura.spellId == currentSpellID or aura.spellId == frame.spellID or aura.name == frame.itemName or aura.name == frame.spellName then
-            return aura
-        end
-    end
-
-    return nil
-end
-
-local function IsAuraActiveBuff(auraList, currentSpellID, frame)
-    local aura = GetAura(auraList, currentSpellID, frame)
-
-    if aura then
-        if aura.applications and aura.applications > 0 then
-            frame.auraStacks = aura.applications
-        elseif aura.charges and aura.charges > 0 then
-            frame.auraStacks = aura.charges
-        end
-
-        if aura.expirationTime <= 0 then
-            frame.auraIcon = aura.icon or -1
-            return true
-        else
-            local remaining = aura.expirationTime - GetTime()
-
-            if remaining > 0 then
-                frame.auraIcon = aura.icon or -1
-                frame.auraRemaining = remaining
-
-                return true
-            end
-        end
-    end
-
-    return false
-end
-
-local function IsAuraActiveDebuff(auraList, currentSpellID, frame)
-    local aura = GetAura(auraList, currentSpellID, frame)
-
-    if aura then
-        if aura.applications and aura.applications > 0 then
-            frame.auraStacks = aura.applications
-        elseif aura.charges and aura.charges > 0 then
-            frame.auraStacks = aura.charges
-        end
-
-        if aura.expirationTime <= 0 then
-            frame.auraIcon = aura.icon or -1
-            return true
-        else
-            local remaining = aura.expirationTime - GetTime()
-
-            if remaining > 0 then
-                frame.auraIcon = aura.icon or -1
-                frame.auraRemaining = remaining
-                return true
-            end
-        end
-    end
-
-    return false
-end
-
-local function IsAuraActiveTotem(auraList, currentSpellID, frame)
-    local aura = GetTotem(auraList, currentSpellID, frame)
-
-    if aura then
-        if aura.applications and aura.applications > 0 then
-            frame.auraStacks = aura.applications
-        elseif aura.charges and aura.charges > 0 then
-            frame.auraStacks = aura.charges
-        end
-
-        if aura.expirationTime <= 0 then
-            frame.auraIcon = aura.icon or -1
-            return true
-        else
-            local remaining = aura.expirationTime - GetTime()
-
-            if remaining > 0 then
-                frame.auraIcon = aura.icon or -1
-                frame.auraRemaining = remaining
-
-                return true
-            end
-        end
-    end
-
-    return false
-end
-
 function KnownSpell:CopyTo(targetFrame)
     targetFrame.iconID = self.iconID
     targetFrame.isHarmful = self.isHarmful
@@ -469,99 +288,7 @@ function KnownSpell:CreateIcon()
         end
     end
 
-    function newFrame:UpdateAuraBuff(currentSpellID, playerBuffs, playerTotems, settingsTable)
-        if settingsTable.showWhenAvailable then
-            return false
-        end
-
-        if IsAuraActiveBuff(playerBuffs, currentSpellID, self) == false then
-            if IsAuraActiveTotem(playerTotems, currentSpellID, self) == false then
-                return false
-            end
-        end
-
-        self:SetAlpha(1.0)
-        self.frameBorder:SetBackdropBorderColor(0, 1, 0, 1)
-        self.frameBorder:Show()
-        self.textureIcon:SetDesaturated(false)
-        self.textureIcon:SetVertexColor(0, 1, 0)
-
-        if self.auraIcon > 0 and self.currentIcon ~= self.auraIcon then
-            self.currentIcon = self.auraIcon
-            self.textureIcon:SetTexture(self.auraIcon)
-        end
-
-        if self.auraRemaining > 0 and self.auraRemaining <= 90 then
-            self.textCooldown:SetText(string.format("%d", self.auraRemaining))
-            self.textCooldown:SetTextColor(0, 1, 0, 1)
-        end
-
-        if self.auraStacks > 0 then
-            self.textCharges:SetText(tostring(self.auraStacks))
-        end
-
-        if self.auraRemaining > 0 and settingsTable.glowWhenAuraActive and not self.isGlowActive then
-            ActionButton_ShowOverlayGlow(self)
-            self.isGlowActive = true
-        end
-
-        return true
-    end
-
-    function newFrame:UpdateAuraDebuff(currentSpellID, settingsTable, spellCooldownMS, targetDebuffs)
-        if self.isHarmful == false then
-            return false
-        end
-
-        if settingsTable.showWhenAvailable then
-            return false
-        end
-
-        if spellCooldownMS > 0 then
-            return false
-        end
-
-        if IsAuraActiveDebuff(targetDebuffs, currentSpellID, self) == false then
-            return false
-        end
-
-        if settingsTable.showOnCooldown then
-            if self.auraRemaining <= 0 or self.auraRemaining > 5 then
-                self:SetAlpha(0.0)
-
-                return true
-            end
-        end
-
-        self:SetAlpha(1.0)
-        self.frameBorder:SetBackdropBorderColor(1, 0, 1, 1)
-        self.frameBorder:Show()
-        self.textureIcon:SetDesaturated(false)
-        self.textureIcon:SetVertexColor(1, 0, 1)
-
-        if self.auraIcon > 0 and self.currentIcon ~= self.auraIcon then
-            self.currentIcon = self.auraIcon
-            self.textureIcon:SetTexture(self.auraIcon)
-        end
-
-        if self.auraRemaining > 0 and self.auraRemaining <= 90 then
-            self.textCooldown:SetText(string.format("%d", self.auraRemaining))
-            self.textCooldown:SetTextColor(1, 0, 1, 1)
-        end
-
-        if self.auraStacks > 0 then
-            self.textCharges:SetText(tostring(self.auraStacks))
-        end
-
-        if self.auraRemaining > 0 and settingsTable.glowWhenAuraActive and not self.isGlowActive then
-            ActionButton_ShowOverlayGlow(self)
-            self.isGlowActive = true
-        end
-
-        return true
-    end
-
-    function newFrame:UpdateState(gcdCooldown, playerBuffs, playerTotems, settingsTable, targetDebuffs)
+    function newFrame:UpdateState(gcdDuration, gcdDurationIsActive, settingsTable)
         if SettingsDB.isLocked == false then
             self:SetAlpha(1.0)
             self.frameBorder:SetBackdropBorderColor(1, 1, 1, 1)
@@ -604,24 +331,11 @@ function KnownSpell:CreateIcon()
         self.textCharges:SetText("")
         self.textCooldown:SetText("")
 
-        if self:UpdateAuraBuff(currentSpellID, playerBuffs, playerTotems, settingsTable) then
-            return
-        end
-
-        if self:UpdateAuraDebuff(currentSpellID, settingsTable, spellCooldownMS, targetDebuffs) then
-            return
-        end
-
         if self.slotID and self.slotID > 0 then
             if self.isUsable == false then
                 self.frameBorder:Hide()
                 self.textureIcon:SetDesaturated(true)
                 self.textureIcon:SetVertexColor(1, 1, 1)
-
-                if settingsTable.glowWhenAuraActive and self.isGlowActive then
-                    ActionButton_HideOverlayGlow(self)
-                    self.isGlowActive = false
-                end
 
                 return
             end
@@ -641,11 +355,6 @@ function KnownSpell:CreateIcon()
                         self.textureIcon:SetDesaturated(true)
                         self.textureIcon:SetVertexColor(1, 1, 1)
                     end
-                end
-
-                if settingsTable.glowWhenAuraActive and self.isGlowActive then
-                    ActionButton_HideOverlayGlow(self)
-                    self.isGlowActive = false
                 end
 
                 return
@@ -678,7 +387,7 @@ function KnownSpell:CreateIcon()
             local startTime, duration, enable = C_Container.GetItemCooldown(self.itemID)
 
             if enable and duration > 0 then
-                if gcdCooldown.isEnabled and gcdCooldown.duration > 0 then
+                if gcdDurationIsActive then
                 else
                     self.frameCooldownSpell:SetCooldown(startTime, duration)
                 end
@@ -731,12 +440,13 @@ function KnownSpell:CreateIcon()
                 end
             end
 
-            local spellCooldown = C_Spell.GetSpellCooldown(currentSpellID)
+            local spellDuration = C_Spell.GetSpellCooldownDuration(currentSpellID)
+            local spellDurationIsActive = type(spellDuration) == "table" and spellDuration.IsActive and spellDuration:IsActive()
 
-            if spellCooldown and spellCooldown.isEnabled and spellCooldown.duration > 0 then
-                if gcdCooldown.isEnabled and gcdCooldown.duration > 0 then
+            if spellDurationIsActive then
+                if gcdDurationIsActive then
                 else
-                    self.frameCooldownSpell:SetCooldown(spellCooldown.startTime, spellCooldown.duration)
+                    self.frameCooldownSpell:SetCooldown(spellDuration:GetStartTime(), spellDuration:GetDuration())
                 end
             else
                 self.frameCooldownSpell:Clear()
@@ -755,8 +465,8 @@ function KnownSpell:CreateIcon()
                         self.frameBorder:Show()
                     end
                 else
-                    if spellCharges.cooldownStartTime and spellCharges.cooldownDuration and spellCharges.cooldownDuration > 2 then
-                        local remaining = (spellCharges.cooldownStartTime + spellCharges.cooldownDuration) - GetTime()
+                    if spellDurationIsActive then
+                        local remaining = spellDuration:GetRemaining()
                         if remaining > 0 then
                             if remaining < 90 then
                                 self.textCooldown:SetText(string.format("%d", remaining))
@@ -772,8 +482,8 @@ function KnownSpell:CreateIcon()
                     end
                 end
             else
-                if spellCooldown and spellCooldown.isEnabled and spellCooldown.duration > 2 then
-                    local remaining = (spellCooldown.startTime + spellCooldown.duration) - GetTime()
+                if spellDurationIsActive then
+                    local remaining = spellDuration:GetRemaining()
                     if remaining > 0 then
                         if remaining < 90 then
                             self.textCooldown:SetText(string.format("%d", remaining))
@@ -821,8 +531,8 @@ function KnownSpell:CreateIcon()
 
             if self.itemID <= 0 then
                 if SettingsDB.showGlobalSweep and self.frameCooldownGCD then
-                    if gcdCooldown.isEnabled and gcdCooldown.duration > 0 then
-                        self.frameCooldownGCD:SetCooldown(gcdCooldown.startTime, gcdCooldown.duration)
+                    if gcdDurationIsActive then
+                        self.frameCooldownGCD:SetCooldown(gcdDuration:GetStartTime(), gcdDuration:GetDuration())
                     else
                         self.frameCooldownGCD:Clear()
                     end

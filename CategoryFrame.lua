@@ -874,90 +874,14 @@ function CategoryFrame:UpdateIconState()
         return
     end
 
-    local auraIndex = 1
-    local gcdCooldown = C_Spell.GetSpellCooldown(61304)
-    local playerBuffs = {}
-    local playerTotems = {}
-    local targetDebuffs = {}
+    local gcdDuration = C_Spell.GetSpellCooldownDuration(61304)
+    local gcdDurationIsActive = type(gcdDuration) == "table" and gcdDuration.IsActive and gcdDuration:IsActive()
 
     if addon.assistedCombatIcon ~= nil then
-        if gcdCooldown.isEnabled and gcdCooldown.duration > 0 then
-            addon.assistedCombatIcon.frameCooldownGCD:SetCooldown(gcdCooldown.startTime, gcdCooldown.duration)
+        if gcdDurationIsActive then
+            addon.assistedCombatIcon.frameCooldownGCD:SetCooldown(gcdDuration:GetStartTime(), gcdDuration:GetDuration())
         else
             addon.assistedCombatIcon.frameCooldownGCD:Clear()
-        end
-    end
-
-    while true do
-        local aura = C_UnitAuras.GetDebuffDataByIndex("target", auraIndex, "HARMFUL")
-        if not aura then
-            break
-        end
-
-        if aura.isFromPlayerOrPlayerPet then
-            table.insert(targetDebuffs, aura)
-        end
-
-        auraIndex = auraIndex + 1
-    end
-
-    auraIndex = 1
-    while true do
-        local aura = C_UnitAuras.GetBuffDataByIndex("player", auraIndex, "HELPFUL")
-        if not aura then
-            break
-        end
-
-        if aura.isFromPlayerOrPlayerPet then
-            table.insert(playerBuffs, aura)
-        end
-
-        auraIndex = auraIndex + 1
-    end
-
-    auraIndex = 1
-    while true do
-        local aura = C_UnitAuras.GetBuffDataByIndex("pet", auraIndex, "HELPFUL")
-        if not aura then
-            break
-        end
-
-        if aura.isFromPlayerOrPlayerPet then
-            table.insert(playerBuffs, aura)
-        end
-
-        auraIndex = auraIndex + 1
-    end
-
-    for totemIndex = 1, MAX_TOTEMS do
-        local haveTotem, totemName, startTime, duration, icon, modRate, spellID = GetTotemInfo(totemIndex)
-        if totemName and totemName ~= "" then
-            table.insert(playerTotems,
-                {
-                    applications = 1,
-                    auraInstanceID = 1,
-                    canApplyAura = false,
-                    charges = 1,
-                    dispelName = "",
-                    duration = duration,
-                    expirationTime = startTime + duration,
-                    icon = icon,
-                    isBossAura = false,
-                    isFromPlayerOrPlayerPet = true,
-                    isHarmful = false,
-                    isHelpful = true,
-                    isNameplateOnly = false,
-                    isRaid = false,
-                    isStealable = false,
-                    maxCharges = 1,
-                    name = totemName,
-                    nameplateShowAll = false,
-                    nameplateShowPersonal = false,
-                    points = {},
-                    sourceUnit = "",
-                    spellId = spellID,
-                    timeMod = modRate,
-                })
         end
     end
 
@@ -965,7 +889,7 @@ function CategoryFrame:UpdateIconState()
         local settingsTable = addon:GetSettingsTable(categoryName)
 
         for _, icon in pairs(parentTable.icons) do
-            icon:UpdateState(gcdCooldown, playerBuffs, playerTotems, settingsTable, targetDebuffs)
+            icon:UpdateState(gcdDuration, gcdDurationIsActive, settingsTable)
         end
     end
 

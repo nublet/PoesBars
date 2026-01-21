@@ -418,30 +418,10 @@ function addon:GetCategoriesSettings(parent)
                             isClickableCheckbox:SetChecked(false)
                         end
 
-                        local colorBasedOnStateCheckbox = addon:GetControlCheckbox(true, "Color Based on State", frameContainer, function(control)
-                            settingsTable.colorBasedOnState = control:GetChecked()
-                        end)
-                        colorBasedOnStateCheckbox:SetPoint("LEFT", isClickableCheckbox, "RIGHT", 215, 0)
-                        if settingsTable.colorBasedOnState then
-                            colorBasedOnStateCheckbox:SetChecked(true)
-                        else
-                            colorBasedOnStateCheckbox:SetChecked(false)
-                        end
-
-                        local glowWhenAuraActiveCheckbox = addon:GetControlCheckbox(true, "Glow When Aura Active", frameContainer, function(control)
-                            settingsTable.glowWhenAuraActive = control:GetChecked()
-                        end)
-                        glowWhenAuraActiveCheckbox:SetPoint("TOPLEFT", isClickableCheckbox, "BOTTOMLEFT", 0, 0)
-                        if settingsTable.glowWhenAuraActive then
-                            glowWhenAuraActiveCheckbox:SetChecked(true)
-                        else
-                            glowWhenAuraActiveCheckbox:SetChecked(false)
-                        end
-
                         local glowWhenOverriddenCheckbox = addon:GetControlCheckbox(true, "Glow When Overridden ", frameContainer, function(control)
                             settingsTable.glowWhenOverridden = control:GetChecked()
                         end)
-                        glowWhenOverriddenCheckbox:SetPoint("LEFT", glowWhenAuraActiveCheckbox, "RIGHT", 215, 0)
+                        glowWhenOverriddenCheckbox:SetPoint("LEFT", isClickableCheckbox, "RIGHT", 215, 0)
                         if settingsTable.glowWhenOverridden then
                             glowWhenOverriddenCheckbox:SetChecked(true)
                         else
@@ -449,7 +429,7 @@ function addon:GetCategoriesSettings(parent)
                         end
 
                         local showOnCooldownCheckbox = addon:GetControlCheckbox(true, "Only Show On Cooldown or Aura Active", frameContainer)
-                        showOnCooldownCheckbox:SetPoint("TOPLEFT", glowWhenAuraActiveCheckbox, "BOTTOMLEFT", 0, 0)
+                        showOnCooldownCheckbox:SetPoint("TOPLEFT", isClickableCheckbox, "BOTTOMLEFT", 0, 0)
                         if settingsTable.showOnCooldown then
                             showOnCooldownCheckbox:SetChecked(true)
                         else
