@@ -301,9 +301,9 @@ function KnownSpell:CreateIcon()
         self.auraStacks = -1
 
         local currentSpellID
+        local hasSpellCooldown = false
         local overrideSpell = C_Spell.GetOverrideSpell(self.spellID) or self.spellID
         local spellCharges = nil
-        local spellCooldownMS = 0
 
         if self.itemID and self.itemID > 0 then
             currentSpellID = self.spellID
@@ -316,15 +316,9 @@ function KnownSpell:CreateIcon()
 
             spellCharges = C_Spell.GetSpellCharges(currentSpellID)
 
-            if spellCharges then
-                if spellCharges.cooldownDuration > 0 then
-                    spellCooldownMS = spellCharges.cooldownDuration * 1000
-                end
-            else
-                local cooldownMS, gcdMS = GetSpellBaseCooldown(currentSpellID)
-                if cooldownMS and cooldownMS > 0 then
-                    spellCooldownMS = cooldownMS
-                end
+            local cooldownMS, gcdMS = GetSpellBaseCooldown(currentSpellID)
+            if cooldownMS and cooldownMS > 0 then
+                hasSpellCooldown = true
             end
         end
 
@@ -341,7 +335,7 @@ function KnownSpell:CreateIcon()
             end
         elseif self.itemID and self.itemID > 0 then
         elseif self.spellID and self.spellID > 0 then
-            if spellCooldownMS <= 0 then
+            if hasSpellCooldown == false then
                 if settingsTable.showWhenAvailable then
                     self:SetAlpha(0.0)
                 else
@@ -452,36 +446,9 @@ function KnownSpell:CreateIcon()
                 self.frameCooldownSpell:Clear()
             end
 
-            if spellCharges and spellCharges.maxCharges > 1 then
-                self.textCharges:SetText(tostring(spellCharges.currentCharges))
+            local isSecret = C_Secrets.ShouldSpellCooldownBeSecret(currentSpellID)
 
-                if spellCharges.currentCharges > 0 then
-                    if settingsTable.showWhenAvailable then
-                        isVisible = true
-                    end
-
-                    if isVisible and spellCharges.currentCharges < spellCharges.maxCharges then
-                        self.frameBorder:SetBackdropBorderColor(1, 0, 0, 1)
-                        self.frameBorder:Show()
-                    end
-                else
-                    if spellDurationIsActive then
-                        local remaining = spellDuration:GetRemaining()
-                        if remaining > 0 then
-                            if remaining < 90 then
-                                self.textCooldown:SetText(string.format("%d", remaining))
-                                self.textCooldown:SetTextColor(1, 0, 0, 1)
-                            end
-
-                            if settingsTable.showOnCooldown then
-                                isVisible = true
-                            end
-
-                            isOnCooldown = true
-                        end
-                    end
-                end
-            else
+            if isSecret and isSecret == true then
                 if spellDurationIsActive then
                     local remaining = spellDuration:GetRemaining()
                     if remaining > 0 then
@@ -499,6 +466,57 @@ function KnownSpell:CreateIcon()
                 else
                     if settingsTable.showWhenAvailable then
                         isVisible = true
+                    end
+                end
+            else
+                if spellCharges and spellCharges.maxCharges > 1 then
+                    self.textCharges:SetText(tostring(spellCharges.currentCharges))
+
+                    if spellCharges.currentCharges > 0 then
+                        if settingsTable.showWhenAvailable then
+                            isVisible = true
+                        end
+
+                        if isVisible and spellCharges.currentCharges < spellCharges.maxCharges then
+                            self.frameBorder:SetBackdropBorderColor(1, 0, 0, 1)
+                            self.frameBorder:Show()
+                        end
+                    else
+                        if spellDurationIsActive then
+                            local remaining = spellDuration:GetRemaining()
+                            if remaining > 0 then
+                                if remaining < 90 then
+                                    self.textCooldown:SetText(string.format("%d", remaining))
+                                    self.textCooldown:SetTextColor(1, 0, 0, 1)
+                                end
+
+                                if settingsTable.showOnCooldown then
+                                    isVisible = true
+                                end
+
+                                isOnCooldown = true
+                            end
+                        end
+                    end
+                else
+                    if spellDurationIsActive then
+                        local remaining = spellDuration:GetRemaining()
+                        if remaining > 0 then
+                            if remaining < 90 then
+                                self.textCooldown:SetText(string.format("%d", remaining))
+                                self.textCooldown:SetTextColor(1, 0, 0, 1)
+                            end
+
+                            if settingsTable.showOnCooldown then
+                                isVisible = true
+                            end
+
+                            isOnCooldown = true
+                        end
+                    else
+                        if settingsTable.showWhenAvailable then
+                            isVisible = true
+                        end
                     end
                 end
             end
