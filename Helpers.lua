@@ -74,6 +74,10 @@ local function SaveFramePosition(categoryName, parentFrame)
 end
 
 function addon:AddTooltipID(id, label, tooltip)
+    if InCombatLockdown() then
+        return
+    end
+
     if not id or id == 0 then
         return
     end
