@@ -144,35 +144,6 @@ local function OnEvent(self, event, ...)
 			end)
 		end
 
-		if GameTooltip then
-			hooksecurefunc(GameTooltip, "SetUnitAura", function(control, unit, index, filter)
-				local aura = C_UnitAuras.GetAuraDataByIndex(unit, index, filter)
-				if aura then
-					addon:AddTooltipID(aura.spellId, "Spell ID", control)
-				end
-			end)
-		end
-
-		if TooltipDataProcessor then
-			TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tooltip, data)
-				if data and data.id then
-					addon:AddTooltipID(data.id, "Item ID", tooltip)
-				end
-			end)
-
-			TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Spell, function(tooltip, data)
-				if data and data.id then
-					addon:AddTooltipID(data.id, "Spell ID", tooltip)
-				end
-			end)
-
-			TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Quest, function(tooltip, data)
-				if data and data.id then
-					addon:AddTooltipID(data.id, "Quest ID", tooltip)
-				end
-			end)
-		end
-
 		addon:InitializeSpinner()
 	end
 end

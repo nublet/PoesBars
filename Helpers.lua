@@ -73,26 +73,6 @@ local function SaveFramePosition(categoryName, parentFrame)
     SettingsDB[categoryName] = settingTable
 end
 
-function addon:AddTooltipID(id, label, tooltip)
-    if InCombatLockdown() then
-        return
-    end
-
-    if not id or id == 0 then
-        return
-    end
-
-    for i = 1, tooltip:NumLines() do
-        local line = _G[tooltip:GetName() .. "TextLeft" .. i]
-        if line and line:GetText() and string.find(line:GetText(), label) then
-            return
-        end
-    end
-
-    tooltip:AddLine(string.format("|cff999999%s: %d", label, id))
-    tooltip:Show()
-end
-
 function addon:ClearRadios(radioGroup)
     for i = 1, #radioGroup do
         radioGroup[i]:SetChecked(false)
