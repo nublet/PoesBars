@@ -375,6 +375,10 @@ local function RefreshFrame(parentTable)
         return
     end
 
+    if parentTable.categoryName == addon.categoryUnknown and SettingsDB.hideUnknownCategory == true then
+        return
+    end
+
     local settingsTable = SettingsDB[parentTable.categoryName] or {}
 
     local categoryOrder = CategoryOrderDB[parentTable.categoryName]
@@ -696,6 +700,10 @@ function CategoryFrame:CheckSpells()
             local categoryName = SpellsDB[knownSpell.specID][knownSpell.settingName]
             if not categoryName or categoryName == "" then
                 categoryName = addon.categoryUnknown
+            end
+
+            if categoryName == addon.categoryUnknown and SettingsDB.hideUnknownCategory == true then
+                categoryName = addon.categoryIgnored
             end
 
             local parentTable = categoryTables[categoryName]
