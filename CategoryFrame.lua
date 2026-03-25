@@ -661,12 +661,14 @@ function CategoryFrame:CheckSpells()
     knownSlots = KnownSlot:GetAll()
     linkedSpells = {}
 
-    for _, icon in ipairs({ EssentialCooldownViewer:GetChildren() }) do
-        CheckTextBinding(fontSizeEssential, icon)
-    end
+    if SettingsDB.showKeyBinds then
+        for _, icon in ipairs({ EssentialCooldownViewer:GetChildren() }) do
+            CheckTextBinding(fontSizeEssential, icon)
+        end
 
-    for _, icon in ipairs({ UtilityCooldownViewer:GetChildren() }) do
-        CheckTextBinding(fontSizeUtility, icon)
+        for _, icon in ipairs({ UtilityCooldownViewer:GetChildren() }) do
+            CheckTextBinding(fontSizeUtility, icon)
+        end
     end
 
     for _, icon in pairs(existingIcons) do

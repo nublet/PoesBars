@@ -134,6 +134,16 @@ function addon:GetGeneralSettings(parent)
         hideUnknownCategory:SetChecked(false)
     end
 
+    local showKeyBinds = addon:GetControlCheckbox(false, "Show Key Binds", frameContainer, function(control)
+        SettingsDB.showKeyBinds = control:GetChecked()
+    end)
+    showKeyBinds:SetPoint("TOPLEFT", hideUnknownCategory, "BOTTOMLEFT", 0, -10)
+    if SettingsDB.showKeyBinds then
+        showKeyBinds:SetChecked(true)
+    else
+        showKeyBinds:SetChecked(false)
+    end
+
     local isLocked = addon:GetControlCheckbox(false, "Lock Groups", frameContainer, function(control)
         SettingsDB.isLocked = control:GetChecked()
 
@@ -143,7 +153,7 @@ function addon:GetGeneralSettings(parent)
             CategoryFrame:Unlock()
         end
     end)
-    isLocked:SetPoint("TOPLEFT", hideUnknownCategory, "BOTTOMLEFT", 0, -10)
+    isLocked:SetPoint("TOPLEFT", showKeyBinds, "BOTTOMLEFT", 0, -10)
     if SettingsDB.isLocked then
         isLocked:SetChecked(true)
     else
